@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { api, streamChat } from './api.js'
 import { applyTheme } from './theme.js'
 import { notifyAway, turnBody } from './notify.js'
+import { VoiceSession } from './voice.js'
+import { spokenFrom, progressLine } from './voice-text.js'
 import Sidebar from './components/Sidebar.jsx'
 import WhatsNew from './components/WhatsNew.jsx'
 import Chat, { GroupPicker } from './components/Chat.jsx'
@@ -76,6 +78,11 @@ function DesktopApp () {
   const [activity, setActivity] = useState([]) // tool feed for right panel
   const [usage, setUsage] = useState(null)
   const [error, setError] = useState(null)
+  // A spoken conversation over the open chat — see src/voice.js. One at a time,
+  // tied to the chat it was started in; switching chats ends it.
+  const voiceRef = useRef(null)
+  const [voice, setVoice] = useState({ state: 'off', sessionId: null, caption: null, seconds: null })
+  const voiceQueueRef = useRef([])   // delegations that arrived while a turn was running
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState('providers')
   const [agentView, setAgentView] = useState(null) // 'library' deep-links the Agents pane into the template gallery
@@ -486,10 +493,14 @@ function DesktopApp () {
 
   const send = async content => {
     if (!session || live?.streaming) return
-    // content is { text, attachments } from the composer
+    // content is { text, attachments } from the composer — or, from a voice
+    // session, { text, voice: <delegation id> }: the same turn, spoken in.
     const text = typeof content === 'string' ? content : content.text
     const attachments = (typeof content === 'object' && content.attachments) || []
     const skillIds = (typeof content === 'object' && content.skillIds) || []
+    const delegationId = (typeof content === 'object' && content.voice) || null
+    const vs = delegationId && voiceRef.current && voiceRef.current.sessionId === session.id ? voiceRef.current : null
+    let lastProgressAt = 0
     let target = session
     if (!target.provider || !target.model) {
       setError('Pick a model first (top right).')
@@ -546,6 +557,9 @@ function DesktopApp () {
             break
           case 'tool_start':
             endThinking()
+            // Quiet progress for the voice, at most every few seconds, so a
+            // person who asks "where are you with it?" gets a real answer.
+            if (vs && Date.now() - lastProgressAt > 4000) { lastProgressAt = Date.now(); vs.thinking(progressLine(ev.name, ev.args), delegationId) }
             if (ev.name === 'todo_write') break // rendered as the checklist, not a chip
             if (ev.name === 'show_widget') { liveMsg.parts.push({ type: 'tool', id: ev.id, name: 'show_widget', widget: ev.args, hidden: true }); break } // rendered as a rich widget
             liveMsg.parts.push({ type: 'tool', id: ev.id, name: ev.name, args: ev.args, pending: true })
@@ -569,10 +583,13 @@ function DesktopApp () {
           case 'approval_request':
             setApprovalFor(sessionId, { id: ev.id, name: ev.name, args: ev.args })
             notifyAway({ sessionId, title: chatTitle, body: `Waiting for you: approve ${ev.name}?` })
+            // Approvals stay in the app — the voice says so rather than deciding.
+            if (vs) vs.commentary(`I need your approval in the app before I run ${ev.name.replace(/_/g, ' ')}.`, delegationId)
             break
           case 'question_request':
             setQuestionFor(sessionId, { id: ev.id, question: ev.question, options: ev.options || [] })
             notifyAway({ sessionId, title: chatTitle, body: ev.question || 'Waiting for your answer.' })
+            if (vs) vs.commentary(`I have a question waiting in the app: ${ev.question || 'please answer it there.'}`, delegationId)
             break
           case 'plan_mode': setSession(s => (s && s.id === sessionId ? { ...s, planMode: ev.on } : s)); break
           case 'stats': if (openSessionRef.current === sessionId) setStats(ev.stats); break
@@ -610,6 +627,7 @@ function DesktopApp () {
           case 'error':
             if (openSessionRef.current === sessionId) setError(ev.message)
             notifyAway({ sessionId, title: chatTitle, body: `That turn failed: ${ev.message}` })
+            if (vs) vs.commentary(`That did not work: ${String(ev.message).slice(0, 300)}`, delegationId)
             break
           default: break
         }
@@ -622,6 +640,13 @@ function DesktopApp () {
     if (streamingRef.current.has(sessionId)) {
       streamingRef.current.delete(sessionId)
       setApprovalFor(sessionId, null)
+      // The spoken answer: the reply as prose, capped, handed to the voice to
+      // paraphrase. Sent whether the turn finished or dropped — silence is the
+      // one thing a person on a call cannot interpret.
+      if (vs) {
+        const said = spokenFrom(liveMsg.parts)
+        vs.commentary(said || (sawEnd ? 'Done — the result is in the chat.' : 'The connection to that turn dropped before it finished; what was done is saved in the chat.'), delegationId)
+      }
       // Only in the chat it happened in — an error banner about a turn you have
       // already navigated away from belongs to a conversation you are not reading.
       if (!sawEnd && openSessionRef.current === sessionId) setError(prev => prev || 'The connection to that turn dropped before it finished. Anything the agent had already done is saved; ask again to carry on.')
@@ -643,6 +668,45 @@ function DesktopApp () {
       if (lt && lt.sessionId === sessionId) { loopTurnRef.current = null; pumpLoop(lt.loopId) }
     }
   }
+
+  // ---------- voice ----------
+  // A delegation that arrives mid-turn waits for the turn; GPT-Live keeps the
+  // conversation going meanwhile ("still working on the last one").
+  const sendRef = useRef(null)
+  useEffect(() => { sendRef.current = send })
+  const drainVoiceQueue = () => {
+    const next = voiceQueueRef.current.shift()
+    if (next && sendRef.current) sendRef.current({ text: next.text, voice: next.id })
+  }
+  useEffect(() => { if (!live?.streaming && voiceQueueRef.current.length) drainVoiceQueue() }, [live?.streaming])
+
+  const toggleVoice = () => {
+    if (voiceRef.current) { voiceRef.current.stop(); return }
+    if (!session) return
+    const sessionId = session.id
+    const v = new VoiceSession({
+      sessionId,
+      onState: (state, extra) => {
+        setVoice(prev => ({ ...prev, state, sessionId, seconds: extra?.seconds ?? prev.seconds }))
+        if (state === 'off') { voiceRef.current = null; voiceQueueRef.current = []; setVoice({ state: 'off', sessionId: null, caption: null, seconds: null }) }
+      },
+      onCaption: caption => setVoice(prev => ({ ...prev, caption })),
+      onDelegate: ({ id, text }) => {
+        if (!text) { v.commentary('I did not catch that — could you say it again?', id); return }
+        if (streamingRef.current.has(sessionId)) {
+          voiceQueueRef.current.push({ id, text })
+          v.thinking('The previous request is still running; this one is queued behind it.', id)
+          return
+        }
+        sendRef.current?.({ text, voice: id })
+      },
+      onError: msg => setError(msg)
+    })
+    voiceRef.current = v
+    v.start()
+  }
+  // Switching chats ends the call: the voice is tied to the chat it was started in.
+  useEffect(() => { if (voiceRef.current && session?.id !== voiceRef.current.sessionId) voiceRef.current.stop() }, [session?.id])
 
   // ⚠️ SAY SO IMMEDIATELY. Stopping is not instant — an in-flight tool has to be
   // killed and the stream has to close — and with no acknowledgement the button
@@ -817,6 +881,8 @@ function DesktopApp () {
         onSetEffort={v => patchSession({ effort: v })}
         showThinking={config.settings.showThinking !== false}
         onToggleThinking={() => saveSettings({ showThinking: config.settings.showThinking === false })}
+        voice={config.settings.voice?.enabled ? voice : null}
+        onToggleVoice={toggleVoice}
         approvalMode={config.settings.approvalMode || 'ask'}
         onCycleApproval={() => { const order = ['ask', 'auto', 'off']; const cur = config.settings.approvalMode || 'ask'; saveSettings({ approvalMode: order[(order.indexOf(cur) + 1) % 3] }) }}
         question={question}

@@ -13,6 +13,7 @@ import pty from 'node-pty'
 import { execSync, spawn } from 'child_process'
 import { RADIANT_DIR, DIR_POINTER, defaultDataDir, dataDirStatus, loadConfig, saveConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession } from './config.js'
 import { runTurn, listModels } from './providers.js'
+import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from './voice.js'
 import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAccessToken, startDevice, pollDevice } from './oauth.js'
 import { checkForUpdate } from './updater.js'
 import { ollamaBin, hermesBin, SPAWN_ENV } from './ollama.js'
@@ -1625,6 +1626,24 @@ app.get('/api/dictate', async (req, res) => {
   startDictation(req, res, String(req.query.locale || 'en-US'))
 })
 
+// A spoken conversation over a chat: GPT-Live in front, this server's turn
+// behind. Optional (settings.voice.enabled) and keyed with the OpenAI key.
+app.post('/api/voice/session', async (req, res) => {
+  config = loadConfig()
+  const apiKey = voiceKey(config)
+  const bad = checkVoiceRequest({ settings: config.settings, apiKey, sdp: req.body?.sdp, signedIn: Boolean(config.oauth?.openai) })
+  if (bad) return res.status(bad.status).json({ error: bad.error })
+  const session = req.body?.sessionId ? loadSession(req.body.sessionId) : null
+  const provider = config.providers.find(p => p.id === 'openai')
+  try {
+    const body = liveSessionBody({ session, settings: config.settings, host: LOCK_HOST, sdp: req.body.sdp })
+    const result = await createLiveSession({ apiKey, body, baseUrl: provider?.baseUrl || 'https://api.openai.com/v1' })
+    res.status(201).json(result)
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+})
+
 app.post('/api/dictate/stop', async (req, res) => {
   const { stopDictation } = await import('./dictate.js')
   stopDictation()
@@ -2943,7 +2962,8 @@ app.post('/api/chat', async (req, res) => {
   // content is either a string or { text, attachments:[{name,mime,dataB64,kind}] }
   const text = typeof content === 'string' ? content : (content.text || '')
   const attachments = (typeof content === 'object' && content.attachments) || []
-  session.messages.push({ role: 'user', text, attachments })
+  const spoken = typeof content === 'object' && Boolean(content.voice)
+  session.messages.push({ role: 'user', text, attachments, ...(spoken ? { voice: true } : {}) })
   if (session.messages.length === 1 && session.autoTitle !== false) {
     // instant placeholder; upgraded to a nicer title after the turn (see below)
     session.title = text.length > 48 ? text.slice(0, 48) + '…' : (text || `${attachments.length} file(s)`)
@@ -3098,6 +3118,9 @@ app.post('/api/chat', async (req, res) => {
       if (plan.trim()) planAddendum = `[A lead model has planned the approach below — follow it, adapting as needed:]\n${plan.trim()}`
     }
   }
+  // Spoken in, spoken out: the reply is read aloud, so it has to lead with a
+  // sentence. Volatile, so it travels with the plan text, not the persona.
+  if (spoken) planAddendum = planAddendum ? `${planAddendum}\n\n${VOICE_ADDENDUM}` : VOICE_ADDENDUM
 
   const common = {
     provider,

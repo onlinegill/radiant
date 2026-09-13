@@ -1,6 +1,6 @@
 {
   "name": "radiant",
-  "version": "0.8.12",
+  "version": "0.9.0",
   "private": true,
   "description": "Radiant — a local coding harness: chat with coding agents across cloud and local models.",
   "author": "Tony Ricciardi",
@@ -89,7 +89,7 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "icon": "build/icon.icns",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "Radiant turns what you say into text in the message box. Audio is transcribed on this Mac and is never sent anywhere.",
+        "NSMicrophoneUsageDescription": "Radiant turns what you say into text in the message box; dictation is transcribed on this Mac. If you turn on voice conversations in Settings, your microphone goes to OpenAI while a call is open.",
         "NSSpeechRecognitionUsageDescription": "Radiant transcribes your dictation on this Mac, using Apple's on-device speech recognition. Nothing is sent to Apple or to any server."
       }
     },

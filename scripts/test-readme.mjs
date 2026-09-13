@@ -44,7 +44,11 @@ for (const m of readme.matchAll(/Settings → (\w[\w ]*?)(?= [a-z]+s\b| [a-z]+es
 
 // The model count in the prose must match the catalogue.
 const entries = (swift.match(/Entry\(id: "/g) || []).length
-const words = { forty: 40, 'forty-one': 41, 'forty-two': 42, 'forty-three': 43, 'forty-four': 44, 'forty-five': 45, 'forty-six': 46, 'forty-seven': 47, 'forty-eight': 48, 'forty-nine': 49, fifty: 50, 'fifty-one': 51, 'fifty-two': 52 }
+// ⚠️ THE TABLE ENDED AT FIFTY-TWO, so a catalogue of 53 matched "fifty" and the
+// gate reported 50 — a wrong number about the wrong number. Generated instead.
+const ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+const words = Object.fromEntries([['forty', 40], ['fifty', 50], ['sixty', 60], ['seventy', 70], ['eighty', 80], ['ninety', 90]]
+  .flatMap(([t, n]) => [[t, n], ...ONES.slice(1).map((o, i) => [`${t}-${o}`, n + i + 1])]))
 // Longest first: 'forty' is a substring of 'forty-four', and matching the
 // short one made the test report 40 against a catalogue of 44.
 const claimed = Object.entries(words)

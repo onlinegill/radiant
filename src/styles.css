@@ -3407,3 +3407,26 @@ html[data-window-chrome='native'] .brand { padding-top: 12px; }
    accent on a dark ground is a code that simply will not scan — so this one
    element ignores the theme on purpose. */
 .qr { border-radius: 6px; background: #fff; padding: 6px; flex: none; }
+
+/* ── voice conversation ──────────────────────────────────────────────────────
+   A call over the chat: GPT-Live speaks and listens, Radiant's own turn does
+   the work. The strip sits above the composer for as long as the call is open
+   — it is the one place that says audio is leaving the Mac. */
+.voice-strip {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  margin: 0 0 8px; padding: 6px 10px 6px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg-raised);
+  font-size: 12px; color: var(--text-muted);
+}
+.voice-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.voice-strip.is-listening .voice-dot { animation: voice-breathe 1.6s ease-in-out infinite; }
+.voice-strip.is-working .voice-dot { background: var(--text-faint); animation: voice-breathe 0.8s ease-in-out infinite; }
+.voice-strip.is-connecting .voice-dot, .voice-strip.is-closing .voice-dot { background: var(--text-faint); }
+@keyframes voice-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .voice-dot { animation: none !important; } }
+.voice-state { flex: none; color: var(--text); font-weight: 500; }
+.voice-caption { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice-caption b { color: var(--text); font-weight: 500; }
+.voice-meter { flex: none; font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-faint); }
+.attach-btn.is-voice.is-on { color: var(--accent); border-color: var(--accent); }
+.msg-spoken { display: inline-block; vertical-align: -1px; margin-right: 6px; opacity: .7; }

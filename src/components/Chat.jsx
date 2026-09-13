@@ -881,7 +881,7 @@ export function GroupPicker ({ agents, onStart, onCancel }) {
   )
 }
 
-export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking }) {
+export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking, voice = null, onToggleVoice }) {
   // ⚠️ TOOLS RUN ON THE SERVER'S MAC. Computer control is the one where that is
   // dangerous rather than merely surprising: the mouse that moves, the keys that
   // get typed and the screen that is captured all belong to the machine running
@@ -1261,6 +1261,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                           : <span key={j} className='msg-attach-file'><Icon.file size={13} /> {a.name}</span>)}
                       </div>
                     )}
+                    {m.voice && <span className='msg-spoken' title='Said aloud in a voice conversation'><Icon.waves size={12} /></span>}
                     {m.text}
                   </div>
                   {(onFork || onTruncate) && !live && (
@@ -1338,6 +1339,30 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
         </div>
       )}
       <div className='composer'>
+        {/* ⚠️ THE CALL SAYS WHERE THE AUDIO GOES. While a voice session is up the
+            microphone is streaming to OpenAI at their per-minute rate; the strip
+            says so with the running minutes, beside the captions — so nobody
+            forgets a call is open. (Tony: "make it optional.") */}
+        {voice && voice.state !== 'off' && (
+          <div className={'voice-strip is-' + voice.state} role='status' aria-live='polite'>
+            <span className='voice-dot' aria-hidden />
+            <span className='voice-state'>
+              {voice.state === 'connecting' ? 'Connecting…'
+                : voice.state === 'working' ? 'Working on it…'
+                  : voice.state === 'closing' ? 'Ending…'
+                    : 'Listening'}
+            </span>
+            <span className='voice-caption'>
+              {voice.caption?.text
+                ? <><b>{voice.caption.who === 'you' ? 'You' : 'Radiant'}:</b> {voice.caption.text}</>
+                : 'Say what you need. Anything real goes to the agent in this chat; approvals stay here.'}
+            </span>
+            <span className='voice-meter' title='Audio goes to OpenAI while the call is open'>
+              OpenAI · {voice.seconds != null ? `${Math.max(1, Math.round(voice.seconds / 60))} min` : '—'}
+            </span>
+            <button className='small-btn' onClick={onToggleVoice}>End</button>
+          </div>
+        )}
         <TodoChecklist todos={todos} />
         {designAsk !== null && (
           <div className='design-ask'>
@@ -1463,6 +1488,16 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                   aria-pressed={dictating}
                   data-tip={dictating ? 'Stop dictating' : `Dictate — transcribed on this ${deviceNoun(platform)}`}
                 ><Icon.mic size={15} /><span className='pill-label'>{dictating ? 'Listening' : 'Dictate'}</span></button>)}
+              {/* Only rendered when Settings has voice on: off by default, and the
+                  button is the only thing that opens a call. */}
+              {voice && !onAnotherMac && (
+                <button
+                  className={'attach-btn is-voice' + (voice.state !== 'off' ? ' is-on' : '')}
+                  onClick={onToggleVoice}
+                  title={voice.state !== 'off' ? 'End the voice conversation' : 'Talk to Radiant'}
+                  aria-pressed={voice.state !== 'off'}
+                  data-tip={voice.state !== 'off' ? 'End the voice conversation' : 'Talk to Radiant — a live voice conversation\nover this chat. Audio goes to OpenAI (GPT-Live);\nthe thinking stays on this chat\u2019s model.'}
+                ><Icon.waves size={15} /><span className='pill-label'>{voice.state !== 'off' ? 'On a call' : 'Talk'}</span></button>)}
               <button className='attach-btn' onClick={() => fileInputRef.current?.click()} title='Attach files or images' data-tip='Attach files or images'><Icon.plus size={17} /></button>
               <button className={'attach-btn' + (designBusy ? ' is-capturing' : '')} onClick={startDesign} disabled={designBusy} title='Design Mode' data-tip={'Design Mode — open a web page and click\nan element to capture its HTML, CSS &\na screenshot as context'}><Icon.target size={16} /></button>
               {activeSkillIds.length > 0 && activeSkillIds.map(id => {

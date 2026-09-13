@@ -147,6 +147,15 @@ advertised 0.6.74 while 0.6.100 was current.
 
 ## Sharp edges
 
+- **Voice conversations are opt-in and the key is server-side.** `src/voice.js`
+  (WebRTC to GPT-Live from the renderer) and `server/voice.js` (creates the
+  session with an OpenAI *API key* — a ChatGPT sign-in cannot; `voiceKey()`
+  takes any key on the OpenAI roster). Client delegation only: the thinking is
+  always Radiant's own turn. Nothing runs unless `settings.voice.enabled`.
+  `scripts/test-voice.mjs` covers everything short of a microphone; the
+  in-app Browser pane blocks the mic, so an end-to-end check needs the
+  packaged app.
+
 - **Two icons, not one.** `build/icon.png` + `build/icon.icns` is the Mac Dock
   icon and copies AiOS's geometry (body 0.896 of canvas, swirl 0.678, measured
   off `~/Projects/aios-claude/mac/icon-1024.png`). The web/iOS set —

@@ -35,6 +35,7 @@ run "phone link"     node scripts/test-phone-link.mjs
 run "extension status" node scripts/test-extension-status.mjs
 run "turn context"   node scripts/test-turn-context.mjs
 run "api & css"      node scripts/test-api.mjs
+run "voice"          node scripts/test-voice.mjs
 run "app layout"     node scripts/test-app-layout.mjs
 run "tool bounds"    node scripts/test-tool-bounds.mjs
 run "graph rules"    node scripts/test-graph.mjs

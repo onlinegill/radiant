@@ -46,7 +46,7 @@ const sections = () => [
   {
     title: 'Choosing a model',
     body: [
-      'There are forty-nine to choose from, grouped by who made them — Google, Meta, Mistral, Microsoft, IBM, Alibaba, Apple, NVIDIA and more. Tap a name to open that shelf; tap it again to close it. Five of them can look at pictures, and one of those can watch a short clip.',
+      'There are fifty-three to choose from, grouped by who made them — Google, Meta, Mistral, Microsoft, IBM, Alibaba, Apple, NVIDIA and more. Tap a name to open that shelf; tap it again to close it. Seven of them can look at pictures, and one of those can watch a short clip.',
       `Every model is labeled for THIS ${deviceWord()}. Green runs well. Amber runs, but close to the limit — expect it to be slow, and to reload when you switch apps. Red is not expected to load at all. The label is guidance, not a lock: you can still download a red model and try it.`,
       `That label is about memory, not storage, and they are different questions: a phone can easily have room for a file it cannot then run. Bigger models answer better and use more battery. Qwen 3 1.7B is a good place to start on any recent ${deviceWord()}.`,
       `The panel above the list shows what this ${deviceWord()} gives Radiant to work with. It is less than the phone's total memory, because iOS limits how much any single app may use.`

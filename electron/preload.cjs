@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('radiantNative', {
     return () => ipcRenderer.removeListener('rad:config-changed', h)
   },
   openSettings: tab => ipcRenderer.send('rad:open-settings', tab),
+  // The microphone, for a voice conversation. macOS asks once, with the usage
+  // string from package.json; a refusal comes back false rather than as a
+  // getUserMedia error nobody can read.
+  askMicrophone: () => ipcRenderer.invoke('rad:ask-microphone'),
   pickFolder: (current, title) => ipcRenderer.invoke('rad:pick-folder', current, title),
   // Either kind, for the Graph view. pickFolder stays as it was — Settings uses it.
   pickPath: opts => ipcRenderer.invoke('rad:pick-path', opts),

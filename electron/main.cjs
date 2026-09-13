@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, nativeTheme, dialog, screen, session, globalShortcut, Notification } = require('electron')
+const { app, BrowserWindow, shell, ipcMain, nativeTheme, dialog, screen, session, globalShortcut, Notification, systemPreferences } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
@@ -41,6 +41,19 @@ ipcMain.on('radiant:set-bg', (e, color) => {
 // nothing visible happens, and the box springs back because the promise never
 // resolves. Tony, on a third Mac: "i cant click the ccheckbox. nothing checks
 // on."
+// Voice conversations capture the microphone in the renderer. On macOS the
+// TCC prompt has to be raised by the app, with the NSMicrophoneUsageDescription
+// in package.json; elsewhere there is nothing to ask and the answer is yes.
+ipcMain.handle('rad:ask-microphone', async () => {
+  if (process.platform !== 'darwin') return true
+  try {
+    const status = systemPreferences.getMediaAccessStatus('microphone')
+    if (status === 'granted') return true
+    if (status === 'denied' || status === 'restricted') return false
+    return await systemPreferences.askForMediaAccess('microphone')
+  } catch { return true }
+})
+
 ipcMain.handle('rad:pick-folder', async (e, current, title) => {
   const parent = BrowserWindow.fromWebContents(e.sender) || win || undefined
   const res = await dialog.showOpenDialog(parent, {
