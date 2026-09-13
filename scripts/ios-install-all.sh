@@ -50,9 +50,15 @@ echo "$DEVICES" | sed 's/^/   /'
 FIRST=$(echo "$DEVICES" | awk -F'\t' '{print $1; exit}')
 if [ -z "$FIRST" ]; then echo "no paired device — nothing installed"; exit 1; fi
 
-echo "== build (against $FIRST; one arm64 binary serves every device)"
+# ⚠️ NOT AGAINST A DEVICE. Building with -destination id=<udid> makes xcodebuild
+# wait for that device to mount its developer image, and the first run of this
+# script died there because the iPad had gone to sleep since it was listed.
+# One arm64 binary serves every device; the generic destination needs none of
+# them awake. (The earlier "unable to resolve module dependency: Cmlx" seen
+# with generic was the clobbered Package.swift, not the destination.)
+echo "== build (generic iOS; one arm64 binary serves every device)"
 LOG=/tmp/radiant-ios-build.log
-xcodebuild -project "$PROJ" -scheme App -destination "id=$FIRST" -configuration Debug \
+xcodebuild -project "$PROJ" -scheme App -destination "generic/platform=iOS" -configuration Debug \
   DEVELOPMENT_TEAM=$TEAM -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
   -skipPackagePluginValidation -skipMacroValidation build > "$LOG" 2>&1 \
   || { grep "error:" "$LOG" | sed 's/.*error: //' | sort -u | head -5; echo "build failed — see $LOG"; exit 1; }
