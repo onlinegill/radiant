@@ -153,10 +153,29 @@ function installUpdater ({ getWindow }) {
   autoUpdater.on('update-downloaded', info => send('downloaded', { version: info.version }))
   autoUpdater.on('error', err => send('error', { message: String(err && err.message || err) }))
 
+  // ⚠️ AN APP THAT IS NOT IN /Applications CANNOT UPDATE ITSELF, AND NOTHING
+  // SAID SO. Run from the disk image, or from Downloads with the quarantine
+  // flag, macOS translocates the bundle to a random read-only path
+  // (/private/var/.../AppTranslocation/...); electron-updater then downloads
+  // and fails to swap the bundle, quietly, every six hours — the Mac stays on
+  // whatever it opened with. Tony's dev MBP sat on 0.8.7 while every other Mac
+  // moved on. So the location is a fact the About pane can show, and the check
+  // names it instead of "You're up to date" or a silent failure.
+  function installLocation () {
+    const exe = process.execPath
+    const translocated = /\/AppTranslocation\//.test(exe)
+    const inApplications = /^\/Applications\//.test(exe)
+    const bundle = exe.replace(/\/Contents\/MacOS\/.*$/, '')
+    return { bundle, translocated, inApplications, updatable: !translocated }
+  }
+  ipcMain.handle('rad:install-location', () => installLocation())
+
   ipcMain.handle('rad:check-update', async () => {
     try {
+      const loc = installLocation()
       const r = await autoUpdater.checkForUpdates()
       const v = r && r.updateInfo && r.updateInfo.version
+      if (loc.translocated) return { version: v, current: app.getVersion(), hasUpdate: Boolean(v) && cmpVersion(v, app.getVersion()) > 0, blocked: `Radiant is running from ${loc.bundle.includes('.dmg') || /Volumes/.test(loc.bundle) ? 'the disk image' : 'a temporary location'}, so it cannot replace itself. Drag Radiant into the Applications folder and open it from there; updates work from then on.` }
       // ⚠️ COMPARE, DO NOT JUST TEST INEQUALITY. `v !== current` is also true
       // when the published release is OLDER than what is installed — a pulled
       // or rolled-back release would have been offered as an "update" that
@@ -182,6 +201,22 @@ function installUpdater ({ getWindow }) {
       return
     }
     const v = r && r.updateInfo && r.updateInfo.version
+    const loc = installLocation()
+    if (v && cmpVersion(v, app.getVersion()) > 0 && loc.translocated) {
+      // Downloading would only fail at the swap. Say the one thing that fixes it.
+      if (!silent && !dialogOpen) {
+        dialogOpen = true
+        try {
+          await dialog.showMessageBox(getWindow() || undefined, {
+            type: 'warning',
+            message: `Radiant ${v} is available, but this copy cannot update itself`,
+            detail: 'Radiant is running from the disk image or a temporary location, so macOS will not let it replace itself. Quit, drag Radiant into the Applications folder, and open it from there — it updates on its own after that.',
+            buttons: ['OK']
+          })
+        } finally { dialogOpen = false }
+      }
+      return
+    }
     if (v && cmpVersion(v, app.getVersion()) > 0) {
       // Anything staged that isn't this newest release would install the wrong
       // version on quit — and it is what made a multi-version gap take several

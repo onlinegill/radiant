@@ -1952,7 +1952,7 @@ function AboutPane ({ config, onSettings }) {
       if (native) {
         const r = await native.check()
         if (r.error) setStatus({ error: r.error })
-        else setStatus({ hasUpdate: r.hasUpdate, latest: r.version, current: r.current })
+        else setStatus({ hasUpdate: r.hasUpdate, latest: r.version, current: r.current, blocked: r.blocked || null })
       } else {
         const r = await api.updateCheck()
         setStatus({ hasUpdate: r.hasUpdate, latest: r.latest, current: r.current, downloadUrl: r.downloadUrl })
@@ -1993,7 +1993,10 @@ function AboutPane ({ config, onSettings }) {
         </button>
       </div>
 
-      {status && !status.error && (
+      {/* A copy that cannot replace itself says so, above everything else the
+          pane might say about versions — see installLocation() in updater.cjs. */}
+      {status?.blocked && <div className='error-note' style={{ marginTop: 10 }}>⚠ {status.blocked}</div>}
+      {status && !status.error && !status.blocked && (
         status.hasUpdate
           ? <div className='update-avail'>
               <div><strong>Radiant {status.latest}</strong> is available (you have {status.current}).</div>
@@ -2931,6 +2934,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['A copy that cannot update itself now says so', 'If Radiant is opened from the disk image, or from Downloads before it has been moved, macOS runs it from a temporary read-only spot and will not let it replace itself \u2014 so updates downloaded every six hours and quietly failed, and that Mac stayed on the version it opened with. Settings \u2192 About and Check for Updates\u2026 now say exactly that, with the fix: quit, drag Radiant into the Applications folder, open it from there. Updates work on their own after that.'],
       ['Every composer button grows into its word', 'Attach, Design and Skills now open into a labeled button on hover, the way Dictate, Talk and the toggles on the right already did \u2014 point at any icon under the message box and it tells you what it is.'],
       ['The sparkle button is Skills now', 'The button beside the microphone used to open Recipes, a menu of task templates. It opens your skills instead: pick one and it goes into the message as /name, visible and editable, and sending is what uses it \u2014 the same thing typing a slash does. Skills already pinned to the chat are left out, since they are on every turn anyway; with more than six there is a filter box. Recipes themselves still exist in Settings; they just no longer take a button.'],
       ['Several Macs on one folder is fine \u2014 the banner that said otherwise is gone', 'The bar across the bottom of the window that said \u201cRadiant is also open on <another Mac>\u2026 quit one of them\u201d was written for a two-Mac evening in August and was wrong advice for someone who runs five. Radiant re-reads the shared settings whenever another Mac writes them, so a theme or a key changed on one Mac shows up on the others within a few seconds and nothing is saved over it. The one thing to avoid is editing the same chat on two Macs at the same moment \u2014 the last one to finish wins. That sentence now lives in Settings \u2192 Devices, beside the other Macs, instead of across every window.'],
