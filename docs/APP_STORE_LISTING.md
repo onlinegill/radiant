@@ -191,6 +191,14 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+### Resubmitted 2026-09-14 10:15 AM — read from App Store Connect, not inferred
+
+Build 7 attached to version 1.0 (remove build 6 with the red minus, Add Build,
+pick 7, Save — verified by reload), **Update Review** on the version page,
+the reply posted in App Review (Messages: 3, mine at 10:14 AM), then
+**Resubmit to App Review**. Submission 4cc9084e-2de8-437a-9ced-494c5f0ff170,
+iOS App 1.0, **1.0 (7), Waiting for Review**.
+
 ### ⚠️ The upload needs an Apple ID in Xcode
 
 `xcodebuild -exportArchive` with the upload plist reads the account from

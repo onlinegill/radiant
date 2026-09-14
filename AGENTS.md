@@ -1,6 +1,6 @@
 # Radiant — read this first, every turn
 
-## ⚠️ THE iPHONE APP — v1.0, and the project file is at build 6
+## ⚠️ THE iPHONE APP — v1.0, build 7, Waiting for Review as of 2026-09-14 10:15 AM
 
 ⚠️ **CHECK THE ACTUAL STATUS BEFORE YOU TRUST THIS HEADING.** It went stale
 again: it said "build 4 (resubmitted 2026-09-03)" while `CURRENT_PROJECT_VERSION`
