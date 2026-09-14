@@ -2077,8 +2077,8 @@ button.hf-head:hover { background: var(--bg-hover); }
      toggles; while listening the word stays out, because that is the signal */
   font-size: 12px; font-weight: 500;
 }
-.attach-btn.is-listening { padding: 4px 10px 4px 8px; }
-.attach-btn.is-listening .pill-label { max-width: 220px; opacity: 1; margin-left: 6px; }
+.attach-btn.is-listening, .attach-btn.is-capturing { padding: 4px 10px 4px 8px; }
+.attach-btn.is-listening .pill-label, .attach-btn.is-capturing .pill-label { max-width: 220px; opacity: 1; margin-left: 6px; }
 .attach-btn.is-listening {
   /* the word "Listening" is plain --text (see the hover-contrast note above);
      the accent is on the icon and the ring */

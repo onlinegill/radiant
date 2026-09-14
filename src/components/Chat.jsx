@@ -838,7 +838,7 @@ function SkillMenu ({ skills, activeIds = [], onPick }) {
     .sort((a, b) => a.cmd.localeCompare(b.cmd))
   return (
     <div ref={ref} style={{ position: 'relative', display: 'flex' }}>
-      <button className={'attach-btn' + (open ? ' is-on' : '')} title='Skills' aria-expanded={open} data-tip={'Skills — pick one and it goes into\nthe message as /name; send to use it'} onClick={() => { setOpen(o => !o); setQ('') }}><Icon.sparkle size={16} /></button>
+      <button className={'attach-btn' + (open ? ' is-on' : '')} title='Skills' aria-expanded={open} data-tip={'Skills — pick one and it goes into\nthe message as /name; send to use it'} onClick={() => { setOpen(o => !o); setQ('') }}><Icon.sparkle size={15} /><span className='pill-label'>Skills</span></button>
       {open && (
         <div className='recipe-menu skill-menu'>
           {skills.length > 6 && (
@@ -1535,8 +1535,12 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                   aria-pressed={voice.state !== 'off'}
                   data-tip={voice.state !== 'off' ? 'End the voice conversation' : 'Talk to Radiant — a live voice conversation\nover this chat. Audio goes to OpenAI (GPT-Live);\nthe thinking stays on this chat\u2019s model.'}
                 ><Icon.waves size={15} /><span className='pill-label'>{voice.state !== 'off' ? 'On a call' : 'Talk'}</span></button>)}
-              <button className='attach-btn' onClick={() => fileInputRef.current?.click()} title='Attach files or images' data-tip='Attach files or images'><Icon.plus size={17} /></button>
-              <button className={'attach-btn' + (designBusy ? ' is-capturing' : '')} onClick={startDesign} disabled={designBusy} title='Design Mode' data-tip={'Design Mode — open a web page and click\nan element to capture its HTML, CSS &\na screenshot as context'}><Icon.target size={16} /></button>
+              {/* ⚠️ EVERY BUTTON ON THIS BAR GROWS INTO ITS WORD. Dictate and
+                  Talk did; Attach, Design and Skills stayed bare icons. Tony:
+                  "why arent there button popups for design or skills like the
+                  other tools on that bar?" A .pill-label is what makes one. */}
+              <button className='attach-btn' onClick={() => fileInputRef.current?.click()} title='Attach files or images' data-tip='Attach files or images'><Icon.plus size={16} /><span className='pill-label'>Attach</span></button>
+              <button className={'attach-btn' + (designBusy ? ' is-capturing' : '')} onClick={startDesign} disabled={designBusy} title='Design Mode' data-tip={'Design Mode — open a web page and click\nan element to capture its HTML, CSS &\na screenshot as context'}><Icon.target size={15} /><span className='pill-label'>{designBusy ? 'Capturing' : 'Design'}</span></button>
               {activeSkillIds.length > 0 && activeSkillIds.map(id => {
                 const sk = skills.find(x => x.id === id)
                 return (
