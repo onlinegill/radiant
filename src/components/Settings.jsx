@@ -549,6 +549,37 @@ function DefaultModelBlock ({ config, onSettings }) {
   )
 }
 
+/**
+ * The model a turn moves to when the chat's model is not answering. Only
+ * outages — a 5xx, a rate limit, a dead connection — and only for a turn that
+ * had not yet done anything; see server/fallback.js.
+ */
+function FallbackModelBlock ({ config, onSettings }) {
+  const [models, setModels] = useState([])
+  useEffect(() => { api.getModels().then(r => setModels(r.models || r || [])).catch(() => {}) }, [])
+  const fb = config?.settings?.fallback || null
+  return (
+    <div className='set-block' style={{ marginBottom: 16 }}>
+      <div className='set-block-title'>If the model is not answering</div>
+      <p className='hint' style={{ marginTop: 2 }}>
+        When a provider is down, rate-limiting, or unreachable, a turn that has not yet done anything
+        is rerun on this model instead of stopping, and the chat says so. A turn that had already
+        run tools is not redone. Pick a model on a different provider for it to be worth anything.
+      </p>
+      <div className='model-pick-field' style={{ marginTop: 8 }}>
+        <ModelPicker
+          session={{ model: fb?.model || '', provider: fb?.provider }}
+          models={models}
+          placeholder='No fallback — an outage stops the turn'
+          clearLabel='No fallback — an outage stops the turn'
+          onPick={m => onSettings({ fallback: m ? { provider: m.provider, model: m.id } : null })}
+          onRefresh={() => {}}
+        />
+      </div>
+    </div>
+  )
+}
+
 function ModelsPane ({ onModelsChanged, config, onSettings }) {
   const [system, setSystem] = useState(null)
   // ⚠️ EVERYTHING ON THIS SCREEN BELONGS TO THE SERVER'S MAC, NOT NECESSARILY
@@ -638,6 +669,7 @@ function ModelsPane ({ onModelsChanged, config, onSettings }) {
   return (
     <div className='set-section'>
       <DefaultModelBlock config={config} onSettings={onSettings} />
+      <FallbackModelBlock config={config} onSettings={onSettings} />
       <h3>Local models</h3>
       {onAnotherMac && (
         <div className='set-hint' style={{ marginBottom: 10 }}>
@@ -2992,6 +3024,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['A fallback model when yours is not answering', 'Settings \u2192 Models has a new choice: If the model is not answering. When a provider is down, rate-limiting or unreachable, a turn that has not yet done anything is rerun on the fallback instead of stopping, and the chat shows a line saying which model took over and why. A turn that had already run tools is not redone on a different model. Only outages count \u2014 a bad key, an empty account or a request the provider refused still shows the real error, because the fallback would not fix those. Pick a model on a different provider.'],
       ['Skills have categories', 'With dozens of skills, one flat list stopped working. Every skill now has a category \u2014 Coding, Apple, Design, Writing, Research, Quality, Ops, Business, Other \u2014 guessed from its name and description, shown faint until you confirm or change it in the small menu on its row; your choice is saved and wins from then on. Settings \u2192 Skills has category chips across the top with counts, and the Skills button in the composer groups the list by category with a fold on each heading, like the model picker, remembering which you folded. The filter box searches across all of them.'],
       ['In a group chat, @Name picks who acts \u2014 and they get tools', 'Every agent in a group chat used to answer every message, and none of them could use tools \u2014 so \u201clet\u2019s do the frontend in React\u201d had four agents all trying to do it at once, none of them able to. Now type @ and pick someone from the room (or write @coder, @dev-ops): only they act on that message, with the chat\u2019s tools and skills, and the rest of the room stays quiet but reads it \u2014 what the addressed agent does is in the transcript for everyone\u2019s next turn. Mention two and both act, in order. No mention keeps the round table as before. Asked for by a user on GitHub (#16, #18).'],
       ['MCP servers can be edited, and they find npx', 'Each MCP server row has an Edit button now \u2014 name, command or address, token \u2014 instead of remove-and-re-add. And a server\u2019s command runs with the same PATH your terminal has, so npx, uvx and anything your shell profile sets up are found; before this, a Mac-launched app only saw the bare system PATH and a server like \u201cnpx -y some-server\u201d failed with ENOENT. A command written the way a terminal would take it (PATH=\u2026 npx \u2026, or with a pipe) is run through your shell as written. Asked for on GitHub (#15).'],

@@ -15,6 +15,7 @@ import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, l
 import { runTurn, listModels } from './providers.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from './voice.js'
 import { addressedParticipants, groupPersona } from './group.js'
+import { shouldFallBack, fallbackNotice } from './fallback.js'
 import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAccessToken, startDevice, pollDevice } from './oauth.js'
 import { checkForUpdate } from './updater.js'
 import { ollamaBin, hermesBin, SPAWN_ENV } from './ollama.js'
@@ -3341,7 +3342,39 @@ app.post('/api/chat', async (req, res) => {
       } catch {}
     }
   } catch (e) {
-    if (!controller.signal.aborted) emit({ type: 'error', message: e.message })
+    // ⚠️ AN OUTAGE IS NOT THE END OF THE TURN if a fallback is set and nothing
+    // had happened yet. See fallback.js for what counts and what does not.
+    const fb = config.settings.fallback || null
+    const assistant = session.messages[session.messages.length - 1]
+    const verdict = controller.signal.aborted ? { ok: false } : shouldFallBack({ message: e.message, assistant: assistant?.role === 'assistant' ? assistant : null, current: { provider: provider.id, model: session.model }, fallback: fb })
+    const fbProvider = verdict.ok ? config.providers.find(p => p.id === fb.provider) : null
+    if (verdict.ok && fbProvider && !session.group) {
+      if (assistant?.role === 'assistant') session.messages.pop()
+      emit({ type: 'notice', text: fallbackNotice({ current: { provider: provider.id, providerName: provider.name, model: session.model }, fallback: fb, message: e.message }) })
+      const fbOAuth = Boolean(config.oauth[fbProvider.id])
+      try {
+        await runTurn({
+          ...common,
+          provider: fbProvider,
+          model: fb.model,
+          apiKey: config.keys[fbProvider.id],
+          getAccessToken: fbOAuth ? () => validAccessToken(fbProvider.id, config, saveConfig) : null,
+          getAccountId: fbOAuth ? () => config.oauth[fbProvider.id]?.accountId || null : null,
+          useTools: session.useTools !== false,
+          computerControl: Boolean(session.computerControl),
+          persona: basePersona,
+          planAddendum,
+          skills: mergedSkills,
+          askAgent,
+          peerAgents,
+          planMode: Boolean(session.planMode),
+          effort: session.effort || 'auto',
+          onPlanExit: () => { session.planMode = false; emit({ type: 'plan_mode', on: false }) }
+        })
+      } catch (e2) {
+        if (!controller.signal.aborted) emit({ type: 'error', message: `${e.message} — and the fallback (${fb.model}) failed too: ${e2.message}` })
+      }
+    } else if (!controller.signal.aborted) emit({ type: 'error', message: e.message })
   } finally {
     activeTurns.delete(sessionId)
     saveTurnSession(session)
