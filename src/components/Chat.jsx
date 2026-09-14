@@ -811,47 +811,46 @@ function StatsChip ({ stats }) {
 }
 
 // reusable parameterized task templates, from the composer
-function RecipeMenu ({ recipes, onUse }) {
+/**
+ * The skills, from a button.
+ *
+ * ⚠️ THIS WAS "RECIPES" — a menu of task templates nobody used. Tony: "that
+ * recipies button is useless. if anything, I would replace it with skills.
+ * popup the skills list with that button and insert on click." Same slot,
+ * same behaviour as picking a skill from the slash palette: the command goes
+ * into the box as /name, visible and editable, and sending is what invokes it.
+ * Skills already pinned to this chat are left out — they are on every turn.
+ */
+function SkillMenu ({ skills, activeIds = [], onPick }) {
   const [open, setOpen] = useState(false)
-  const [active, setActive] = useState(null)
-  const [vals, setVals] = useState({})
+  const [q, setQ] = useState('')
   const ref = useRef(null)
   useEffect(() => {
-    const close = e => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setActive(null) } }
+    const close = e => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setQ('') } }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [])
-  if (!recipes?.length) return null
-  const render = r => r.template.replace(/\{(\w+)\}/g, (_, k) => vals[k] || `{${k}}`)
-  const use = r => {
-    if (r.params?.length && r.params.some(p => !(vals[p.name] || '').trim())) return
-    onUse(r.params?.length ? render(r) : r.template); setOpen(false); setActive(null); setVals({})
-  }
+  const slug = name => String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const list = (skills || [])
+    .filter(sk => !activeIds.includes(sk.id))
+    .map(sk => ({ id: sk.id, cmd: '/' + slug(sk.name), name: sk.name, desc: sk.description || '', enabled: sk.enabled }))
+    .filter(c => !q || c.cmd.includes(q.toLowerCase()) || c.name.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => a.cmd.localeCompare(b.cmd))
   return (
     <div ref={ref} style={{ position: 'relative', display: 'flex' }}>
-      
-              <button className='attach-btn' title='Recipes' data-tip={'Recipes — insert a reusable\ntask template into the message'} onClick={() => { setOpen(o => !o); setActive(null) }}><Icon.sparkle size={16} /></button>
+      <button className={'attach-btn' + (open ? ' is-on' : '')} title='Skills' aria-expanded={open} data-tip={'Skills — pick one and it goes into\nthe message as /name; send to use it'} onClick={() => { setOpen(o => !o); setQ('') }}><Icon.sparkle size={16} /></button>
       {open && (
-        <div className='recipe-menu'>
-          {!active ? recipes.map(r => (
-            <button key={r.id} className='recipe-item' onClick={() => { if (r.params?.length) { setActive(r); setVals({}) } else { onUse(r.template); setOpen(false) } }}>
-              <span className='recipe-name'>{r.name}</span>
-              <span className='recipe-desc'>{r.desc}</span>
-            </button>
-          )) : (
-            <div className='recipe-form'>
-              <div className='recipe-form-title'>{active.name}</div>
-              {active.params.map((p, i) => (
-                <label key={p.name} className='recipe-field'>{p.label}
-                  <input autoFocus={i === 0} placeholder={p.placeholder} value={vals[p.name] || ''} onChange={e => setVals(v => ({ ...v, [p.name]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && use(active)} />
-                </label>
-              ))}
-              <div className='row' style={{ marginTop: 8 }}>
-                <button className='small-btn primary' onClick={() => use(active)}>Use</button>
-                <button className='small-btn' onClick={() => setActive(null)}>Back</button>
-              </div>
-            </div>
+        <div className='recipe-menu skill-menu'>
+          {skills.length > 6 && (
+            <input className='skill-menu-filter' autoFocus placeholder='Filter skills…' value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); setQ('') } if (e.key === 'Enter' && list[0]) { onPick(list[0]); setOpen(false); setQ('') } }} />
           )}
+          {list.map(c => (
+            <button key={c.id} className='recipe-item' onMouseDown={e => { e.preventDefault(); onPick(c); setOpen(false); setQ('') }}>
+              <span className='recipe-name'>{c.cmd}{!c.enabled && <span className='slash-kind'> · off elsewhere</span>}</span>
+              {c.desc && <span className='recipe-desc'>{c.desc}</span>}
+            </button>
+          ))}
+          {!list.length && <div className='recipe-desc' style={{ padding: '8px 10px' }}>{skills.length ? 'No skill matches.' : 'No skills yet — add some in Settings → Skills.'}</div>}
         </div>
       )}
     </div>
@@ -1547,7 +1546,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                   </span>
                 )
               })}
-              <RecipeMenu recipes={recipes} onUse={text => { setDraft(text); setTimeout(() => textareaRef.current?.focus(), 0) }} />
+              <SkillMenu skills={skills} activeIds={activeSkillIds} onPick={c => applySlash({ kind: 'skill', cmd: c.cmd })} />
               <ModelPicker session={session} models={models} onPick={onPickModel} onRefresh={onRefreshModels}
                   effort={session.effort}
                   onSetEffort={onSetEffort}

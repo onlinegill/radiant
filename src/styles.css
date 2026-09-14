@@ -179,6 +179,9 @@ code, pre, .mono { font-family: var(--font-mono); }
 .recipe-item:hover { background: var(--bg-hover); }
 .recipe-name { font-size: 12.5px; font-weight: 500; color: var(--text); }
 .recipe-desc { font-size: 11px; color: var(--text-faint); }
+.skill-menu { width: 300px; }
+.skill-menu-filter { width: 100%; box-sizing: border-box; margin: 2px 0 6px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font: inherit; font-size: 12px; }
+.skill-menu .recipe-name { font-family: ui-monospace, monospace; font-size: 12px; }
 .recipe-form { padding: 8px 10px; }
 .recipe-form-title { font-size: 12.5px; font-weight: 600; margin-bottom: 8px; }
 .recipe-field { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
