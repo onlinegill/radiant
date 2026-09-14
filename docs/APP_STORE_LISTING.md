@@ -172,13 +172,32 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
   the single use, each provider's policy (every URL fetched, title checked),
   that we do not audit them, and withdrawal.
 
-### Metadata to change with this submission
+### Done 2026-09-14, each verified by reload
 
-- Subtitle → **"Open models, on your phone"** (the standing decision from
+- Subtitle → **"Open models, on your phone"** (26). The standing decision from
   2026-09-10; "fully offline" was untrue once a key is added — the same fact
-  Apple has now raised).
-- App Review Information → notes: a paragraph on the consent sheet, and a
-  reply to this rejection saying the same.
+  Apple has now raised.
+- App Review Information → Notes replaced (3,481 chars): the response to this
+  rejection with how to see the sheet, the 10 Sept response once (it had been
+  pasted twice), and a body that no longer says "nothing you type leaves the
+  device".
+- Build 7 archived (`~/Library/Developer/Xcode/Archives/2026-09-14/
+  Radiant-build7.xcarchive`) and uploaded with `xcodebuild -exportArchive …
+  exportOptions-upload.plist` ("Upload succeeded"). ⚠️ The upload needs an
+  Apple ID signed in to Xcode → Settings → Accounts; it failed with "No
+  Accounts" until Tony signed in, and then worked with cloud-managed signing —
+  no local Apple Distribution certificate exists on this Mac and none was
+  needed.
+- Reply to App Review drafted (the text is the same substance as the notes'
+  first section) — sent with the resubmission, after build 7 is attached.
+
+### ⚠️ The upload needs an Apple ID in Xcode
+
+`xcodebuild -exportArchive` with the upload plist reads the account from
+Xcode. "exportArchive Failed to Use Accounts / No Accounts" means nobody is
+signed in on this Mac — not a certificate problem, even though the log also
+says "No signing certificate iOS Distribution found". Sign in (Xcode →
+Settings → Accounts) and rerun; cloud signing handles the certificate.
 
 ## REJECTED 2026-09-10 — guideline 5, and ONE FIELD CAUSED BOTH HALVES
 
