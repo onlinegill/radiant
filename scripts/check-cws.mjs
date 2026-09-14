@@ -33,8 +33,9 @@
 // Checked against the live store on 2026-09-10: this id downloads a CRX whose
 // manifest is Radiant Browser Bridge 0.6.231, byte-for-byte what extension/
 // held that morning. 0.8.8 (badge removed, version tracking the app) was
-// uploaded and submitted for review the same day with auto-publish on, so
-// the update service answers 0.6.231 until Google approves it.
+// uploaded and submitted the same day with auto-publish on; by 2026-09-13
+// Chrome's update service was serving a CRX whose manifest says 0.8.8, so
+// Google approved it within three days.
 const ITEM = process.env.CWS_ITEM_ID || 'jhljglakgocklinpblgcoppljflnacfk'
 if (!/^[a-p]{32}$/.test(ITEM)) {
   console.log(`  "${ITEM}" is not a Chrome extension id (need 32 letters a-p, got ${ITEM.length}).`)
