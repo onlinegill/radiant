@@ -59,7 +59,7 @@ ok(seedFrom([]) === '', 'no history, no seed')
 
 // ── refusals say what is missing ─────────────────────────────────────────────
 ok(checkVoiceRequest({ settings: {}, apiKey: 'k', sdp: 'v=0' })?.status === 403, 'voice off → refused')
-ok(/Settings/.test(checkVoiceRequest({ settings: {}, apiKey: 'k', sdp: 'v=0' }).error), '…and says where to turn it on')
+ok(/Settings → Voice/.test(checkVoiceRequest({ settings: {}, apiKey: 'k', sdp: 'v=0' }).error), '…and says where to turn it on: its own page')
 ok(checkVoiceRequest({ settings: { voice: { enabled: true } }, apiKey: '', sdp: 'v=0' })?.status === 400, 'no key → refused')
 ok(/OpenAI API key/.test(checkVoiceRequest({ settings: { voice: { enabled: true } }, apiKey: '', sdp: 'v=0' }).error), '…and names the key')
 ok(checkVoiceRequest({ settings: { voice: { enabled: true } }, apiKey: 'k', sdp: 'hello' })?.status === 400, 'not an SDP → refused')
@@ -67,7 +67,8 @@ ok(checkVoiceRequest({ settings: { voice: { enabled: true } }, apiKey: 'k', sdp:
 ok(/ChatGPT sign-in does not cover/.test(checkVoiceRequest({ settings: { voice: { enabled: true } }, apiKey: '', sdp: 'v=0', signedIn: true }).error), 'a subscription-only account is told a sign-in is not a key')
 // ⚠️ THE ACTIVE OPENAI ACCOUNT IS A SIGN-IN ON TONY'S MAC. keys.openai is empty
 // then, and the key that serves voice is a second account on the roster.
-ok(voiceKey({ keys: { openai: 'sk-active' } }) === 'sk-active', 'an active key wins')
+ok(voiceKey({ keys: { 'openai-voice': 'sk-voice', openai: 'sk-active' } }) === 'sk-voice', 'the Voice page\'s own slot wins')
+ok(voiceKey({ keys: { openai: 'sk-active' } }) === 'sk-active', 'then a key the chats use')
 ok(voiceKey({ keys: {}, oauth: { openai: {} }, accounts: { openai: [{ id: 'a', oauth: {} }, { id: 'b', key: 'sk-roster' }] } }) === 'sk-roster', 'otherwise any key on the roster serves voice')
 ok(voiceKey({ keys: {}, accounts: { openai: [{ id: 'a', oauth: {} }] } }) === null, 'a roster with only sign-ins has no key')
 

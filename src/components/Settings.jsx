@@ -179,7 +179,7 @@ function ProviderRow ({ provider, oauthInfo, onConfig }) {
   )
 }
 
-function ProvidersPane ({ config, onConfigChange, onSettings }) {
+function ProvidersPane ({ config, onConfigChange }) {
   const [newName, setNewName] = useState('')
   const [newUrl, setNewUrl] = useState('')
   const [oauthMap, setOauthMap] = useState({})
@@ -211,15 +211,21 @@ function ProvidersPane ({ config, onConfigChange, onSettings }) {
         Keys are stored locally in <span className='mono'>~/.radiant/config.json</span> and never leave this Mac except to call the provider itself.
         Any OpenAI-compatible server works — Groq, Mistral, Together, a remote Ollama box…
       </p>
-      <VoiceBlock config={config} onSettings={onSettings} />
     </div>
   )
 }
 
 /**
- * Talking to Radiant. Off by default: it costs money per minute and it sends
- * the microphone to OpenAI, and neither should happen because a button was in
- * reach. Lives under Providers because it needs the OpenAI key above.
+ * Talking to Radiant — its own page.
+ *
+ * ⚠️ IT WAS A BLOCK AT THE BOTTOM OF PROVIDERS, and the key it needs was a
+ * "second account" on the OpenAI row above it, which the chats also use. Tony:
+ * "thats messy. we should add a separate voice page on the settings page.
+ * scrolling all the way to the bottom of the providers page is awkward."
+ * Everything voice needs is here now, and the key has its own slot
+ * (keys['openai-voice']) so it never depends on which OpenAI account the chats
+ * are on. Off by default: it costs money per minute and sends the microphone
+ * to OpenAI, and neither should happen because a button was in reach.
  */
 const LIVE_VOICES = [
   ['marin', 'Marin — default'], ['gleam', 'Gleam — North American, feminine'], ['meridian', 'Meridian — North American, masculine'],
@@ -227,43 +233,90 @@ const LIVE_VOICES = [
   ['willow', 'Willow — Irish, feminine'], ['stone', 'Stone — Irish, masculine'], ['delta', 'Delta — Southern U.S., feminine'],
   ['cinder', 'Cinder — Southern U.S., masculine'], ['beacon', 'Beacon — Filipino English, masculine']
 ]
-function VoiceBlock ({ config, onSettings }) {
+function VoicePane ({ config, onSettings, onConfigChange }) {
   const v = config?.settings?.voice || {}
   const on = Boolean(v.enabled)
   const openai = config?.providers?.find(p => p.id === 'openai')
-  // any key on the roster serves voice — the active account can stay a sign-in
-  const hasKey = Boolean(openai?.hasKey) || (openai?.accounts || []).some(a => a.kind === 'key')
-  const signedIn = Boolean(openai?.signedIn)
+  const saved = Boolean(config?.voiceKeySaved)
+  // a key the chats already use serves too — say so rather than ask for another
+  const chatKey = Boolean(openai?.hasKey) || (openai?.accounts || []).some(a => a.kind === 'key')
+  const ready = saved || chatKey
+  const [draft, setDraft] = useState('')
+  const [busy, setBusy] = useState(false)
+  const saveKey = async () => {
+    if (!draft.trim()) return
+    setBusy(true)
+    try { onConfigChange(await api.setVoiceKey(draft.trim())); setDraft('') } catch (e) { window.alert(e.message) }
+    setBusy(false)
+  }
+  const removeKey = async () => {
+    setBusy(true)
+    try { onConfigChange(await api.setVoiceKey('')) } catch (e) { window.alert(e.message) }
+    setBusy(false)
+  }
   return (
-    <div className='set-block' style={{ marginTop: 18 }}>
-      <div className='set-block-title'>Talk to Radiant — optional</div>
-      <label className={'auto-choice' + (on ? ' is-on' : '')} style={{ marginTop: 6 }}>
-        <input type='checkbox' checked={on} onChange={e => onSettings({ voice: { ...v, enabled: e.target.checked } })} />
-        <span>
-          <strong>Voice conversations</strong>
-          <span className='auto-choice-sub'>
-            Adds a <b>Talk</b> button to the composer. Press it and you are in a live, two-way conversation over that chat:
-            OpenAI's GPT-Live listens and speaks; anything real is handed to the agent in the chat, on whatever model the
-            chat uses, with the same tools and approvals as typing. Interrupt it, ask how it is going, change your mind.
-          </span>
-        </span>
-      </label>
-      <p className='hint' style={{ marginTop: 8 }}>
-        <b>What leaves this Mac:</b> your microphone and the spoken replies go to OpenAI while a call is open, at
-        their rate (about 5¢ a minute at launch). The composer shows the running minutes. The chat's own model,
-        tools and files are untouched — the voice only carries the conversation.
-        {!hasKey && (signedIn
-          ? <> <b>Needs an OpenAI API key.</b> Your ChatGPT sign-in does not cover it. On the OpenAI row above, press <b>+ Add an API key</b> and paste one from platform.openai.com. Adding it makes the key the active OpenAI account; click the subscription chip to switch chats back to the sign-in — voice keeps using the key either way.</>
-          : <> <b>Needs an OpenAI API key</b> — add one above.</>)}
+    <div className='set-section'>
+      <h3>Voice</h3>
+      <p className='hint' style={{ marginTop: 2 }}>
+        Talk to Radiant. Press <b>Talk</b> in the composer and you are in a live, two-way conversation over that
+        chat — speak naturally, interrupt, ask how it is going, change your mind. OpenAI's GPT-Live listens and
+        speaks; anything real is handed to the agent in the chat, on whatever model the chat uses, with the same
+        tools and approvals as typing. The reply is read back in a few plain sentences; code and detail stay in the chat.
       </p>
-      {on && (
-        <div className='row' style={{ marginTop: 8, alignItems: 'center', gap: 8 }}>
-          <span className='desc'>Voice</span>
+
+      <div className='set-block'>
+        <div className='set-block-title'>Voice conversations</div>
+        <div className='comp-stat'>
+          <span className={on && ready ? 'key-ok' : 'fit-badge fit-tight'}>
+            {on && ready ? '✓ Ready — Talk is in the composer' : on ? '— On, but no key yet' : '— Off'}
+          </span>
+        </div>
+        <label className={'auto-choice' + (on ? ' is-on' : '')} style={{ marginTop: 6 }}>
+          <input type='checkbox' checked={on} onChange={e => onSettings({ voice: { ...v, enabled: e.target.checked } })} />
+          <span>
+            <strong>Enable voice conversations</strong>
+            <span className='auto-choice-sub'>Adds the Talk button. Nothing is sent anywhere until you press it.</span>
+          </span>
+        </label>
+      </div>
+
+      <div className='set-block'>
+        <div className='set-block-title'>OpenAI API key for voice</div>
+        <p className='hint' style={{ marginTop: 2 }}>
+          GPT-Live is API-only — a ChatGPT sign-in does not cover it. Paste a key from{' '}
+          <span className='mono'>platform.openai.com</span>; it is kept for voice alone and does not change which
+          OpenAI account your chats use.
+          {!saved && chatKey && <> You already have an OpenAI key under Providers, and voice will use that one until you paste a separate key here.</>}
+        </p>
+        {saved
+          ? <div className='row' style={{ marginTop: 6, alignItems: 'center', gap: 8 }}>
+              <span className='key-ok'>✓ key saved</span>
+              <button className='small-btn' onClick={removeKey} disabled={busy}>Remove key</button>
+            </div>
+          : <div className='row' style={{ marginTop: 6, gap: 8 }}>
+              <input className='text-input' type='password' placeholder='Paste API key' value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveKey()} style={{ flex: 1, minWidth: 220 }} />
+              <button className='small-btn primary' onClick={saveKey} disabled={busy || !draft.trim()}>Save</button>
+            </div>}
+      </div>
+
+      <div className='set-block'>
+        <div className='set-block-title'>Voice</div>
+        <div className='row' style={{ marginTop: 4, alignItems: 'center', gap: 8 }}>
           <select className='text-input' style={{ width: 'auto' }} value={LIVE_VOICES.some(([id]) => id === v.voice) ? v.voice : 'marin'} onChange={e => onSettings({ voice: { ...v, voice: e.target.value } })}>
             {LIVE_VOICES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
           </select>
         </div>
-      )}
+      </div>
+
+      <div className='set-block'>
+        <div className='set-block-title'>What leaves this Mac</div>
+        <p className='hint' style={{ marginTop: 2 }}>
+          While a call is open, your microphone and the spoken replies go to OpenAI, at their rate — about 5¢ a minute
+          at launch. The strip above the composer shows the running minutes and an End button; switching chats ends
+          the call. The chat's own model, tools and files are untouched — the voice only carries the conversation.
+          An approval or a question still waits for you in the app, and the voice says so.
+        </p>
+      </div>
     </div>
   )
 }
@@ -2869,9 +2922,10 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['Voice has its own Settings page', 'Everything about talking to Radiant is under Settings \u2192 Voice now: the switch, a key slot of its own, the voice, and what leaves the Mac. Before this it was a block at the very bottom of Providers and the key had to be added as a second OpenAI account beside the sign-in your chats use \u2014 "messy", and it was. The key you paste on the Voice page is kept for voice alone and does not change which OpenAI account your chats are on.'],
       ['A provider can hold a sign-in and a key at once', 'On a provider row that has a subscription sign-in, + Add account used to start another sign-in and there was no way to add an API key beside it \u2014 which is exactly what voice needs on an OpenAI account signed in with ChatGPT. The row now offers both: + Sign in to another account, and + Add an API key. Adding a key makes it the active account; click the subscription chip to switch your chats back, and voice keeps using the key.'],
       ['0.9.0 opened with no window \u2014 fixed', 'If you installed 0.9.0 and Radiant launched to nothing, that was a packaging mistake in the voice feature: one file the server needed was left out of the app, the server failed before it started, and the window waits for the server. 0.9.1 ships the file, and a new check refuses any future build whose server imports something the app does not carry.'],
-      ['Talk to Radiant (optional)', 'Settings \u2192 Providers has a new switch, off by default: Voice conversations. Turn it on and a Talk button appears in the composer. Press it and you are in a live, two-way conversation over that chat \u2014 speak naturally, interrupt, ask how it is going, change your mind. OpenAI\u2019s GPT-Live does the listening and speaking; anything real is handed to the agent in the chat, on whatever model the chat uses, with the same tools and the same approvals as typing (an approval or a question still waits for you in the app, and the voice says so). The reply is read back to you in a few plain sentences, with the code and detail left in the chat. Spoken messages carry a small wave mark in the transcript.\n\nWhat leaves this Mac: your microphone and the spoken replies go to OpenAI while a call is open, at their per-minute rate (about 5\u00a2 a minute at launch); the strip above the composer shows the running minutes and an End button. Needs an OpenAI API key \u2014 a ChatGPT sign-in does not cover it; on the OpenAI row in Settings \u2192 Providers, press + Add an API key. Switching chats ends the call.'],
+      ['Talk to Radiant (optional)', 'Settings \u2192 Voice has a switch, off by default: Voice conversations. Turn it on and a Talk button appears in the composer. Press it and you are in a live, two-way conversation over that chat \u2014 speak naturally, interrupt, ask how it is going, change your mind. OpenAI\u2019s GPT-Live does the listening and speaking; anything real is handed to the agent in the chat, on whatever model the chat uses, with the same tools and the same approvals as typing (an approval or a question still waits for you in the app, and the voice says so). The reply is read back to you in a few plain sentences, with the code and detail left in the chat. Spoken messages carry a small wave mark in the transcript.\n\nWhat leaves this Mac: your microphone and the spoken replies go to OpenAI while a call is open, at their per-minute rate (about 5\u00a2 a minute at launch); the strip above the composer shows the running minutes and an End button. Needs an OpenAI API key \u2014 a ChatGPT sign-in does not cover it; paste one in Settings \u2192 Voice. Switching chats ends the call.'],
       ['Four more models on the iPhone and iPad', 'The on-device model list gained Qwen 3 VL 4B and Qwen 3 VL 2B (the newest generation of Qwen\u2019s picture models \u2014 the 4B replaces Qwen 2.5 VL 3B as the most capable one that fits a phone, the 2B fits any iPhone), Qwen 2.5 Coder 3B (the first model in the list tuned for code), and Ministral 3 8B (for 12 GB iPhones and iPads). Every row is checked against the real download before it is published \u2014 size, quantization, and whether the app can actually load it \u2014 and the list reaches an installed app the next time it opens; nothing to update. This is the first of a weekly sweep: new models are looked for every Sunday night and added on Monday morning when they are worth it.'],
       ['A long turn is trimmed, not killed', 'An agent working through a big task \u2014 thirty tool calls in one turn, reading files and running commands \u2014 could hit the model\u2019s size limit mid-turn and die with the provider\u2019s raw error (\u201c400: maximum prompt length is 256000 but the request contains 259445 tokens\u201d). Every safety net counted messages, and one turn is one message however many tool calls it holds. Radiant now trims older tool results inside the turn as it goes (the last few rounds stay whole), watches the real prompt size the provider reports and trims harder as it nears the limit, recognizes every provider\u2019s way of saying \u201ctoo long\u201d \u2014 xAI\u2019s was not on the list \u2014 and if it is still refused, trims everything but the current round and retries, then summarizes. If it truly cannot fit, the message says so in a sentence. The context gauge under the composer also knew grok-4 and grok-build as 131k models; they take 256k.'],
       ['The composer buttons are icons that grow on hover', 'The row under the message box \u2014 tools, computer, plan, thinking, permissions, dictate \u2014 rests as small icons, which gives the model name the room it needs. Point at one and it grows into the button it used to be, with its words (\u201cplan off\u201d, \u201cask each\u201d), and its neighbors slide over to make room. Move away and it shrinks back. While a button is open its words are written in plain text on the plain hover surface \u2014 the word already says on or off, so only the icon keeps the state color \u2014 after an earlier version drew \u201ccomputer on\u201d in the accent color on an accent fill, which in the green theme was two shades of the same green. The words are still there for a screen reader whether or not you are pointing at anything. An earlier version kept the icons small and put the words in a tooltip only; the buttons themselves now expand.'],
@@ -3154,6 +3208,7 @@ const TABS = [
   { id: 'memory', label: 'Memory' },
   { id: 'devices', label: 'Devices' },
   { id: 'chrome', label: 'Chrome' },
+  { id: 'voice', label: 'Voice' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'agent', label: 'Automation' },
   { id: 'about', label: 'About' }
@@ -3177,7 +3232,7 @@ export default function Settings ({ config, initialTab = 'providers', initialAge
         </nav>
         <div className='modal-body'>
           {tab === 'guide' && <GuidePane />}
-          {tab === 'providers' && <ProvidersPane config={config} onConfigChange={onConfigChange} onSettings={onSettings} />}
+          {tab === 'providers' && <ProvidersPane config={config} onConfigChange={onConfigChange} />}
           {tab === 'models' && <ModelsPane onModelsChanged={onModelsChanged} config={config} onSettings={onSettings} />}
           {tab === 'agents' && <AgentsPane config={config} onConfigChange={onConfigChange} initialView={initialAgentView} />}
           {tab === 'skills' && <SkillsPane config={config} onConfigChange={onConfigChange} />}
@@ -3186,6 +3241,7 @@ export default function Settings ({ config, initialTab = 'providers', initialAge
           {tab === 'devices' && <DevicesPane />}
           {tab === 'appearance' && <AppearancePane config={config} onSettings={onSettings} />}
           {tab === 'chrome' && <ChromePane />}
+          {tab === 'voice' && <VoicePane config={config} onSettings={onSettings} onConfigChange={onConfigChange} />}
           {tab === 'agent' && <AgentPane config={config} onSettings={onSettings} />}
           {tab === 'about' && <AboutPane config={config} onSettings={onSettings} />}
         </div>

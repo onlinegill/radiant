@@ -948,7 +948,10 @@ export function publicConfig (cfg) {
     // on what is installed here, so they come from the machine-local file
     // rather than the synced one. Everything else follows the user between
     // Macs, which is the point of syncing.
-    settings: { ...cfg.settings, ...loadMachineSettings() }
+    settings: { ...cfg.settings, ...loadMachineSettings() },
+    // Voice has its own key slot (Settings → Voice), so it never depends on
+    // which OpenAI account the chats use. Only whether one is saved, never the key.
+    voiceKeySaved: Boolean(cfg.keys?.['openai-voice'])
   }
 }
 

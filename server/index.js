@@ -1626,6 +1626,16 @@ app.get('/api/dictate', async (req, res) => {
   startDictation(req, res, String(req.query.locale || 'en-US'))
 })
 
+// The key voice uses, in its own slot. Saved through the same config writer as
+// every other key; never read back, only whether it is there.
+app.put('/api/voice/key', (req, res) => {
+  const key = String(req.body?.key || '').trim()
+  if (key) config.keys['openai-voice'] = key
+  else delete config.keys['openai-voice']
+  saveConfig(config)
+  res.json(publicConfig(config))
+})
+
 // A spoken conversation over a chat: GPT-Live in front, this server's turn
 // behind. Optional (settings.voice.enabled) and keyed with the OpenAI key.
 app.post('/api/voice/session', async (req, res) => {

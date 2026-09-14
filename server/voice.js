@@ -28,6 +28,8 @@ export const LIVE_RATE_PER_MINUTE = 0.05   // USD, from the launch post; shown i
  * serves voice without switching every OpenAI chat over to pay-per-token.
  */
 export function voiceKey (config) {
+  // the dedicated slot first (Settings → Voice), then whatever the chats use
+  if (config?.keys?.['openai-voice']) return config.keys['openai-voice']
   if (config?.keys?.openai) return config.keys.openai
   const roster = config?.accounts?.openai || []
   const withKey = roster.find(a => a && a.key)
@@ -36,8 +38,8 @@ export function voiceKey (config) {
 
 /** Validate a request; returns { error, status } or null. */
 export function checkVoiceRequest ({ settings, apiKey, sdp, signedIn = false }) {
-  if (!settings?.voice?.enabled) return { status: 403, error: 'Voice conversations are off. Turn them on in Settings → Providers, under OpenAI.' }
-  if (!apiKey) return { status: 400, error: signedIn ? 'Voice needs an OpenAI API key — the ChatGPT sign-in does not cover it. In Settings → Providers, on the OpenAI row, press “+ Add an API key” and paste one from platform.openai.com.' : 'Voice needs an OpenAI API key — add one in Settings → Providers.' }
+  if (!settings?.voice?.enabled) return { status: 403, error: 'Voice conversations are off. Turn them on in Settings → Voice.' }
+  if (!apiKey) return { status: 400, error: signedIn ? 'Voice needs an OpenAI API key — the ChatGPT sign-in does not cover it. Paste one from platform.openai.com in Settings → Voice.' : 'Voice needs an OpenAI API key — paste one in Settings → Voice.' }
   if (typeof sdp !== 'string' || !sdp.trim() || !/^v=0/m.test(sdp)) return { status: 400, error: 'No audio offer arrived from the app.' }
   return null
 }
