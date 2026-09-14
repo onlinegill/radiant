@@ -28,7 +28,7 @@
  * backend prompt says so.
  */
 import { apiUrl, authHeaders } from './api.js'
-import { utteranceFrom } from './voice-text.js'
+import { utteranceFrom } from '../server/voice-text.js'
 
 const ICE_TIMEOUT_MS = 10_000
 const CLOSE_TIMEOUT_MS = 15_000

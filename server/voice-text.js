@@ -1,7 +1,10 @@
 /**
  * The text that crosses between a spoken conversation and a Radiant turn.
  *
- * Pure functions, no DOM, so scripts/test-voice.mjs can drive them in Node.
+ * Pure functions, no DOM. Lives in server/ because BOTH sides import it and
+ * only server/ ships in the packaged app (package.json build.files) — the
+ * first cut put it in src/, the packaged server threw "Cannot find module"
+ * at startup, and Radiant opened with no window at all.
  * voice.js (the WebRTC session) and App.jsx (the turn) both import from here.
  *
  * Two directions:

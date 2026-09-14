@@ -14,7 +14,7 @@
  * who never turned it on cannot be billed by a stray button, and it says what
  * is missing (the setting, the key) in a sentence rather than a 4xx.
  */
-import { liveInstructions, seedFrom } from '../src/voice-text.js'
+import { liveInstructions, seedFrom } from './voice-text.js'
 
 export const LIVE_MODEL = 'gpt-live-1'
 export const LIVE_VOICES = ['marin', 'quartz', 'ripple', 'vesper', 'willow', 'stone', 'gleam', 'meridian', 'beacon', 'delta', 'cinder']

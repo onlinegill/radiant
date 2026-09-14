@@ -5,7 +5,7 @@
 // assembled from transcript fragments, the spoken text made from an answer,
 // the session body sent to OpenAI, and the refusals when voice is off or the
 // key is missing.
-import { utteranceFrom, spokenFrom, deMarkdown, progressLine, liveInstructions, seedFrom } from '../src/voice-text.js'
+import { utteranceFrom, spokenFrom, deMarkdown, progressLine, liveInstructions, seedFrom } from '../server/voice-text.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from '../server/voice.js'
 
 let pass = 0, fail = 0
