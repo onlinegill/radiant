@@ -1520,7 +1520,13 @@ function AppearancePane ({ config, onSettings }) {
           <button
             key={t.id}
             className={'theme-swatch' + (s.themeId === t.id ? ' selected' : '')}
-            onClick={() => preview({ themeId: t.id, bgTint: t.tint })}
+            // ⚠️ A THEME IS A WHOLE LOOK. With a custom background set, a theme
+            // chip changed only the accent — the sage stayed sage under Ember,
+            // Nord, everything — and read as the theme not changing at all.
+            // Tony: "now the fucking theme isnt changing". Picking a theme now
+            // clears the custom background; the block below says it overrides
+            // the theme, so setting one again is a choice made knowingly.
+            onClick={() => preview({ themeId: t.id, bgTint: t.tint, customBg: null, customFg: null })}
           >
             {/* ⚠️ SHOW THE THEME'S ACTUAL COLOUR. The dot was always derived from
                 hue and chroma, which is right for the themes that derive
@@ -1585,8 +1591,8 @@ function AppearancePane ({ config, onSettings }) {
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
             {custom
-              ? `Chosen independently of the accent · ${custom.ratio.toFixed(1)}:1`
-              : 'Pick a background and a text color to override the theme'}
+              ? `Overrides the theme's background · ${custom.ratio.toFixed(1)}:1 · picking a theme clears it`
+              : 'Pick a background and a text color to override the theme\u2019s'}
           </div>
         </div>
         {s.customBg && (
@@ -2922,6 +2928,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['Picking a theme picks the whole look', 'If you had set a custom background and text color, choosing a theme afterwards changed only the accent \u2014 the background stayed, and every theme looked the same. Picking a theme now clears the custom background too, and the Background & text block says plainly that it overrides the theme\u2019s and that picking a theme clears it. Set it again after choosing a theme if you want both.'],
       ['A voice conversation is kept, as rows', 'While a call is open the captions are now a small transcript above the composer \u2014 one row per turn, You and Radiant, scrolling with the newest unless you scroll up to read back. When the call ends, the whole conversation is saved into the chat as a card (\u201cVoice conversation \u00b7 4 min\u201d) with every row, and the next turn can read it. Before this the captions were one line showing only the latest words, and they vanished with the call.'],
       ['Voice has its own Settings page', 'Everything about talking to Radiant is under Settings \u2192 Voice now: the switch, a key slot of its own, the voice, and what leaves the Mac. Before this it was a block at the very bottom of Providers and the key had to be added as a second OpenAI account beside the sign-in your chats use \u2014 "messy", and it was. The key you paste on the Voice page is kept for voice alone and does not change which OpenAI account your chats are on.'],
       ['A provider can hold a sign-in and a key at once', 'On a provider row that has a subscription sign-in, + Add account used to start another sign-in and there was no way to add an API key beside it \u2014 which is exactly what voice needs on an OpenAI account signed in with ChatGPT. The row now offers both: + Sign in to another account, and + Add an API key. Adding a key makes it the active account; click the subscription chip to switch your chats back, and voice keeps using the key.'],
