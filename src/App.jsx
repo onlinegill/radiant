@@ -217,6 +217,22 @@ function DesktopApp () {
 
   // A change made in the other window, the moment it happens rather than when
   // that window closes.
+  // ⚠️ ANOTHER MAC CAN CHANGE THE SETTINGS. The server reloads config.json
+  // when a foreign write lands and bumps `rev`; this window asks every so
+  // often and takes the new settings — so a theme picked on the Work MBP
+  // shows here without a relaunch, and this window never saves a stale copy
+  // over it. The interval is loose: iCloud itself takes seconds.
+  const configRevRef = useRef(null)
+  useEffect(() => {
+    const t = setInterval(() => {
+      api.getConfig().then(cfg => {
+        if (configRevRef.current !== null && cfg.rev !== configRevRef.current) { setConfig(cfg); applyTheme(cfg.settings) }
+        configRevRef.current = cfg.rev
+      }).catch(() => {})
+    }, 15_000)
+    return () => clearInterval(t)
+  }, [])
+
   useEffect(() => {
     if (!window.radiantNative?.onConfigChanged) return
     return window.radiantNative.onConfigChanged(() => {
@@ -753,17 +769,11 @@ function DesktopApp () {
     <div className={'app' + (navOpen ? ' nav-open' : '')}>
       <MotionBackground kind={config.settings.motionBg} />
       {/* Unbidden, once, after an update — see components/WhatsNew.jsx */}
-      {/* ⚠️ A DATA HAZARD HAS TO BE ON SCREEN, NOT IN A COLLAPSED SETTINGS HINT.
-          Radiant has always warned that two copies sharing one folder overwrite
-          each other — in a hint nobody reads before it matters. Tony ran two
-          Macs against one iCloud folder for a whole evening and was never told;
-          what he saw instead was chats going blank and content appearing in the
-          wrong conversation. This does not block anything: it is a sentence, it
-          names the other machine, and it goes away on its own when that copy
-          quits. */}
-      {config?.sharingText && (
-        <div className='share-warn' role='status'>{config.sharingText}</div>
-      )}
+      {/* ⚠️ NO BANNER FOR A SECOND MAC ANY MORE. It said "quit one of them"
+          across the bottom of every window, and Tony runs five Macs on one
+          folder. The server now reloads config.json when another Mac writes
+          it, so several copies are safe; the sentence that remains lives in
+          Settings → Devices, where the other Macs are already the subject. */}
       <WhatsNew />
       <div className='nav-backdrop' onClick={() => setNavOpen(false)} />
       <Sidebar

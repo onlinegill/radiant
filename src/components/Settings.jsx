@@ -2605,7 +2605,7 @@ function QrCode ({ text, size = 168 }) {
   )
 }
 
-function DevicesPane () {
+function DevicesPane ({ config }) {
   const [share, setShare] = useState(null)
   // The token is a credential; it starts hidden. See the note beside it.
   const [showToken, setShowToken] = useState(false)
@@ -2682,6 +2682,9 @@ function DevicesPane () {
                   picked takes effect after you quit Radiant completely and reopen it.</>
               : <>This Mac is <strong>using its own setup</strong>, stored on this machine.</>}
       </div>
+      {config?.sharingText && (
+        <div className='devices-now' style={{ marginTop: 6 }}>{config.sharingText}</div>
+      )}
 
       <p className='hint'>
         Radiant works across Macs in two ways. They solve different problems — pick the
@@ -2928,6 +2931,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['Several Macs on one folder is fine \u2014 the banner that said otherwise is gone', 'The bar across the bottom of the window that said \u201cRadiant is also open on <another Mac>\u2026 quit one of them\u201d was written for a two-Mac evening in August and was wrong advice for someone who runs five. Radiant re-reads the shared settings whenever another Mac writes them, so a theme or a key changed on one Mac shows up on the others within a few seconds and nothing is saved over it. The one thing to avoid is editing the same chat on two Macs at the same moment \u2014 the last one to finish wins. That sentence now lives in Settings \u2192 Devices, beside the other Macs, instead of across every window.'],
       ['Picking a theme picks the whole look', 'If you had set a custom background and text color, choosing a theme afterwards changed only the accent \u2014 the background stayed, and every theme looked the same. Picking a theme now clears the custom background too, and the Background & text block says plainly that it overrides the theme\u2019s and that picking a theme clears it. Set it again after choosing a theme if you want both.'],
       ['A voice conversation is kept, as rows', 'While a call is open the captions are now a small transcript above the composer \u2014 one row per turn, You and Radiant, scrolling with the newest unless you scroll up to read back. When the call ends, the whole conversation is saved into the chat as a card (\u201cVoice conversation \u00b7 4 min\u201d) with every row, and the next turn can read it. Before this the captions were one line showing only the latest words, and they vanished with the call.'],
       ['Voice has its own Settings page', 'Everything about talking to Radiant is under Settings \u2192 Voice now: the switch, a key slot of its own, the voice, and what leaves the Mac. Before this it was a block at the very bottom of Providers and the key had to be added as a second OpenAI account beside the sign-in your chats use \u2014 "messy", and it was. The key you paste on the Voice page is kept for voice alone and does not change which OpenAI account your chats are on.'],
@@ -3246,7 +3250,7 @@ export default function Settings ({ config, initialTab = 'providers', initialAge
           {tab === 'skills' && <SkillsPane config={config} onConfigChange={onConfigChange} />}
           {tab === 'mcp' && <McpPane config={config} onConfigChange={onConfigChange} />}
           {tab === 'memory' && <MemoryPane config={config} onSettings={onSettings} />}
-          {tab === 'devices' && <DevicesPane />}
+          {tab === 'devices' && <DevicesPane config={config} />}
           {tab === 'appearance' && <AppearancePane config={config} onSettings={onSettings} />}
           {tab === 'chrome' && <ChromePane />}
           {tab === 'voice' && <VoicePane config={config} onSettings={onSettings} onConfigChange={onConfigChange} />}

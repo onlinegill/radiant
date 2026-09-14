@@ -41,14 +41,18 @@ const NOW = Date.now()
      L.readLock(dir)?.host === 'mba')
   ok('the message names the other Mac',
      /mbp/.test(L.describeHolder(r.holder, 'mba') || ''))
-  ok('and says what to do about it',
-     /quit one of them/.test(L.describeHolder(r.holder, 'mba') || ''))
+  ok('and says the one thing to actually avoid',
+     /same chat on both/.test(L.describeHolder(r.holder, 'mba') || ''))
   // ⚠️ THE TWO CASES MUST NOT SHARE A SENTENCE. A second window on this Mac is
   // something you close right now; a second Mac is somewhere else. Saying
   // "another copy of Radiant" for both sends someone hunting for the wrong
   // thing — which is the entire point of naming the machine.
   ok('a second copy on THIS Mac reads as this Mac, not as a mystery machine',
-     /already open on this Mac/.test(L.describeHolder({ host: 'mbp' }, 'mbp') || ''))
+     /open twice on this Mac/.test(L.describeHolder({ host: 'mbp' }, 'mbp') || ''))
+  // ⚠️ AND A SECOND MAC IS NOT TOLD TO QUIT. Tony runs five on one folder; the
+  // server reloads the shared settings when another Mac writes them.
+  ok('a second Mac is described, not ordered to quit',
+     !/quit one of them/.test(L.describeHolder({ host: 'work' }, 'home') || '') && /Also open on work/.test(L.describeHolder({ host: 'work' }, 'home') || ''))
   ok('...and does not claim to be somewhere else',
      !/also open on/.test(L.describeHolder({ host: 'mbp' }, 'mbp') || ''))
 }

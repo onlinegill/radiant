@@ -111,15 +111,19 @@ export function beatLock (dir, { host = os.hostname(), pid = process.pid, now = 
 /**
  * One sentence for the UI, or null when there is nothing to say.
  *
- * ⚠️ NAME THE MACHINE, because the whole value of this is knowing WHICH copy to
- * go and quit. "Another copy of Radiant" sends someone hunting. The two cases
- * read differently and must not share a sentence: a second window on this Mac is
- * something you can close right now, and a second Mac is somewhere else.
+ * ⚠️ NAME THE MACHINE. "Another copy of Radiant" sends someone hunting.
+ *
+ * ⚠️ AND DO NOT TELL THEM TO QUIT IT. This used to say "quit one of them",
+ * written for a two-Mac evening in August. Tony runs five Macs on one folder:
+ * "youre telling me i need to quit radiant on each one to work on another
+ * mac?" Since then the server reloads config.json when another Mac writes it,
+ * so several copies are safe to run; what is left is the honest limit of a
+ * shared folder, and this sentence states it instead of an order.
  */
 export function describeHolder (holder, thisHost = os.hostname()) {
   if (!holder) return null
   const elsewhere = holder.host && holder.host !== thisHost
   return elsewhere
-    ? `Radiant is also open on ${holder.host}, using this same folder. Two copies writing at once can overwrite each other's work — quit one of them, or use Settings → Devices to work from the other over the network instead.`
-    : 'Radiant is already open on this Mac, using this same folder. Two copies writing at once can overwrite each other\'s work — quit the other one.'
+    ? `Also open on ${holder.host}, sharing this folder. Settings changed on either Mac reach the other within a few seconds; a chat runs on whichever Mac you send from. Avoid editing the same chat on both at the same moment.`
+    : 'Radiant is open twice on this Mac, sharing one folder. Two windows editing the same chat at once can overwrite each other — close one.'
 }

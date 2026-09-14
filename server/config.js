@@ -123,7 +123,7 @@ export const PROJECTS_DIR = path.join(RADIANT_DIR, 'projects')
 export const TASKS_DIR = path.join(RADIANT_DIR, 'tasks')
 export const LOOPS_DIR = path.join(RADIANT_DIR, 'loops')
 export const GRAPHS_DIR = path.join(RADIANT_DIR, 'graphs')
-const CONFIG_PATH = path.join(RADIANT_DIR, 'config.json')
+export const CONFIG_PATH = path.join(RADIANT_DIR, 'config.json')
 
 /** What the UI needs to describe the current location honestly. */
 export function dataDirStatus () {

@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url'
 import { WebSocketServer } from 'ws'
 import pty from 'node-pty'
 import { execSync, spawn } from 'child_process'
-import { RADIANT_DIR, DIR_POINTER, defaultDataDir, dataDirStatus, loadConfig, saveConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession } from './config.js'
+import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, loadConfig, saveConfig as writeConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession } from './config.js'
 import { runTurn, listModels } from './providers.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from './voice.js'
 import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAccessToken, startDevice, pollDevice } from './oauth.js'
@@ -60,6 +60,39 @@ const APP_VERSION = (() => {
 })()
 
 let config = loadConfig()
+
+// ⚠️ FIVE MACS, ONE FOLDER, AND EVERY SERVER HELD ITS OWN COPY. Each Radiant
+// loaded config.json once and wrote its whole in-memory copy back on every
+// change — so a theme picked on this Mac was overwritten by the next save on
+// any other Mac, whose copy still had the old theme. The banner's answer was
+// "quit one of them". Tony: "I have 5 macs. youre telling me i need to quit
+// radiant on each one to work on another mac?" No.
+//
+// The fix is freshness, not exclusivity: the file is watched, and a write that
+// is not ours (iCloud carrying another Mac's save) is loaded into memory the
+// moment it lands, so the next save here carries it forward. What remains is
+// last-writer-wins within iCloud's few seconds of propagation, which is the
+// honest limit of a shared folder and is stated in Settings → Devices.
+// fs.watchFile polls, deliberately: fs.watch on an iCloud folder misses events.
+let configRev = 1
+let ownConfigHash = null
+const hashOf = raw => crypto.createHash('sha1').update(raw).digest('hex')
+function saveConfig (cfg, opts) {
+  writeConfig(cfg, opts)
+  try { ownConfigHash = hashOf(fs.readFileSync(CONFIG_PATH, 'utf8')) } catch {}
+  configRev++
+}
+try { ownConfigHash = hashOf(fs.readFileSync(CONFIG_PATH, 'utf8')) } catch {}
+fs.watchFile(CONFIG_PATH, { interval: 4000 }, () => {
+  let raw
+  try { raw = fs.readFileSync(CONFIG_PATH, 'utf8') } catch { return }
+  const h = hashOf(raw)
+  if (h === ownConfigHash) return          // our own write coming back
+  try { JSON.parse(raw) } catch { return } // a half-synced file; the next tick sees the whole one
+  config = loadConfig()
+  ownConfigHash = h
+  configRev++
+})
 // Projects used to live in config.json. Move them to one file each before
 // anything reads them, so a second Mac cannot overwrite the whole list.
 migrateProjects(config)
@@ -364,7 +397,7 @@ app.use('/api', (req, res, next) => {
 })
 
 // ---------- config ----------
-app.get('/api/config', (req, res) => res.json({ ...publicConfig(config), sharing, sharingText: describeHolder(sharing, LOCK_HOST) }))
+app.get('/api/config', (req, res) => res.json({ ...publicConfig(config), rev: configRev, sharing, sharingText: describeHolder(sharing, LOCK_HOST) }))
 
 app.put('/api/settings', (req, res) => {
   // ⚠️ SPLIT THE SAVE. Anything in MACHINE_KEYS describes this Mac — which model
