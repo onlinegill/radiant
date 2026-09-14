@@ -12,6 +12,8 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { deviceWord } from './device.js'
 import usePress from './usePress.js'
+import { hasConsent, grantConsent, revokeConsent } from './consent.js'
+import ConsentSheet from './ConsentSheet.jsx'
 import {
   PROVIDERS, connectedProviders, saveKey, removeKey, looksWrong,
   fetchModels, loadChosen, saveChosen, shortModelName, providerById
@@ -55,9 +57,11 @@ function Provider ({ p, connected, chosen, onChoose, onChanged }) {
     expanded: open
   })
 
-  const save = useCallback(async () => {
-    const problem = looksWrong(p, value)
-    if (problem) { setError(problem); return }
+  // ⚠️ THE KEY IS THE MOMENT TO ASK. Saving a provider's key is the decision to
+  // send chats there, so the consent sheet comes up here first (and again at
+  // the first send, if it was somehow skipped). Removing the key withdraws it.
+  const [asking, setAsking] = useState(false)
+  const writeKey = useCallback(async () => {
     setBusy(true)
     try {
       await saveKey(p.id, value)
@@ -67,10 +71,16 @@ function Provider ({ p, connected, chosen, onChoose, onChanged }) {
       setError(e?.message || 'Could not save that key.')
     } finally { setBusy(false) }
   }, [p, value, onChanged])
+  const save = useCallback(async () => {
+    const problem = looksWrong(p, value)
+    if (problem) { setError(problem); return }
+    if (!hasConsent(p.id)) { setAsking(true); return }
+    await writeKey()
+  }, [p, value, writeKey])
 
   const forget = useCallback(async () => {
     setBusy(true)
-    try { await removeKey(p.id); setOpen(false); await onChanged() } finally { setBusy(false) }
+    try { await removeKey(p.id); revokeConsent(p.id); setOpen(false); await onChanged() } finally { setBusy(false) }
   }, [p, onChanged])
 
   const saveBtn = usePress(save, { label: 'Save key', disabled: busy || !value.trim() })
@@ -78,6 +88,13 @@ function Provider ({ p, connected, chosen, onChoose, onChanged }) {
 
   return (
     <>
+      {asking && (
+        <ConsentSheet
+          provider={p}
+          onAllow={() => { grantConsent(p.id); setAsking(false); writeKey() }}
+          onDecline={() => setAsking(false)}
+        />
+      )}
       <div className={'rx-row rx-pressable' + head.className} {...head.handlers}>
         <div className="rx-row-text">
           <div className="rx-headline">{p.name}</div>

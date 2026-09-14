@@ -187,6 +187,40 @@ ok('and the app does not drag you back down', held && held.after < 80)
   ok('and never claims On device beside it', !/On device/i.test(t))
 }
 
+// ── flow: consent before the first message goes to a cloud provider ───────
+// ⚠️ APPLE 5.1.1(i)/5.1.2(i), 2026-09-14: "the app does not clearly explain what
+// data is sent, identify who the data is sent to, and ask the user's permission
+// before sharing the data." The sheet has to appear IN THE APP before the first
+// cloud send, name the provider, and send nothing until Allow.
+{
+  await page.evaluate(() => localStorage.removeItem('radiant.phone.cloudConsent'))
+  await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(700)
+  await page.evaluate(() => { window.__cloudSends = 0 })   // after the reload, or it is wiped
+  ok('a chat opens with the cloud model chosen', await tap('New chat'))
+  const box = page.locator('textarea').first()
+  const go = async text => { await box.fill(text); await page.waitForTimeout(150); const b = page.locator('button[aria-label="Send"]').first(); if (await b.count()) await b.click({ force: true }); await page.waitForTimeout(600) }
+  await go('hello cloud')
+  const dlg = page.locator('[role=dialog][aria-label*="Send your messages to"]')
+  ok('a cloud send with no consent shows the consent sheet', await dlg.count() > 0)
+  const dt = await dlg.innerText().catch(() => '')
+  ok('the sheet names the provider', /OpenRouter/.test(dt))
+  ok('says what is sent', /messages you type/i.test(dt) && /images you attach/i.test(dt))
+  ok('says where it goes, by host', /openrouter\.ai/.test(dt))
+  ok('says what is not sent, and who does not get it', /not sent/i.test(dt) && /Templeton/.test(dt))
+  ok('offers Allow and Not now', /Allow/.test(dt) && /Not now/.test(dt))
+  is('nothing was sent while the sheet was up', await page.evaluate(() => window.__cloudSends), 0)
+  await page.locator('[role=dialog] button', { hasText: 'Not now' }).click({ force: true }); await page.waitForTimeout(500)
+  is('Not now sends nothing', await page.evaluate(() => window.__cloudSends), 0)
+  ok('and the consent is not recorded', await page.evaluate(() => !localStorage.getItem('radiant.phone.cloudConsent') || localStorage.getItem('radiant.phone.cloudConsent') === '{}'))
+  await go('hello again')
+  await page.locator('[role=dialog] button', { hasText: 'Allow' }).click({ force: true }); await page.waitForTimeout(900)
+  is('Allow records the consent for that provider', await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('radiant.phone.cloudConsent') || '{}'))), ['openrouter'])
+  is('and the held message is sent', await page.evaluate(() => window.__cloudSends), 1)
+  await go('third')
+  ok('a later message is not asked again', await page.locator('[role=dialog][aria-label*="Send your messages to"]').count() === 0)
+  is('and goes straight out', await page.evaluate(() => window.__cloudSends), 2)
+}
+
 // ── flow: Models — installed models are reachable and shelves open ────────
 await page.evaluate(() => localStorage.removeItem('radiant.phone.cloudModel'))
 await page.reload({ waitUntil: 'networkidle' })

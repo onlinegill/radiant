@@ -2597,3 +2597,14 @@
 .is-native .rx-skill-actions { display: flex; justify-content: flex-end; gap: 16px; }
 .is-native .rx-skill-cancel { color: var(--rx-label-2); font-size: 16px; }
 .is-native .rx-skill-save { color: var(--rx-tint-text); font-size: 16px; font-weight: 600; }
+
+/* ── consent: before the first message goes to a cloud provider ──────────────
+   Apple 5.1.1(i)/5.1.2(i): what is sent, to whom, and permission first. */
+.is-native .rx-consent { padding: 20px 20px 0; display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto; }
+.is-native .rx-consent p { margin: 0; }
+.is-native .rx-consent-list { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--rx-bg-grouped); }
+.is-native .rx-consent-row { display: flex; flex-direction: column; gap: 3px; }
+.is-native .rx-consent-actions { display: flex; flex-direction: column; gap: 8px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.is-native .rx-consent-decline { font: -apple-system-body; color: var(--rx-tint-text); background: none; border: 0; padding: 12px; border-radius: 12px; }
+.is-native .rx-consent-decline.is-pressed { background: var(--rx-fill); }
+.is-native .rx-consent-link { font: inherit; color: var(--rx-tint-text); background: none; border: 0; padding: 0; text-decoration: underline; }

@@ -141,6 +141,45 @@ Apple does not count either as collection by the developer.
 
 ---
 
+## REJECTED 2026-09-14 — 5.1.1(i) and 5.1.2(i): consent before a cloud provider
+
+Reviewed on an iPad Air 11-inch (M3), version 1.0 (6), submission
+4cc9084e-2de8-437a-9ced-494c5f0ff170, review date September 14, 2026. Verbatim:
+
+> The app appears to share the user's personal data with a third-party AI
+> service but the app does not clearly explain what data is sent, identify who
+> the data is sent to, and ask the user's permission before sharing the data.
+> […] Note that only including this information in the app's Terms of Service
+> or Privacy Policy is not sufficient.
+
+**The finding is correct.** Settings → Providers takes an API key and the next
+message goes to that provider; the privacy policy said so, the app did not, and
+the app never asked. A NEW BUILD is required — this is in-app behaviour.
+
+### What build 7 does
+
+- `src/mobile/ConsentSheet.jsx` + `consent.js`: before the first message to a
+  provider, a sheet titled "Send your messages to <Provider>?" says what is
+  sent (the messages in that chat, attached images, the replies), where it
+  goes (the provider, by name and host, under its own policy — not to us),
+  what is not sent, how to withdraw (remove the key), with a link to the
+  policy, and **Allow / Not now**. Nothing is sent until Allow.
+- It is asked at the two doors: saving a provider key (ProvidersScreen) and
+  the first cloud send (MobileChat), per provider. Removing the key revokes.
+- `scripts/test-ui.mjs` drives it in the running phone UI: sheet appears, names
+  OpenRouter, sends nothing on Not now, sends on Allow, never asks twice.
+- Privacy policy (privacy.html, updated 14 Sept 2026): what is sent, to whom,
+  the single use, each provider's policy (every URL fetched, title checked),
+  that we do not audit them, and withdrawal.
+
+### Metadata to change with this submission
+
+- Subtitle → **"Open models, on your phone"** (the standing decision from
+  2026-09-10; "fully offline" was untrue once a key is added — the same fact
+  Apple has now raised).
+- App Review Information → notes: a paragraph on the consent sheet, and a
+  reply to this rejection saying the same.
+
 ## REJECTED 2026-09-10 — guideline 5, and ONE FIELD CAUSED BOTH HALVES
 
 Reviewed on an **iPad Air 11-inch (M3)**, version 1.0 (6). Submission ID

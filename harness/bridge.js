@@ -137,7 +137,7 @@ window.Capacitor = {
     ProviderChat: {
       addListener: (ev, fn) => Promise.resolve(addListener(ev, fn)),
       models: async () => ({ models: ['anthropic/claude-opus-4.5', 'openai/gpt-5', 'deepseek/deepseek-v4'] }),
-      send: async () => { emit('cloudToken', { text: 'Cloud reply.' }); emit('cloudDone', {}); return {} },
+      send: async () => { window.__cloudSends = (window.__cloudSends || 0) + 1; emit('cloudToken', { text: 'Cloud reply.' }); emit('cloudDone', {}); return {} },
       stop: async () => ({})
     },
     Haptics: { impact: async () => ({}), notification: async () => ({}), selection: async () => ({}) },

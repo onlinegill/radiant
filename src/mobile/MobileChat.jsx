@@ -6,6 +6,8 @@ import Gauge from './Gauge.jsx'
 import * as haptics from './haptics.js'
 import BrandSpinner, { BrandMark } from './BrandSpinner.jsx'
 import { loadChosen, providerById } from './providers.js'
+import { hasConsent, grantConsent } from './consent.js'
+import ConsentSheet from './ConsentSheet.jsx'
 
 // The conversation, running on this phone.
 //
@@ -719,11 +721,22 @@ export default function MobileChat ({
     return () => offs.forEach(off => off())
   }, [stick])
 
+  // ⚠️ ASK BEFORE THE FIRST MESSAGE LEAVES THE PHONE. Apple 5.1.1(i)/5.1.2(i),
+  // 2026-09-14: a cloud model sends the conversation to a third party, and the
+  // app has to say what, to whom, and get permission — in the app, not only in
+  // the policy. The sheet is per provider; a chat is held back, draft intact,
+  // until the person answers, and "Not now" sends nothing.
+  const [consentAsk, setConsentAsk] = useState(null)   // { provider, text }
   const send = useCallback(text => {
     let body = (text ?? draft).trim()
     if (!body || run.current || !model) return
     const lm = plugins().LocalModels
     if (!lm) return
+    {
+      const cloud = loadChosen()
+      const provider = cloud ? providerById(cloud.providerId) : null
+      if (provider && !hasConsent(provider.id)) { setConsentAsk({ provider, text: body }); return }
+    }
 
     // ⚠️ RESOLVE THE COMMAND AT SEND, NOT AT PICK — same as the Mac. The `/slug`
     // is stripped from what the model reads, because the skill's instructions
@@ -1125,6 +1138,13 @@ export default function MobileChat ({
           </div>
         )}
       </div>
+      {consentAsk && (
+        <ConsentSheet
+          provider={consentAsk.provider}
+          onAllow={() => { grantConsent(consentAsk.provider.id); const t = consentAsk.text; setConsentAsk(null); setTimeout(() => send(t), 0) }}
+          onDecline={() => setConsentAsk(null)}
+        />
+      )}
     </>
   )
 }
