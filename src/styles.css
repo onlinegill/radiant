@@ -2064,9 +2064,13 @@ button.hf-head:hover { background: var(--bg-hover); }
    reads as "record a voice message" at least as often as "type what I say", and
    this one types into the message box. It names its state for the same reason —
    an icon that only changes colour cannot tell you it is listening. */
-.attach-btn.is-dictate {
+/* ⚠️ EVERY LABELLED ATTACH BUTTON, NOT JUST DICTATE. .attach-btn is 16px for
+   its icon; Dictate alone set 12px/500 for its word, so when Talk arrived its
+   "Talk" came out at 16px beside a 12px "Dictate". Tony: "the text in the Talk
+   button is larger than dictate and the others." The rule follows the label. */
+.attach-btn:has(.pill-label) {
   /* width, padding and gap come from the .attach-btn:has(.pill-label) rules
-     above, so it rests as an icon and grows into "Dictate" on hover like the
+     above, so it rests as an icon and grows into its word on hover like the
      toggles; while listening the word stays out, because that is the signal */
   font-size: 12px; font-weight: 500;
 }

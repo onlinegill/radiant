@@ -550,6 +550,8 @@ for (const r of results) console.log(`  ${r.ok ? '✓' : '✗'} ${r.name}${r.det
   ok(/\.pill-toggle\.on:hover[^{]*\{[^}]*background: var\(--bg-hover\)/s.test(css), 'on the plain hover surface')
   ok(/\.attach-btn:has\(\.pill-label\):hover[^{]*\{[^}]*color: var\(--text\)/s.test(css), 'and so does the open dictate button')
   ok(/\.composer-tools \.pill-toggle[^{]*\{[^}]*transition: padding/s.test(css), 'the width animates, so the neighbours slide rather than snap')
+  ok(/\.attach-btn:has\(\.pill-label\) \{[^}]*font-size: 12px; font-weight: 500/s.test(css), 'every labelled attach button — Dictate, Talk — sets its word at the pill size, not the icon size')
+  ok(!/\.attach-btn\.is-dictate \{[^}]*font-size/s.test(css) && !/\.attach-btn\.is-voice \{[^}]*font-size/s.test(css), 'and no single one of them carries its own font size to drift from the others')
 
   // ⚠️ A CLASS MUST BE NAMED FOR WHAT IT DOES. Design Mode's busy state was called
   // `listening` and pulsed with a keyframe named `mic-pulse`, left over from a
