@@ -37,7 +37,7 @@ export function voiceKey (config) {
 /** Validate a request; returns { error, status } or null. */
 export function checkVoiceRequest ({ settings, apiKey, sdp, signedIn = false }) {
   if (!settings?.voice?.enabled) return { status: 403, error: 'Voice conversations are off. Turn them on in Settings → Providers, under OpenAI.' }
-  if (!apiKey) return { status: 400, error: signedIn ? 'Voice needs an OpenAI API key — the ChatGPT sign-in does not cover it. Add a key from platform.openai.com as a second OpenAI account in Settings → Providers.' : 'Voice needs an OpenAI API key — add one in Settings → Providers.' }
+  if (!apiKey) return { status: 400, error: signedIn ? 'Voice needs an OpenAI API key — the ChatGPT sign-in does not cover it. In Settings → Providers, on the OpenAI row, press “+ Add an API key” and paste one from platform.openai.com.' : 'Voice needs an OpenAI API key — add one in Settings → Providers.' }
   if (typeof sdp !== 'string' || !sdp.trim() || !/^v=0/m.test(sdp)) return { status: 400, error: 'No audio offer arrived from the app.' }
   return null
 }
