@@ -1,4 +1,5 @@
 import fs from 'fs'
+import { categoryOf, SKILL_CATEGORIES } from './skill-categories.js'
 import path from 'path'
 import { execFileSync } from 'child_process'
 import os from 'os'
@@ -912,7 +913,8 @@ export function publicConfig (cfg) {
     // ⚠️ THE API SHAPE DOES NOT CHANGE WHEN THE STORAGE DOES. These live in one
     // file each now, but the app still receives the same arrays it always did,
     // so nothing in the UI had to be touched to move them off a shared blob.
-    skills: skillsStore.list(),
+    // each skill carries its category — saved if the person set one, guessed otherwise
+    skills: skillsStore.list().map(sk => ({ ...sk, category: categoryOf(sk), categoryGuessed: !SKILL_CATEGORIES.includes(sk.category) })),
     skillSuggestions: cfg.skillSuggestions || [],
     agents: agentsStore.list(),
     // The UI needs to SEE what was removed, or the library cannot offer it back

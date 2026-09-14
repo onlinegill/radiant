@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { SKILL_CATEGORIES } from '../../server/skill-categories.js'
 import qrcode from 'qrcode-generator'
 import { verdict, FIT_LABEL, FITS_WELL, FITS_TIGHT, FITS_NO, COMFORTABLE } from '../fit.js'
 import { api, startDownload, getDownloads, cancelDownload, streamQuantize, getServer, setServer, testServer, saveToFile, deviceNoun, phoneLink, EXTENSION_STORE_URL } from '../api.js'
@@ -1348,6 +1349,15 @@ function SkillsPane ({ config, onConfigChange }) {
   const rejectSuggestion = async id => onConfigChange(await api.rejectSkillSuggestion(id))
   const toggle = async (id, enabled) => onConfigChange(await api.updateSkill(id, { enabled }))
   const remove = async id => { if (window.confirm('Delete this skill?')) onConfigChange(await api.deleteSkill(id)) }
+  // ⚠️ FORTY-FIVE SKILLS IN ONE FLAT LIST. Tony: "my skills list is already
+  // starting to grow. we should have a category selector in the skills
+  // settings." Each skill carries a category — guessed from its name and
+  // description until the person sets one here, after which the setting wins.
+  const [cat, setCat] = useState('All')
+  const setCategory = async (id, category) => onConfigChange(await api.updateSkill(id, { category }))
+  const counts = {}
+  for (const sk of skills) counts[sk.category || 'Other'] = (counts[sk.category || 'Other'] || 0) + 1
+  const shown = (cat === 'All' ? skills : skills.filter(sk => (sk.category || 'Other') === cat)).slice().sort((a, b) => a.name.localeCompare(b.name))
   const add = async () => {
     if (!name.trim() || !content.trim()) return
     const cfg = await api.addSkill({ name: name.trim(), content: content.trim() })
@@ -1478,8 +1488,17 @@ function SkillsPane ({ config, onConfigChange }) {
         </div>
       )}
 
+      {skills.length > 0 && (
+        <div className='cat-chips' role='tablist' aria-label='Skill categories'>
+          {['All', ...SKILL_CATEGORIES.filter(c => counts[c])].map(c => (
+            <button key={c} role='tab' aria-selected={cat === c} className={'cat-chip' + (cat === c ? ' is-on' : '')} onClick={() => setCat(c)}>
+              {c} <span className='cat-count'>{c === 'All' ? skills.length : counts[c]}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {skills.length > 0 && <div className='skill-list-head'>On for all agents</div>}
-      {skills.map(sk => (
+      {shown.map(sk => (
         <div key={sk.id} className='skill-row'>
           <label className='skill-toggle' title='On for every agent and session'>
             <input type='checkbox' checked={Boolean(sk.enabled)} onChange={e => toggle(sk.id, e.target.checked)} />
@@ -1488,10 +1507,15 @@ function SkillsPane ({ config, onConfigChange }) {
             <div className='skill-name'>{sk.name}</div>
             <div className='skill-body'>{sk.description || sk.content}</div>
           </div>
+          {/* the guess is shown faint until the person confirms or changes it */}
+          <select className={'cat-select' + (sk.categoryGuessed ? ' is-guess' : '')} value={sk.category || 'Other'} onChange={e => setCategory(sk.id, e.target.value)} title={sk.categoryGuessed ? 'Category (guessed — pick to confirm)' : 'Category'}>
+            {SKILL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
           <button className='small-btn danger' onClick={() => remove(sk.id)} title='Delete skill'>✕</button>
         </div>
       ))}
       {!skills.length && <div className='activity-empty' style={{ marginTop: 8 }}>No skills yet.</div>}
+      {skills.length > 0 && !shown.length && <div className='activity-empty' style={{ marginTop: 8 }}>No skills in {cat}.</div>}
 
     </div>
   )
@@ -2968,6 +2992,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['Skills have categories', 'With dozens of skills, one flat list stopped working. Every skill now has a category \u2014 Coding, Apple, Design, Writing, Research, Quality, Ops, Business, Other \u2014 guessed from its name and description, shown faint until you confirm or change it in the small menu on its row; your choice is saved and wins from then on. Settings \u2192 Skills has category chips across the top with counts, and the Skills button in the composer groups the list by category with a fold on each heading, like the model picker, remembering which you folded. The filter box searches across all of them.'],
       ['In a group chat, @Name picks who acts \u2014 and they get tools', 'Every agent in a group chat used to answer every message, and none of them could use tools \u2014 so \u201clet\u2019s do the frontend in React\u201d had four agents all trying to do it at once, none of them able to. Now type @ and pick someone from the room (or write @coder, @dev-ops): only they act on that message, with the chat\u2019s tools and skills, and the rest of the room stays quiet but reads it \u2014 what the addressed agent does is in the transcript for everyone\u2019s next turn. Mention two and both act, in order. No mention keeps the round table as before. Asked for by a user on GitHub (#16, #18).'],
       ['MCP servers can be edited, and they find npx', 'Each MCP server row has an Edit button now \u2014 name, command or address, token \u2014 instead of remove-and-re-add. And a server\u2019s command runs with the same PATH your terminal has, so npx, uvx and anything your shell profile sets up are found; before this, a Mac-launched app only saw the bare system PATH and a server like \u201cnpx -y some-server\u201d failed with ENOENT. A command written the way a terminal would take it (PATH=\u2026 npx \u2026, or with a pipe) is run through your shell as written. Asked for on GitHub (#15).'],
       ['A copy that cannot update itself now says so', 'If Radiant is opened from the disk image, or from Downloads before it has been moved, macOS runs it from a temporary read-only spot and will not let it replace itself \u2014 so updates downloaded every six hours and quietly failed, and that Mac stayed on the version it opened with. Settings \u2192 About and Check for Updates\u2026 now say exactly that, with the fix: quit, drag Radiant into the Applications folder, open it from there. Updates work on their own after that.'],

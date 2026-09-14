@@ -3457,3 +3457,20 @@ html[data-window-chrome='native'] .brand { padding-top: 12px; }
 .voice-meter { flex: none; font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-faint); }
 .attach-btn.is-voice.is-on { color: var(--accent); border-color: var(--accent); }
 .msg-spoken { display: inline-block; vertical-align: -1px; margin-right: 6px; opacity: .7; }
+
+/* ── skill categories ─────────────────────────────────────────────────────── */
+.cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.cat-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid transparent; background: none; color: var(--text-muted); font-size: 12px; cursor: pointer;
+}
+.cat-chip:hover { background: var(--bg-hover); border-color: var(--border); color: var(--text); }
+.cat-chip.is-on { background: var(--accent-wash); border-color: var(--accent-dim); color: var(--accent); }
+.cat-count { font-size: 10px; padding: 0 5px; border-radius: 999px; background: var(--bg-hover); color: var(--text-faint); }
+.cat-chip.is-on .cat-count { background: color-mix(in oklab, var(--accent) 18%, transparent); color: inherit; }
+.cat-select {
+  flex: none; font: inherit; font-size: 11px; padding: 3px 6px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text-muted); margin-right: 6px;
+}
+.cat-select.is-guess { color: var(--text-faint); font-style: italic; }
+.skill-menu .model-group-label { width: 100%; }

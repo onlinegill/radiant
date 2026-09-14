@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Markdown from './Markdown.jsx'
 import { Icon } from './Icons.jsx'
 import { contextWindow } from '../../server/context-windows.js'
+import { SKILL_CATEGORIES } from '../../server/skill-categories.js'
 import { glyphColor } from '../theme.js'
 import { AgentGlyph } from './AgentIcons.jsx'
 import { api, getServer, apiUrl, authHeaders, deviceNoun } from '../api.js'
@@ -821,9 +822,16 @@ function StatsChip ({ stats }) {
  * into the box as /name, visible and editable, and sending is what invokes it.
  * Skills already pinned to this chat are left out — they are on every turn.
  */
+const SKILL_MENU_COLLAPSED = 'radiant.skillMenu.collapsed'
 function SkillMenu ({ skills, activeIds = [], onPick }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
+  // ⚠️ GROUPED LIKE THE MODEL PICKER. Tony: "in the chat skills selector a
+  // toggle like in the model selector." Each category is a header with a caret
+  // and a count; a click folds it; the fold is remembered. A filter opens
+  // everything, because you are looking for one thing by name.
+  const [collapsed, setCollapsed] = useState(() => { try { return JSON.parse(localStorage.getItem(SKILL_MENU_COLLAPSED) || '{}') } catch { return {} } })
+  const toggleGroup = c => setCollapsed(prev => { const next = { ...prev, [c]: !prev[c] }; try { localStorage.setItem(SKILL_MENU_COLLAPSED, JSON.stringify(next)) } catch {}; return next })
   const ref = useRef(null)
   useEffect(() => {
     const close = e => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setQ('') } }
@@ -833,9 +841,10 @@ function SkillMenu ({ skills, activeIds = [], onPick }) {
   const slug = name => String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   const list = (skills || [])
     .filter(sk => !activeIds.includes(sk.id))
-    .map(sk => ({ id: sk.id, cmd: '/' + slug(sk.name), name: sk.name, desc: sk.description || '', enabled: sk.enabled }))
+    .map(sk => ({ id: sk.id, cmd: '/' + slug(sk.name), name: sk.name, desc: sk.description || '', enabled: sk.enabled, category: sk.category || 'Other' }))
     .filter(c => !q || c.cmd.includes(q.toLowerCase()) || c.name.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => a.cmd.localeCompare(b.cmd))
+  const groups = SKILL_CATEGORIES.map(c => [c, list.filter(x => x.category === c)]).filter(([, xs]) => xs.length)
   return (
     <div ref={ref} style={{ position: 'relative', display: 'flex' }}>
       <button className={'attach-btn' + (open ? ' is-on' : '')} title='Skills' aria-expanded={open} data-tip={'Skills — pick one and it goes into\nthe message as /name; send to use it'} onClick={() => { setOpen(o => !o); setQ('') }}><Icon.sparkle size={15} /><span className='pill-label'>Skills</span></button>
@@ -844,12 +853,24 @@ function SkillMenu ({ skills, activeIds = [], onPick }) {
           {skills.length > 6 && (
             <input className='skill-menu-filter' autoFocus placeholder='Filter skills…' value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); setQ('') } if (e.key === 'Enter' && list[0]) { onPick(list[0]); setOpen(false); setQ('') } }} />
           )}
-          {list.map(c => (
-            <button key={c.id} className='recipe-item' onMouseDown={e => { e.preventDefault(); onPick(c); setOpen(false); setQ('') }}>
-              <span className='recipe-name'>{c.cmd}{!c.enabled && <span className='slash-kind'> · off elsewhere</span>}</span>
-              {c.desc && <span className='recipe-desc'>{c.desc}</span>}
-            </button>
-          ))}
+          {groups.map(([cat, xs]) => {
+            const col = !q && collapsed[cat]
+            return (
+              <React.Fragment key={cat}>
+                <button type='button' className='model-group-label' onClick={() => toggleGroup(cat)} aria-expanded={!col}>
+                  <span className='mg-caret'>{col ? '▸' : '▾'}</span>
+                  <span className='mg-name'>{cat}</span>
+                  <span className='mg-count'>{xs.length}</span>
+                </button>
+                {!col && xs.map(c => (
+                  <button key={c.id} className='recipe-item' onMouseDown={e => { e.preventDefault(); onPick(c); setOpen(false); setQ('') }}>
+                    <span className='recipe-name'>{c.cmd}{!c.enabled && <span className='slash-kind'> · off elsewhere</span>}</span>
+                    {c.desc && <span className='recipe-desc'>{c.desc}</span>}
+                  </button>
+                ))}
+              </React.Fragment>
+            )
+          })}
           {!list.length && <div className='recipe-desc' style={{ padding: '8px 10px' }}>{skills.length ? 'No skill matches.' : 'No skills yet — add some in Settings → Skills.'}</div>}
         </div>
       )}

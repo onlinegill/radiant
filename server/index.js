@@ -1389,7 +1389,7 @@ app.post('/api/skills', (req, res) => {
 app.patch('/api/skills/:id', (req, res) => {
   const sk = skillsStore.get(req.params.id)
   if (!sk) return res.status(404).json({ error: 'not found' })
-  for (const k of ['name', 'description', 'content', 'enabled']) {
+  for (const k of ['name', 'description', 'content', 'enabled', 'category']) {
     if (k in req.body) sk[k] = req.body[k]
   }
   skillsStore.save(sk)
