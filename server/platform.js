@@ -133,6 +133,34 @@ export function defaultShell () {
   return IS_MAC ? '/bin/zsh' : '/bin/bash'
 }
 
+/**
+ * The environment a person's terminal has — PATH above all — for processes
+ * that must find the same `node`, `npx`, `uvx` or `python` the person does.
+ *
+ * ⚠️ A GUI APP INHERITS launchd's PATH, NOT THE SHELL'S. /usr/bin:/bin and
+ * little else. An MCP server configured as `npx -y some-server` failed with
+ * ENOENT on a Mac where npx sits in ~/.nvm or /opt/homebrew, and the person
+ * tried `PATH=/where/node npx …` as the command — which then fails too,
+ * because the spawner looked for an executable named "PATH=…". iandouglas,
+ * issue #15. The login shell is asked once, on first use, for what it would
+ * give a terminal; a shell that fails to answer within two seconds leaves the
+ * app's own environment untouched rather than blocking startup.
+ */
+let loginEnvCache = null
+export function loginEnv () {
+  if (loginEnvCache) return loginEnvCache
+  let path = ''
+  if (!IS_WINDOWS) {
+    try {
+      path = execFileSync(defaultShell(), ['-ilc', 'echo __RADIANT_PATH__=$PATH'], { timeout: 2500, stdio: ['ignore', 'pipe', 'ignore'] })
+        .toString().split('\n').map(l => l.trim()).filter(l => l.startsWith('__RADIANT_PATH__=')).pop()?.slice('__RADIANT_PATH__='.length) || ''
+    } catch { path = '' }
+  }
+  const merged = [...new Set([...(path ? path.split(':') : []), ...(process.env.PATH || '').split(':')].filter(Boolean))].join(':')
+  loginEnvCache = { ...process.env, PATH: merged }
+  return loginEnvCache
+}
+
 /** Trim and return stdout, or '' when the command is missing or fails. */
 function quietly (bin, args) {
   try { return execFileSync(bin, args, { timeout: 2000 }).toString().trim() } catch { return '' }

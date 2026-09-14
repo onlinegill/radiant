@@ -753,6 +753,24 @@ function McpPane ({ config, onConfigChange }) {
   const toggle = async (id, enabled) => { onConfigChange(await api.updateMcp(id, { enabled })); setTimeout(loadStatus, 500) }
   const remove = async id => { if (window.confirm('Remove this MCP server?')) onConfigChange(await api.deleteMcp(id)) }
 
+  // ⚠️ THERE WAS NO EDIT. PATCH /api/mcp/:id has existed all along, and the
+  // only thing this pane sent through it was the on/off checkbox — so a typo in
+  // a launch command meant delete, re-add, repeat. iandouglas, issue #15: "I had
+  // to keep adding it over and over and then manually removing all of the old
+  // ones." Same fields as Add, on the row itself.
+  const [editing, setEditing] = useState(null)   // { id, name, entry, token }
+  const startEdit = s => setEditing({ id: s.id, name: s.name, entry: s.url || [s.command, ...(s.args || [])].join(' '), token: '' })
+  const saveEdit = async () => {
+    const entry = editing.entry.trim()
+    if (!editing.name.trim() || !entry) return
+    const isUrl = /^https?:\/\//i.test(entry)
+    const patch = isUrl
+      ? { name: editing.name.trim(), url: entry, command: null, args: [], ...(editing.token.trim() ? { token: editing.token.trim() } : {}) }
+      : (() => { const [cmd, ...args] = entry.split(/\s+/); return { name: editing.name.trim(), url: null, command: cmd, args } })()
+    onConfigChange(await api.updateMcp(editing.id, patch))
+    setEditing(null); setTimeout(loadStatus, 500)
+  }
+
   const st = id => status.find(s => s.id === id)
   return (
     <div className='set-section'>
@@ -773,10 +791,26 @@ function McpPane ({ config, onConfigChange }) {
               {info?.error && <div className='error-note' style={{ fontSize: 11 }}>{info.error}</div>}
               {info?.connected && info.tools?.length > 0 && <div className='skill-body'>Tools: {info.tools.slice(0, 8).join(', ')}{info.tools.length > 8 ? '…' : ''}</div>}
             </div>
+            {editing?.id !== s.id && <button className='small-btn' onClick={() => startEdit(s)}>Edit</button>}
             <button className='small-btn danger' onClick={() => remove(s.id)}>✕</button>
           </div>
         )
       })}
+      {editing && (
+        <div className='skill-add'>
+          <div className='set-block-title'>Edit {editing.name || 'server'}</div>
+          <input className='text-input' style={{ fontFamily: 'inherit', marginBottom: 8 }} placeholder='Name' value={editing.name} onChange={e => setEditing(x => ({ ...x, name: e.target.value }))} />
+          <input className='text-input' style={{ marginBottom: 4 }} placeholder='Launch command or https:// address' value={editing.entry} onChange={e => setEditing(x => ({ ...x, entry: e.target.value }))} />
+          {/^https?:\/\//i.test(editing.entry.trim()) && (
+            <input className='text-input' style={{ marginBottom: 4 }} type='password' placeholder='New access token (leave empty to keep the current one)' value={editing.token} onChange={e => setEditing(x => ({ ...x, token: e.target.value }))} />
+          )}
+          <div className='oauth-note'>A command runs with the same PATH your terminal has, so <span className='mono'>npx</span>, <span className='mono'>uvx</span> and tools from your shell profile are found. A line with <span className='mono'>=</span>, a pipe or several words in the first token is run through your shell as written.</div>
+          <div className='row' style={{ marginTop: 8 }}>
+            <button className='small-btn primary' onClick={saveEdit} disabled={!editing.name.trim() || !editing.entry.trim()}>Save</button>
+            <button className='small-btn' onClick={() => setEditing(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
       {!servers.length && <div className='activity-empty' style={{ marginTop: 8 }}>No MCP servers yet.</div>}
 
       {adding
@@ -2934,6 +2968,8 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['In a group chat, @Name picks who acts \u2014 and they get tools', 'Every agent in a group chat used to answer every message, and none of them could use tools \u2014 so \u201clet\u2019s do the frontend in React\u201d had four agents all trying to do it at once, none of them able to. Now type @ and pick someone from the room (or write @coder, @dev-ops): only they act on that message, with the chat\u2019s tools and skills, and the rest of the room stays quiet but reads it \u2014 what the addressed agent does is in the transcript for everyone\u2019s next turn. Mention two and both act, in order. No mention keeps the round table as before. Asked for by a user on GitHub (#16, #18).'],
+      ['MCP servers can be edited, and they find npx', 'Each MCP server row has an Edit button now \u2014 name, command or address, token \u2014 instead of remove-and-re-add. And a server\u2019s command runs with the same PATH your terminal has, so npx, uvx and anything your shell profile sets up are found; before this, a Mac-launched app only saw the bare system PATH and a server like \u201cnpx -y some-server\u201d failed with ENOENT. A command written the way a terminal would take it (PATH=\u2026 npx \u2026, or with a pipe) is run through your shell as written. Asked for on GitHub (#15).'],
       ['A copy that cannot update itself now says so', 'If Radiant is opened from the disk image, or from Downloads before it has been moved, macOS runs it from a temporary read-only spot and will not let it replace itself \u2014 so updates downloaded every six hours and quietly failed, and that Mac stayed on the version it opened with. Settings \u2192 About and Check for Updates\u2026 now say exactly that, with the fix: quit, drag Radiant into the Applications folder, open it from there. Updates work on their own after that.'],
       ['Every composer button grows into its word', 'Attach, Design and Skills now open into a labeled button on hover, the way Dictate, Talk and the toggles on the right already did \u2014 point at any icon under the message box and it tells you what it is.'],
       ['The sparkle button is Skills now', 'The button beside the microphone used to open Recipes, a menu of task templates. It opens your skills instead: pick one and it goes into the message as /name, visible and editable, and sending is what uses it \u2014 the same thing typing a slash does. Skills already pinned to the chat are left out, since they are on every turn anyway; with more than six there is a filter box. Recipes themselves still exist in Settings; they just no longer take a button.'],

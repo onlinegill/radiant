@@ -26,11 +26,17 @@ async function connect (server) {
           : undefined
       })
     } else {
-      transport = new StdioClientTransport({
-        command: server.command,
-        args: server.args || [],
-        env: { ...process.env, ...(server.env || {}) }
-      })
+      // ⚠️ THE LOGIN SHELL'S PATH, AND A SHELL FOR A SHELL-SHAPED COMMAND. See
+      // loginEnv() for why the app's own PATH cannot find npx. And a command
+      // typed the way a terminal would take it — `PATH=… npx -y x`, or with a
+      // pipe — is handed to the shell rather than looked up as an executable.
+      const { loginEnv, defaultShell } = await import('./platform.js')
+      const env = { ...loginEnv(), ...(server.env || {}) }
+      const line = [server.command, ...(server.args || [])].join(' ')
+      const shellShaped = /[=|&;<>$`]/.test(server.command || '') || /\s/.test((server.command || '').trim())
+      transport = shellShaped
+        ? new StdioClientTransport({ command: defaultShell(), args: ['-lc', line], env })
+        : new StdioClientTransport({ command: server.command, args: server.args || [], env })
     }
     await client.connect(transport)
     const { tools } = await client.listTools()

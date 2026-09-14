@@ -14,6 +14,7 @@ import { execSync, spawn } from 'child_process'
 import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, loadConfig, saveConfig as writeConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession } from './config.js'
 import { runTurn, listModels } from './providers.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from './voice.js'
+import { addressedParticipants, groupPersona } from './group.js'
 import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAccessToken, startDevice, pollDevice } from './oauth.js'
 import { checkForUpdate } from './updater.js'
 import { ollamaBin, hermesBin, SPAWN_ENV } from './ollama.js'
@@ -542,7 +543,9 @@ app.post('/api/mcp', (req, res) => {
 app.patch('/api/mcp/:id', async (req, res) => {
   const s = (config.mcpServers || []).find(x => x.id === req.params.id)
   if (!s) return res.status(404).json({ error: 'not found' })
-  for (const k of ['name', 'command', 'args', 'url', 'enabled']) if (k in req.body) s[k] = req.body[k]
+  for (const k of ['name', 'command', 'args', 'url', 'enabled', 'token']) if (k in req.body) s[k] = req.body[k]
+  if ('args' in req.body && !Array.isArray(s.args)) s.args = s.args ? String(s.args).split(' ').filter(Boolean) : []
+  s.transport = s.url ? 'http' : 'stdio'
   // env values are redacted on the way out, so they come back empty. An empty
   // value means "unchanged", not "erase it" — otherwise editing a server's name
   // would silently wipe the credentials it runs with.
@@ -3207,13 +3210,23 @@ app.post('/api/chat', async (req, res) => {
       // group chat: each participant agent responds in turn, seeing the others' replies
       const names = participants.map(id => agentsStore.get(id)?.name).filter(Boolean)
       const groupNames = Object.fromEntries(participants.map(id => [id, agentsStore.get(id)?.name || 'Agent']))
-      for (const pid of participants) {
+      // @Name picks who acts this turn — with tools. See group.js.
+      const addressed = addressedParticipants(text, participants.map(id => ({ id, name: groupNames[id] })))
+      const speakers = addressed.length ? addressed : participants
+      if (addressed.length) emit({ type: 'notice', text: `${addressed.map(id => groupNames[id]).join(' and ')} ${addressed.length === 1 ? 'is' : 'are'} acting on this; the rest of the room is listening.` })
+      for (const pid of speakers) {
         if (controller.signal.aborted) break
         const ag = agentsStore.get(pid)
         if (!ag) continue
         emit({ type: 'agent_turn', agentId: pid, name: ag.name })
-        const groupPersona = `${ag.persona || ''}\n\nThis is a group discussion between ${names.join(', ')}. You are ${ag.name}. The other participants' messages are shown to you tagged like "[Name]: …". Speak only as yourself, in the first person, briefly. Add something new — build on or respectfully challenge what the others said; do not repeat them or role-play the other participants.`
-        await runTurn({ ...common, agentId: pid, groupSpeakerId: pid, groupNames, persona: groupPersona, skills: [], useTools: false, computerControl: false })
+        const isAddressed = addressed.includes(pid)
+        const persona = groupPersona(ag.persona, { names, self: ag.name, addressed: isAddressed, others: names.filter(n => n !== ag.name) })
+        await runTurn({
+          ...common, agentId: pid, groupSpeakerId: pid, groupNames, persona,
+          skills: isAddressed ? mergedSkills : [],
+          useTools: isAddressed && session.useTools !== false,
+          computerControl: isAddressed && Boolean(session.computerControl)
+        })
       }
     } else {
       await runTurn({

@@ -1075,6 +1075,20 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
     setFileMatches([])
     setTimeout(() => textareaRef.current?.focus(), 0)
   }
+  // ⚠️ IN A GROUP CHAT, @ IS ALSO HOW YOU PICK WHO ACTS. "@Coder, plan the
+  // stack" makes Coder the only one to answer, with tools; the others read it
+  // and stay quiet. The menu offers the room first, files after. See group.js.
+  const slugName = n => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const agentMatches = atMatch && session?.group
+    ? (session.participants || []).map(id => agents.find(a => a.id === id)).filter(Boolean)
+        .map(a => ({ id: a.id, name: a.name, slug: slugName(a.name), emoji: a.emoji }))
+        .filter(a => a.slug.startsWith(atMatch[1].toLowerCase()) || a.slug.replace(/-/g, '').startsWith(atMatch[1].toLowerCase()))
+    : []
+  const applyAgent = a => {
+    setDraft(d => d.replace(/@[\w./-]*$/, '@' + a.slug + ' '))
+    setFileMatches([])
+    setTimeout(() => textareaRef.current?.focus(), 0)
+  }
 
   useEffect(() => {
     const el = scrollRef.current
@@ -1478,8 +1492,16 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
               ))}
             </div>
           )}
-          {atMatch && fileMatches.length > 0 && (
+          {atMatch && (fileMatches.length > 0 || agentMatches.length > 0) && (
             <div className='slash-menu'>
+              {agentMatches.length > 0 && <div className='slash-group'>In this room — only they will act</div>}
+              {agentMatches.map(a => (
+                <button key={a.id} className='slash-item is-skill' onMouseDown={e => { e.preventDefault(); applyAgent(a) }}>
+                  <span className='slash-cmd'>@{a.slug}</span>
+                  <span className='slash-desc'>{a.emoji ? a.emoji + ' ' : ''}{a.name}</span>
+                </button>
+              ))}
+              {agentMatches.length > 0 && fileMatches.length > 0 && <div className='slash-group'>Files</div>}
               {fileMatches.map(f => (
                 <button key={f} className='slash-item' onMouseDown={e => { e.preventDefault(); applyFile(f) }}>
                   <span className='slash-cmd' style={{ minWidth: 0 }}>@</span>
