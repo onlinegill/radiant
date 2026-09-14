@@ -1626,6 +1626,21 @@ app.get('/api/dictate', async (req, res) => {
   startDictation(req, res, String(req.query.locale || 'en-US'))
 })
 
+// The spoken conversation, saved into the chat when the call ends: rows of
+// who said what, and the minutes. Role "voice"; the model reads it as text.
+app.post('/api/sessions/:id/voice', (req, res) => {
+  const s = loadSession(req.params.id)
+  if (!s) return res.status(404).json({ error: 'not found' })
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows
+    .filter(r => r && (r.who === 'you' || r.who === 'radiant') && typeof r.text === 'string' && r.text.trim())
+    .map(r => ({ who: r.who, text: r.text.trim().slice(0, 4000), startMs: Number(r.startMs) || 0, endMs: Number(r.endMs) || 0 }))
+    .slice(0, 500) : []
+  if (!rows.length) return res.json(s)
+  s.messages.push({ role: 'voice', rows, seconds: Number(req.body?.seconds) || null, at: new Date().toISOString() })
+  saveSession(s)
+  res.json(s)
+})
+
 // The key voice uses, in its own slot. Saved through the same config writer as
 // every other key; never read back, only whether it is there.
 app.put('/api/voice/key', (req, res) => {

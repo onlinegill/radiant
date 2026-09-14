@@ -881,6 +881,34 @@ export function GroupPicker ({ agents, onStart, onCancel }) {
   )
 }
 
+/**
+ * Live captions for a call: one row per stretch of one speaker, both speakers
+ * allowed to grow at once, following the newest text unless the reader has
+ * scrolled up to read something earlier.
+ */
+function VoiceCaptions ({ rows = [] }) {
+  const ref = useRef(null)
+  const stick = useRef(true)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (stick.current) el.scrollTop = el.scrollHeight
+  }, [rows])
+  const onScroll = () => {
+    const el = ref.current
+    if (!el) return
+    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+  }
+  if (!rows.length) return <div className='voice-captions is-empty'>Say what you need. Anything real goes to the agent in this chat; approvals stay here.</div>
+  return (
+    <div className='voice-captions' ref={ref} onScroll={onScroll}>
+      {rows.map(r => (
+        <div key={r.id} className={'voice-row is-' + r.who}><b>{r.who === 'you' ? 'You' : 'Radiant'}</b><span>{r.text}</span></div>
+      ))}
+    </div>
+  )
+}
+
 export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking, voice = null, onToggleVoice }) {
   // ⚠️ TOOLS RUN ON THE SERVER'S MAC. Computer control is the one where that is
   // dangerous rather than merely surprising: the mouse that moves, the keys that
@@ -1251,6 +1279,18 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
           {session.messages.map((m, i) =>
             m.compacted
               ? <CompactedMarker key={i} text={m.text} />
+              : m.role === 'voice'
+              ? <div key={i} className='msg msg-voice'>
+                  <div className='voice-card'>
+                    <div className='voice-card-head'>
+                      <Icon.waves size={13} />
+                      <span>Voice conversation{m.seconds ? ` · ${Math.max(1, Math.round(m.seconds / 60))} min` : ''}</span>
+                    </div>
+                    {(m.rows || []).map((r, j) => (
+                      <div key={j} className={'voice-row is-' + r.who}><b>{r.who === 'you' ? 'You' : 'Radiant'}</b><span>{r.text}</span></div>
+                    ))}
+                  </div>
+                </div>
               : m.role === 'user'
               ? <div key={i} className='msg msg-user'>
                   <div className='bubble'>
@@ -1345,22 +1385,20 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
             forgets a call is open. (Tony: "make it optional.") */}
         {voice && voice.state !== 'off' && (
           <div className={'voice-strip is-' + voice.state} role='status' aria-live='polite'>
-            <span className='voice-dot' aria-hidden />
-            <span className='voice-state'>
-              {voice.state === 'connecting' ? 'Connecting…'
-                : voice.state === 'working' ? 'Working on it…'
-                  : voice.state === 'closing' ? 'Ending…'
-                    : 'Listening'}
-            </span>
-            <span className='voice-caption'>
-              {voice.caption?.text
-                ? <><b>{voice.caption.who === 'you' ? 'You' : 'Radiant'}:</b> {voice.caption.text}</>
-                : 'Say what you need. Anything real goes to the agent in this chat; approvals stay here.'}
-            </span>
-            <span className='voice-meter' title='Audio goes to OpenAI while the call is open'>
-              OpenAI · {voice.seconds != null ? `${Math.max(1, Math.round(voice.seconds / 60))} min` : '—'}
-            </span>
-            <button className='small-btn' onClick={onToggleVoice}>End</button>
+            <div className='voice-head'>
+              <span className='voice-dot' aria-hidden />
+              <span className='voice-state'>
+                {voice.state === 'connecting' ? 'Connecting…'
+                  : voice.state === 'working' ? 'Working on it…'
+                    : voice.state === 'closing' ? 'Ending…'
+                      : 'Listening'}
+              </span>
+              <span className='voice-meter' title='Audio goes to OpenAI while the call is open'>
+                OpenAI · {voice.seconds != null ? `${Math.max(1, Math.round(voice.seconds / 60))} min` : '—'}
+              </span>
+              <button className='small-btn' onClick={onToggleVoice}>End</button>
+            </div>
+            <VoiceCaptions rows={voice.rows} />
           </div>
         )}
         <TodoChecklist todos={todos} />

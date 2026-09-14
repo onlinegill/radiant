@@ -3413,11 +3413,33 @@ html[data-window-chrome='native'] .brand { padding-top: 12px; }
    the work. The strip sits above the composer for as long as the call is open
    — it is the one place that says audio is leaving the Mac. */
 .voice-strip {
-  display: flex; align-items: center; gap: 10px; min-width: 0;
-  margin: 0 0 8px; padding: 6px 10px 6px 12px; border-radius: 10px;
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  margin: 0 0 8px; padding: 6px 10px 8px 12px; border-radius: 10px;
   border: 1px solid var(--border); background: var(--bg-raised);
   font-size: 12px; color: var(--text-muted);
 }
+.voice-head { display: flex; align-items: center; gap: 10px; }
+.voice-head .voice-meter { margin-left: auto; }
+/* ⚠️ ROWS, NOT A LINE. The captions were one ellipsized line showing only the
+   latest fragment; a conversation is two people taking turns, so it is rows,
+   scrollable, following the newest unless you scroll up. */
+.voice-captions {
+  max-height: 168px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+  padding-right: 4px; font-size: 12.5px; line-height: 1.4;
+}
+.voice-captions.is-empty { color: var(--text-faint); font-style: italic; }
+.voice-row { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: baseline; }
+.voice-row b { font-weight: 500; color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.voice-row span { color: var(--text); white-space: pre-wrap; }
+.voice-row.is-radiant span { color: var(--text-muted); }
+/* the saved conversation, in the transcript */
+.msg-voice { display: flex; justify-content: center; }
+.voice-card {
+  max-width: 720px; width: 100%; padding: 10px 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--bg-panel); font-size: 13px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.voice-card-head { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; margin-bottom: 2px; }
 .voice-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
 .voice-strip.is-listening .voice-dot { animation: voice-breathe 1.6s ease-in-out infinite; }
 .voice-strip.is-working .voice-dot { background: var(--text-faint); animation: voice-breathe 0.8s ease-in-out infinite; }
@@ -3425,8 +3447,6 @@ html[data-window-chrome='native'] .brand { padding-top: 12px; }
 @keyframes voice-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .voice-dot { animation: none !important; } }
 .voice-state { flex: none; color: var(--text); font-weight: 500; }
-.voice-caption { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.voice-caption b { color: var(--text); font-weight: 500; }
 .voice-meter { flex: none; font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-faint); }
 .attach-btn.is-voice.is-on { color: var(--accent); border-color: var(--accent); }
 .msg-spoken { display: inline-block; vertical-align: -1px; margin-right: 6px; opacity: .7; }

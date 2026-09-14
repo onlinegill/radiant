@@ -81,7 +81,7 @@ function DesktopApp () {
   // A spoken conversation over the open chat — see src/voice.js. One at a time,
   // tied to the chat it was started in; switching chats ends it.
   const voiceRef = useRef(null)
-  const [voice, setVoice] = useState({ state: 'off', sessionId: null, caption: null, seconds: null })
+  const [voice, setVoice] = useState({ state: 'off', sessionId: null, rows: [], seconds: null })
   const voiceQueueRef = useRef([])   // delegations that arrived while a turn was running
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState('providers')
@@ -688,9 +688,17 @@ function DesktopApp () {
       sessionId,
       onState: (state, extra) => {
         setVoice(prev => ({ ...prev, state, sessionId, seconds: extra?.seconds ?? prev.seconds }))
-        if (state === 'off') { voiceRef.current = null; voiceQueueRef.current = []; setVoice({ state: 'off', sessionId: null, caption: null, seconds: null }) }
+        if (state === 'off') { voiceRef.current = null; voiceQueueRef.current = []; setVoice({ state: 'off', sessionId: null, rows: [], seconds: null }) }
       },
-      onCaption: caption => setVoice(prev => ({ ...prev, caption })),
+      onCaption: rows => setVoice(prev => ({ ...prev, rows })),
+      onEnd: async ({ rows, seconds }) => {
+        // Saved into the chat as a message of its own, so what was said is not
+        // lost when the strip goes away — and the next turn can read it.
+        try {
+          const fresh = await api.saveVoiceTranscript(sessionId, { rows, seconds })
+          setSession(prev => (prev && prev.id === sessionId ? fresh : prev))
+        } catch (e) { setError(`The voice transcript could not be saved: ${e.message}`) }
+      },
       onDelegate: ({ id, text }) => {
         if (!text) { v.commentary('I did not catch that — could you say it again?', id); return }
         if (streamingRef.current.has(sessionId)) {

@@ -8,6 +8,7 @@ import { COMPUTER_TOOL_DEFS, COMPUTER_TOOL_NAMES, COMPUTER_SAFE, runComputerTool
 import { boundResult, withBudget, MAX_TOOL_MS, ToolTimeout } from './tool-bounds.js'
 import { COPILOT_HEADERS } from './oauth.js'
 import { contextWindow } from './context-windows.js'
+import { voiceAsText } from './voice-text.js'
 
 // ⚠️ THIS WAS 30, AND 30 IS SMALLER THAN AN ORDINARY JOB. Tony asked Radiant to
 // pull a page of skills and install them; the turn that was actually doing it
@@ -721,7 +722,7 @@ function isContextError (msg) {
 }
 export { isContextError }
 function renderForSummary (messages) {
-  return messages.map(m => {
+  return voiceAsText(messages).map(m => {
     if (m.role === 'user') return `User: ${m.text || ''}`
     const parts = (m.parts || []).map(p => {
       if (p.type === 'text') return p.text
@@ -898,7 +899,8 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
     let result
     const roundStart = Date.now()
     try {
-      const reqMsgs = foldOldToolResults(groupSpeakerId ? groupFlatten(session.messages, groupSpeakerId, groupNames || {}) : session.messages, { hard: hardFold })
+      // a saved voice conversation reads as user text; toAnthropic would choke on its role
+      const reqMsgs = foldOldToolResults(voiceAsText(groupSpeakerId ? groupFlatten(session.messages, groupSpeakerId, groupNames || {}) : session.messages), { hard: hardFold })
       result = provider.type === 'anthropic'
         ? await anthropicRound({ ...args, messages: toAnthropic(reqMsgs) })
         : useChatgpt

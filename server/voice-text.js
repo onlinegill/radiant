@@ -108,9 +108,45 @@ export function liveInstructions ({ title, model, host } = {}) {
 
 /** Seed text for the Live session: the last few turns, plain and short. */
 export function seedFrom (messages, max = 6) {
-  const recent = (messages || []).filter(m => m && (m.role === 'user' || m.role === 'assistant')).slice(-max)
+  const recent = (messages || []).filter(m => m && (m.role === 'user' || m.role === 'assistant' || m.role === 'voice')).slice(-max)
   return recent.map(m => {
+    if (m.role === 'voice') return transcriptText(m.rows, m.seconds).slice(0, 600)
     const body = m.role === 'user' ? (m.text || '') : spokenFrom(m.parts, 400)
     return body ? `${m.role === 'user' ? 'User' : 'Assistant'}: ${body}` : ''
   }).filter(Boolean).join('\n')
+}
+
+// ⚠️ ONE LINE THAT VANISHED. The first cut showed only the latest caption,
+// ellipsized on a single line, and threw it away when the call ended. Tony:
+// "the text of our voice conversation all comes in on a single line and then
+// disappears when i end the voice chat." Captions are ROWS now — one per
+// stretch of one speaker — and the rows are saved into the chat when the call
+// ends, as a message of role "voice".
+const ROW_GAP_MS = 1500
+
+/** Add a fragment to the caption rows, starting a new row on a speaker change or a pause. */
+export function addFragment (rows, who, f) {
+  const last = rows[rows.length - 1]
+  const startMs = f.startMs ?? 0
+  if (last && last.who === who && startMs - (last.endMs ?? startMs) <= ROW_GAP_MS) {
+    last.text += f.text
+    last.endMs = Math.max(last.endMs ?? 0, f.endMs ?? startMs)
+  } else {
+    rows.push({ id: rows.length + 1, who, text: f.text, startMs, endMs: f.endMs ?? startMs })
+  }
+  return rows
+}
+
+/** The saved transcript as prose a model can read. */
+export function transcriptText (rows, seconds) {
+  const mins = seconds ? `${Math.max(1, Math.round(seconds / 60))} min` : ''
+  const lines = (rows || []).map(r => `${r.who === 'you' ? 'You' : 'Radiant'}: ${String(r.text || '').trim()}`).filter(l => !/:\s*$/.test(l))
+  return `[Voice conversation${mins ? `, ${mins}` : ''} — what was said aloud:]\n${lines.join('\n')}`
+}
+
+/** Messages with a "voice" role become user text for the model. */
+export function voiceAsText (messages) {
+  return (messages || []).map(m => (m && m.role === 'voice')
+    ? { role: 'user', text: transcriptText(m.rows, m.seconds) }
+    : m)
 }

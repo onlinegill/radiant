@@ -28,19 +28,21 @@
  * backend prompt says so.
  */
 import { apiUrl, authHeaders } from './api.js'
-import { utteranceFrom } from '../server/voice-text.js'
+import { utteranceFrom, addFragment } from '../server/voice-text.js'
 
 const ICE_TIMEOUT_MS = 10_000
 const CLOSE_TIMEOUT_MS = 15_000
 const APPEND_MAX = 1800   // characters; the API caps an append at 500 tokens
 
 export class VoiceSession {
-  constructor ({ sessionId, onState, onCaption, onDelegate, onError }) {
+  constructor ({ sessionId, onState, onCaption, onDelegate, onError, onEnd }) {
     this.sessionId = sessionId
     this.onState = onState || (() => {})
     this.onCaption = onCaption || (() => {})
     this.onDelegate = onDelegate || (() => {})
     this.onError = onError || (() => {})
+    this.onEnd = onEnd || (() => {})
+    this.rows = []              // { id, who: 'you'|'radiant', text, startMs, endMs }
     this.state = 'off'
     this.liveId = null
     this.peer = null
@@ -143,13 +145,13 @@ export class VoiceSession {
         const f = { text: ev.delta || '', startMs: ev.start_ms ?? Date.now(), endMs: ev.end_ms ?? ev.start_ms ?? Date.now() }
         this.inFragments.push(f)
         if (this.inFragments.length > 400) this.inFragments.splice(0, this.inFragments.length - 400)
-        this.userCaption = utteranceFrom(this.inFragments, this.lastDelegationMs)
-        this.onCaption({ who: 'you', text: this.userCaption })
+        addFragment(this.rows, 'you', f)
+        this.onCaption(this.rows.map(r => ({ ...r })))
         break
       }
       case 'session.output_transcript.delta':
-        this.assistantCaption = (this.assistantCaption + (ev.delta || '')).slice(-600)
-        this.onCaption({ who: 'radiant', text: this.assistantCaption })
+        addFragment(this.rows, 'radiant', { text: ev.delta || '', startMs: ev.start_ms ?? Date.now(), endMs: ev.end_ms ?? ev.start_ms ?? Date.now() })
+        this.onCaption(this.rows.map(r => ({ ...r })))
         break
       case 'session.delegation.created': {
         const id = ev.delegation?.id
@@ -157,7 +159,6 @@ export class VoiceSession {
         const text = utteranceFrom(this.inFragments, this.lastDelegationMs)
         const last = this.inFragments[this.inFragments.length - 1]
         this.lastDelegationMs = last ? (last.endMs ?? last.startMs) : Date.now()
-        this.assistantCaption = ''
         this.setState('working')
         this.onDelegate({ id, text })
         break
@@ -211,6 +212,13 @@ export class VoiceSession {
 
   cleanup () {
     clearTimeout(this.closeTimer)
+    // The transcript outlives the call: hand it over once, whichever way the
+    // call ended, before the state flips to off and the UI forgets the strip.
+    if (!this.ended) {
+      this.ended = true
+      const rows = this.rows.filter(r => r.text && r.text.trim())
+      if (rows.length) this.onEnd({ rows, seconds: this.usage?.seconds ?? null })
+    }
     try { this.mic?.getTracks().forEach(t => t.stop()) } catch {}
     try { this.events?.close() } catch {}
     try { this.peer?.close() } catch {}

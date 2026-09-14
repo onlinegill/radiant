@@ -5,7 +5,7 @@
 // assembled from transcript fragments, the spoken text made from an answer,
 // the session body sent to OpenAI, and the refusals when voice is off or the
 // key is missing.
-import { utteranceFrom, spokenFrom, deMarkdown, progressLine, liveInstructions, seedFrom } from '../server/voice-text.js'
+import { utteranceFrom, spokenFrom, deMarkdown, progressLine, liveInstructions, seedFrom, addFragment, transcriptText, voiceAsText } from '../server/voice-text.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from '../server/voice.js'
 
 let pass = 0, fail = 0
@@ -19,6 +19,25 @@ ok(utteranceFrom(frags) === 'What is the status of the tests', 'fragments join i
 ok(utteranceFrom(frags, 1200) === 'the status of the tests', 'only fragments after the last delegation count')
 ok(utteranceFrom([]) === '', 'no fragments, no request')
 ok(utteranceFrom([{ text: '   ' }]) === '', 'silence is not a request')
+
+// ── captions are rows, and the rows outlive the call ─────────────────────────
+// ⚠️ "the text of our voice conversation all comes in on a single line and
+// then disappears when i end the voice chat."
+const rows = []
+addFragment(rows, 'you', { text: 'Run the', startMs: 0, endMs: 300 })
+addFragment(rows, 'you', { text: ' tests', startMs: 300, endMs: 600 })
+addFragment(rows, 'radiant', { text: 'On it.', startMs: 900, endMs: 1200 })
+addFragment(rows, 'radiant', { text: ' Three failed.', startMs: 4000, endMs: 4500 })   // a pause: new row
+addFragment(rows, 'you', { text: 'Which?', startMs: 5000, endMs: 5300 })
+ok(rows.length === 4, `a speaker change or a pause starts a row (${rows.length} rows)`)
+ok(rows[0].text === 'Run the tests' && rows[0].who === 'you', 'fragments of one stretch join exactly as received')
+ok(rows[1].text === 'On it.' && rows[2].text === ' Three failed.', 'the pause split Radiant into two rows')
+ok(rows.map(r => r.id).join() === '1,2,3,4', 'rows keep stable ids for the UI')
+const tt = transcriptText(rows, 250)
+ok(/^\[Voice conversation, 4 min/.test(tt) && /You: Run the tests\nRadiant: On it\./.test(tt), `the saved transcript reads as prose: ${tt.split('\n')[0]}`)
+const norm = voiceAsText([{ role: 'user', text: 'hi' }, { role: 'voice', rows, seconds: 250 }, { role: 'assistant', parts: [] }])
+ok(norm[1].role === 'user' && /Voice conversation/.test(norm[1].text) && norm[0].role === 'user' && norm[2].role === 'assistant', 'a voice message becomes user text for the model; the rest is untouched')
+ok(/Voice conversation/.test(seedFrom([{ role: 'voice', rows, seconds: 60 }])), 'and the next call is seeded with it')
 
 // ── the answer is handed over as prose, short ────────────────────────────────
 const parts = [
