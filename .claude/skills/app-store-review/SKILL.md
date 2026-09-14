@@ -56,6 +56,18 @@ Work through `reference/checklist.md` in full. The items that bite:
 - **Say nothing that reads as another company's brand.** "Open AI models"
   (meaning open-weight) was read as **OpenAI** and triggered China's
   deep-synthesis rule (5.0.0). Write "open-weight" or "open models".
+- **If the app can send anything to a third party — even optionally, even with
+  the user's own API key — the app itself must disclose and ask first.**
+  Guidelines 5.1.1(i) and 5.1.2(i): before the first byte goes to a cloud AI
+  service (or any third party), the app shows what is sent, to whom (by name),
+  what it is used for, and gets an explicit Allow / Not now. A privacy policy
+  saying the same thing does not count — Apple's own words: *"only including
+  this information in the app's Terms of Service or Privacy Policy is not
+  sufficient."* The policy must ALSO state what data, how it is collected, all
+  uses, and that the third party protects it. Radiant lost a review cycle to
+  this with a bring-your-own-key provider list; the sheet took an afternoon
+  after the rejection and would have taken an hour before it. Build it before
+  the first submission.
 - **Every claim in the metadata must be true when a reviewer pokes at it.**
   "Fully offline" is false the moment the app accepts a cloud API key. A
   subtitle can be shorter than the truth; it cannot be bigger.
@@ -115,8 +127,8 @@ read it as a problem with the submission.
    nothing says so.
 7. Record the new status, dated, and stop predicting.
 
-`reference/rejections.md` has the three Radiant rejections in full — the text,
-the field, the fix, the buttons.
+`reference/rejections.md` has the four Radiant rejections in full — the text,
+the field, the fix, the buttons — including the one that needed a new build.
 
 ### 4. When a new build is needed while one is in the queue
 

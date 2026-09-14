@@ -9,8 +9,9 @@ apps that generate text or accept a user's own API key, and the App Store
 Connect UI traps that each cost a review cycle.
 
 Everything in it was learned shipping [Radiant](https://github.com/templetongroup/radiant)
-for iPhone: two rejections, one lost day, and a 30-character subtitle that was
-both rejections at once. The `reference/` folder has the real rejections and a
+for iPhone: three rejections, one lost day, a 30-character subtitle that was
+both rejections at once, and a consent sheet that should have existed before
+the first submission. The `reference/` folder has the real rejections and a
 checklist.
 
 ## Install

@@ -33,6 +33,22 @@ you saved, reloaded the page, and read the value back.
 - [ ] The marketing page is about *this* product (Radiant's pointed at the
       Mac app — consistent, but a decision, not an accident)
 
+## Third-party data sharing (5.1.1(i) / 5.1.2(i)) — IN THE APP, not only the policy
+- [ ] List every place the app can send user content off the device — including
+      optional ones behind the user's own API key (cloud AI providers, analytics,
+      crash reporting, a sync service)
+- [ ] For each, the app shows, BEFORE the first send: what is sent, who receives
+      it (by name), what it is used for, what is not sent, how to withdraw
+- [ ] …and asks: an explicit Allow / Not now; nothing is sent on Not now
+- [ ] Asked at both doors — where the user configures the service (pasting a
+      key) and where the first send would happen — and revoked when the
+      configuration is removed
+- [ ] Driven in the running app by a test: sheet appears, names the provider,
+      sends nothing until Allow, never asks twice
+- [ ] Review notes say where the reviewer can see the sheet in two taps
+- [ ] The privacy policy states the same four things and links each third
+      party's policy (every URL fetched, title checked)
+
 ## App Privacy
 - [ ] Every data category answered from the code, not from hope
 - [ ] Data the user sends to *their own* third-party service (their API key,
