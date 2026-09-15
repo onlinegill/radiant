@@ -495,11 +495,24 @@ Step 7 override: **Not Applicable**. No EULA age requirement, no age category.
 
 ### Two things that make the low rows defensible
 
-All 44 catalogue models are mainstream instruction-tuned releases from Google,
+All catalogue models are mainstream instruction-tuned releases from Google,
 Meta, Mistral, Microsoft, Alibaba, IBM, Nvidia, Liquid, Allen AI and Hugging
-Face — nothing abliterated or uncensored. And there is no field anywhere in the
-phone UI for pasting an arbitrary Hugging Face repo, so the list is closed.
-**If either of those changes, this questionnaire has to be answered again.**
+Face — nothing abliterated or uncensored. When this was answered (2026-08-24)
+there was also no field anywhere in the phone UI for pasting an arbitrary
+Hugging Face repo, so the list was closed.
+
+⚠️ **The list is no longer closed as of 2026-09-15.** Build 7 (Waiting for
+Review) still has the closed list, but `master` now has "Find more on Hugging
+Face" at the foot of the Models page (`src/mobile/HuggingFaceSearch.jsx`): a
+search over Hugging Face's public MLX models with download. Search results
+skip repos whose id or tags match `HIDDEN` in `src/mobile/hf.js`
+(uncensored / abliterated / nsfw / heretic / erotic), which keeps the
+deliberately unfiltered fine-tunes out of the results but is a word filter, not
+a content review. **Before the next build is submitted, this questionnaire
+must be answered again with that in mind** — most likely the same rows (the
+app still ships no content of its own, and a person has to search for and
+download a model), but Tony decides, and the answers on record must match the
+build under review.
 
 ---
 

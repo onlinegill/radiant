@@ -1,0 +1,31 @@
+// Searching Hugging Face from the phone: the verdicts must be right BEFORE a
+// download, because a wrong "runs well" costs a person gigabytes.
+import { qualify, customRow, SUPPORTED, VISION_TYPES } from '../src/mobile/hf.js'
+import fs from 'node:fs'
+let pass = 0, fail = 0
+const ok = (cond, what) => { if (cond) pass++; else { fail++; console.log('  FAIL', what) } }
+
+const q4 = { repo: 'mlx-community/Qwen3-4B-Instruct-2507-4bit', gb: 2.28, bytes: 2.28e9, modelType: 'qwen3', quantized: true, bits: 4, params: 4.0e9, bytesPerParam: 0.57, vision: false, hasWeights: true }
+ok(qualify(q4, 'well').label === 'Runs well' && qualify(q4, 'well').ok, 'a 4-bit Qwen 3 that fits runs well')
+ok(qualify(q4, 'tight').label === 'Runs tight' && qualify(q4, 'tight').ok, 'tight is allowed, and says so')
+ok(qualify(q4, 'no').label === 'Won’t fit' && !qualify(q4, 'no').ok, 'too big for the device is refused')
+// ⚠️ THE GEMMA 4 DEFECT: packed weights, config silent
+const packed = { ...q4, repo: 'mlx-community/gemma-4-E4B-it-qat-mobile', modelType: 'gemma4', quantized: false, bits: null, bytesPerParam: 0.55 }
+ok(qualify(packed, 'well').label === 'Won’t load' && /config\.json does not say/.test(qualify(packed, 'well').why), 'packed weights with no declaration are refused before the download')
+ok(!qualify({ ...q4, modelType: 'mamba_new_thing' }, 'well').ok && /no loader/.test(qualify({ ...q4, modelType: 'mamba_new_thing' }, 'well').why), 'an architecture the engine lacks is refused, naming it')
+ok(!qualify({ ...q4, hasWeights: false }, 'well').ok, 'a repo without safetensors is not a model')
+ok(!qualify({ ...q4, modelType: null }, 'well').ok, 'no config.json → cannot tell → refused')
+ok(!qualify({ ...q4, quantized: false, bytesPerParam: 2.0, gb: 9 }, 'well').ok && /4-bit version/.test(qualify({ ...q4, quantized: false, bytesPerParam: 2.0, gb: 9 }, 'well').why), 'an unquantized 9 GB model is too big, and says what to look for')
+ok(qualify({ ...q4, modelType: 'qwen3_vl', vision: true }, 'well').ok, 'a vision architecture the engine has is allowed')
+ok(SUPPORTED.has('qwen3_vl') && SUPPORTED.has('gemma4') && SUPPORTED.has('lfm2') && !SUPPORTED.has('bert'), 'the supported set matches the linked mlx-swift-lm factories')
+ok(VISION_TYPES.has('qwen3_vl') && !VISION_TYPES.has('qwen3'), 'vision types are the VLM factory keys')
+const row = customRow(q4)
+ok(row.id === 'hf-mlx-community-qwen3-4b-instruct-2507-4bit' && row.repo === q4.repo && row.maker === 'mlx-community' && row.gb === 2.28 && row.stop === null, `a custom row is well-formed: ${JSON.stringify(row)}`)
+ok(customRow({ ...q4, modelType: 'gemma3_text' }).stop === '<end_of_turn>', 'Gemma rows carry the stop token the catalogue uses')
+// the Swift side
+const swift = fs.readFileSync('apps/ios/ios/App/App/plugins/LocalModels.swift', 'utf8')
+ok(/CAPPluginMethod\(name: "addCustom"/.test(swift) && /CAPPluginMethod\(name: "removeCustom"/.test(swift), 'the plugin exposes addCustom and removeCustom')
+ok(/radiant-custom-models\.json/.test(swift) && /rows \+= customEntries\(\)/.test(swift), 'custom rows are persisted and appended to the effective catalogue')
+ok(/"custom": customIDs\.contains\(\$0\.id\), "repo": \$0\.config\.name/.test(swift), 'list marks custom rows and carries the repo')
+console.log(`\n${pass}/${pass + fail} passed  ·  a Hugging Face model is qualified before a byte is downloaded`)
+process.exit(fail ? 1 : 0)

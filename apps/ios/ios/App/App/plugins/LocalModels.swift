@@ -97,7 +97,9 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "generate", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "diskInfo", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "deviceInfo", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "deviceInfo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "addCustom", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "removeCustom", returnType: CAPPluginReturnPromise)
     ]
 
     /// A short, curated list rather than every model on Hugging Face.
@@ -440,24 +442,83 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         }.resume()
     }
 
-    /// The built-in array with the published one applied over it.
-    private var effectiveCatalog: [Entry] {
-        guard let published, !published.isEmpty else { return catalog }
-        let onDisk = Set(catalog.filter { isOnDisk($0) }.map(\.id))
-        var rows: [Entry] = published.map { r in
+    // MARK: - models the person found on Hugging Face
+
+    /// Rows the person added from the Hugging Face search, in the same shape
+    /// as a published row, kept in Application Support so they survive a
+    /// relaunch. They ride through the same list / download / remove paths as
+    /// the catalogue: an Entry is an Entry. Tony: "let you download and install
+    /// the model into radiant."
+    private var customURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("radiant-custom-models.json")
+    }
+    private lazy var custom: [RemoteCatalog.Row] = {
+        guard let data = try? Data(contentsOf: customURL),
+              let rows = try? JSONDecoder().decode([RemoteCatalog.Row].self, from: data) else { return [] }
+        return rows
+    }()
+    private func saveCustom() {
+        if let data = try? JSONEncoder().encode(custom) { try? data.write(to: customURL, options: .atomic) }
+    }
+    private func customEntries() -> [Entry] {
+        custom.map { r in
             Entry(id: r.id, name: r.name, maker: r.maker, blurb: r.blurb, gb: r.gb,
                   config: rxRepo(r.repo, stop: r.stop), vision: r.vision, video: r.video)
         }
-        let publishedIDs = Set(published.map(\.id))
-        rows += catalog.filter { !publishedIDs.contains($0.id) && onDisk.contains($0.id) }
+    }
+
+    @objc func addCustom(_ call: CAPPluginCall) {
+        guard let id = call.getString("id"), let name = call.getString("name"), let repo = call.getString("repo"),
+              !id.isEmpty, !name.isEmpty, repo.contains("/") else {
+            return call.reject("A custom model needs an id, a name and a repo like owner/name.")
+        }
+        let row = RemoteCatalog.Row(id: id, name: name, maker: call.getString("maker") ?? repo.components(separatedBy: "/")[0],
+                                    blurb: call.getString("blurb") ?? "", gb: call.getDouble("gb") ?? 0, repo: repo,
+                                    stop: call.getString("stop"), vision: call.getBool("vision") ?? false, video: false)
+        custom.removeAll { $0.id == id || $0.repo == repo }
+        custom.append(row)
+        saveCustom()
+        call.resolve(["id": id])
+    }
+
+    @objc func removeCustom(_ call: CAPPluginCall) {
+        guard let id = call.getString("id"), let row = custom.first(where: { $0.id == id }) else { return call.reject("Unknown custom model") }
+        if loaded?.id == id { loaded = nil }
+        if let dir = cacheDir(for: row.repo) { try? FileManager.default.removeItem(at: dir) }
+        forget(id)
+        custom.removeAll { $0.id == id }
+        saveCustom()
+        call.resolve()
+    }
+
+    /// The built-in array with the published one applied over it, then the
+    /// person's own finds.
+    private var effectiveCatalog: [Entry] {
+        var rows: [Entry]
+        if let published, !published.isEmpty {
+            let onDisk = Set(catalog.filter { isOnDisk($0) }.map(\.id))
+            rows = published.map { r in
+                Entry(id: r.id, name: r.name, maker: r.maker, blurb: r.blurb, gb: r.gb,
+                      config: rxRepo(r.repo, stop: r.stop), vision: r.vision, video: r.video)
+            }
+            let publishedIDs = Set(published.map(\.id))
+            rows += catalog.filter { !publishedIDs.contains($0.id) && onDisk.contains($0.id) }
+        } else {
+            rows = catalog
+        }
+        let ids = Set(rows.map(\.id))
+        rows += customEntries().filter { !ids.contains($0.id) }
         return rows
     }
 
     @objc func list(_ call: CAPPluginCall) {
+        let customIDs = Set(custom.map(\.id))
         call.resolve(["models": effectiveCatalog.map { [
             "id": $0.id, "name": $0.name, "maker": $0.maker, "blurb": $0.blurb,
             "sizeGB": $0.gb, "downloaded": isOnDisk($0),
-            "vision": $0.vision, "video": $0.video
+            "vision": $0.vision, "video": $0.video,
+            "custom": customIDs.contains($0.id), "repo": $0.config.name
         ] }])
     }
 

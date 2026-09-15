@@ -251,6 +251,21 @@ export function useLocalModels () {
    * shared with the Mac app's, so the two never disagree about a model.
    */
   const fitOfModel = useCallback((m) => fitOf(m?.sizeGB, disk?.ram || 0), [disk])
+  // Hugging Face finds: add the row, refresh so it is in the list, then the
+  // ordinary download path takes it from there.
+  const addCustom = useCallback(async (row) => {
+    const lm = LM()
+    if (!lm?.addCustom) throw new Error('This build cannot add models from Hugging Face.')
+    await lm.addCustom(row)
+    await refresh()
+    return row.id
+  }, [refresh])
+  const removeCustom = useCallback(async (id) => {
+    const lm = LM()
+    if (!lm?.removeCustom) return
+    await lm.removeCustom({ id })
+    await refresh()
+  }, [refresh])
 
   return {
     models,
@@ -272,6 +287,8 @@ export function useLocalModels () {
     download,
     cancel,
     remove,
+    addCustom,
+    removeCustom,
     refresh,
     refreshDisk
   }

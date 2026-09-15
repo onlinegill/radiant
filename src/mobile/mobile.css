@@ -2608,3 +2608,18 @@
 .is-native .rx-consent-decline { font: -apple-system-body; color: var(--rx-tint-text); background: none; border: 0; padding: 12px; border-radius: 12px; }
 .is-native .rx-consent-decline.is-pressed { background: var(--rx-fill); }
 .is-native .rx-consent-link { font: inherit; color: var(--rx-tint-text); background: none; border: 0; padding: 0; text-decoration: underline; }
+
+/* ── Hugging Face search ──────────────────────────────────────────────────── */
+.is-native .rx-hf-search { display: flex; gap: 8px; padding: 12px 16px 6px; }
+.is-native .rx-hf-search .rx-field { flex: 1 1 auto; min-width: 0; }
+.is-native .rx-hf-go { font: -apple-system-body; font-weight: 600; color: var(--rx-tint-text); background: none; border: 0; padding: 0 6px; }
+.is-native .rx-hf-go:disabled { color: var(--rx-label-3); }
+.is-native .rx-hf-note { padding: 4px 16px 10px; display: block; -webkit-line-clamp: unset; overflow: visible; }
+.is-native .rx-hf-row { align-items: flex-start; }
+.is-native .rx-hf-verdict { margin-top: 2px; }
+.is-native .rx-hf-verdict .rx-fit { margin-left: 0; margin-right: 6px; }
+.is-native .rx-hf-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; padding-left: 8px; }
+.is-native .rx-hf-btn { font: -apple-system-subheadline; font-weight: 600; color: var(--rx-on-tint, #fff); background: var(--rx-tint); border: 0; border-radius: 999px; padding: 6px 12px; }
+.is-native .rx-hf-btn:disabled { background: var(--rx-fill); color: var(--rx-label-3); }
+.is-native .rx-hf-btn.is-quiet { background: var(--rx-fill); color: var(--rx-label); }
+.is-native .rx-hf-btn.is-pressed { opacity: .7; }

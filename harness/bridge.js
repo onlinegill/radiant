@@ -110,6 +110,9 @@ window.Capacitor = {
       },
       cancelDownload: async ({ id }) => { emit('downloadCancelled', { id }); return {} },
       remove: async ({ id }) => { const m = state.models.find(x => x.id === id); if (m) m.downloaded = false; return {} },
+      // a model the person found on Hugging Face becomes a row like any other
+      addCustom: async (row) => { state.models = state.models.filter(m => m.id !== row.id); state.models.push({ id: row.id, name: row.name, maker: row.maker, blurb: row.blurb, sizeGB: row.gb, downloaded: false, vision: !!row.vision, video: false, custom: true, repo: row.repo }); return { id: row.id } },
+      removeCustom: async ({ id }) => { state.models = state.models.filter(m => m.id !== id); return {} },
       // ⚠️ Mirrors the real plugin: one shot, no memory of the conversation.
       // It STREAMS, deliberately — the scroll bug Tony hit only exists while
       // tokens are arriving, so a stub that answers instantly cannot catch it.

@@ -67,6 +67,7 @@ import StorageLine from './StorageLine.jsx'
 import usePress from './usePress.js'
 import { FIT_LABEL, FITS_NO, ramNeededGB } from './fit.js'
 import MakerSection from './MakerSection.jsx'
+import HuggingFaceSearch from './HuggingFaceSearch.jsx'
 import DeviceSpecs from './DeviceSpecs.jsx'
 import { byMaker } from './makers.js'
 import { GB } from './useLocalModels.js'
@@ -575,6 +576,11 @@ export default function ModelsScreen ({
           you send there goes to them.
         </div>
       </div>
+
+      {/* ⚠️ THE OPEN END OF THE LIST. Everything above is a catalogue somebody
+          checked; this is the person's own search. Same verdicts, same
+          download path — see HuggingFaceSearch.jsx and hf.js. */}
+      <HuggingFaceSearch local={local} models={models} ramAvailable={ramAvailable} onOpenChat={onOpenChat} />
 
       {/* room for the storage line, which is pinned over the scroller */}
       <div style={{ height: showStorage ? 72 : 24 }} aria-hidden="true" />

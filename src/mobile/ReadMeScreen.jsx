@@ -53,6 +53,13 @@ const sections = () => [
     ]
   },
   {
+    title: 'Finding more on Hugging Face',
+    body: [
+      `The Models page ends with a search box. Type a name — “llama 3.2”, “qwen 4bit”, “gemma” — and Radiant searches Hugging Face for models in the format it runs. Each result is checked before you download it: whether the engine can load that kind of model, whether its weights are what its description says, and whether it fits the memory of this ${deviceWord()}. Then it gets the same green, amber or red label as the built-in list, or a plain reason it cannot run.`,
+      'Download puts it beside the built-in models with the same progress, stop, chat and remove. These are models other people have published, so read the model page on Hugging Face if you want to know what it was trained on.'
+    ]
+  },
+  {
     title: 'Stopping a download',
     body: [
       'Tap the turning logo to stop. Whatever has already downloaded stays on the phone, so starting again picks up from there rather than beginning again.',

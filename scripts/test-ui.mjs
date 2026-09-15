@@ -221,6 +221,40 @@ ok('and the app does not drag you back down', held && held.after < 80)
   is('and goes straight out', await page.evaluate(() => window.__cloudSends), 2)
 }
 
+// ── flow: find a model on Hugging Face, see its verdict, download it ───────
+// Hugging Face is stubbed at the network layer so the flow is deterministic:
+// two repos, one that runs and one whose architecture the engine lacks.
+{
+  await page.route('https://huggingface.co/**', route => {
+    const u = route.request().url()
+    if (/api\/models\?search=/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'mlx-community/Tiny-Test-4bit', downloads: 12000, tags: ['mlx'] }, { id: 'someone/Weird-Arch-4bit', downloads: 300, tags: ['mlx'] }]) })
+    if (/api\/models\/mlx-community\/Tiny-Test-4bit/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ siblings: [{ rfilename: 'model.safetensors', size: 1.2e9 }], safetensors: { total: 2.1e9 } }) })
+    if (/mlx-community\/Tiny-Test-4bit\/raw\/main\/config\.json/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ model_type: 'qwen3', quantization: { bits: 4 } }) })
+    if (/api\/models\/someone\/Weird-Arch-4bit/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ siblings: [{ rfilename: 'model.safetensors', size: 1.0e9 }], safetensors: { total: 1.8e9 } }) })
+    if (/someone\/Weird-Arch-4bit\/raw\/main\/config\.json/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ model_type: 'brand_new_arch', quantization: { bits: 4 } }) })
+    return route.fulfill({ status: 404, body: '' })
+  })
+  await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(700)
+  await (tap('Models') || tap('Choose a model'))
+  await page.waitForTimeout(500)
+  const box = page.locator('input[aria-label="Search Hugging Face for models"]')
+  ok('the Models page has a Hugging Face search', await box.count() > 0)
+  await box.fill('tiny'); await page.keyboard.press('Enter'); await page.waitForTimeout(1500)
+  const rows = page.locator('.rx-hf-row')
+  is('two results', await rows.count(), 2)
+  const t = await page.locator('.rx-section:has(.rx-hf-search)').innerText()
+  ok('the runnable one says Runs well with its size and type', /Runs well/.test(t) && /1\.2 GB/.test(t) && /qwen3/.test(t))
+  ok('the unknown architecture says it won’t run, and names the type', /Won’t run/.test(t) && /brand_new_arch/.test(t))
+  const dl = rows.nth(0).locator('button', { hasText: 'Download' })
+  const dlBad = rows.nth(1).locator('button', { hasText: 'Download' })
+  ok('the runnable one can be downloaded and the other cannot', !(await dl.isDisabled()) && await dlBad.isDisabled())
+  await dl.click({ force: true }); await page.waitForTimeout(900)
+  const listed = await page.evaluate(async () => (await window.Capacitor.Plugins.LocalModels.list()).models.find(m => m.repo === 'mlx-community/Tiny-Test-4bit'))
+  ok('downloading adds it to the app’s own list, as a custom row', listed && listed.custom === true && listed.downloaded === true)
+  ok('and the row now offers Chat', await rows.nth(0).locator('button', { hasText: 'Chat' }).count() > 0)
+  await page.unroute('https://huggingface.co/**')
+}
+
 // ── flow: Models — installed models are reachable and shelves open ────────
 await page.evaluate(() => localStorage.removeItem('radiant.phone.cloudModel'))
 await page.reload({ waitUntil: 'networkidle' })
