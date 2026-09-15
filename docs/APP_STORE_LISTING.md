@@ -191,6 +191,14 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+### Build 11 uploaded 2026-09-15 6:29 PM — TestFlight; supersedes 10
+
+Master `470f554`: the Hugging Face search is no longer filtered. The
+uncensored/abliterated word filter is removed on Tony's instruction. Verified
+absent from the archived bundle before upload. Not attached to the submission
+— and the age-rating questionnaire now definitely has to be re-answered on an
+open, unfiltered list before anything after build 7 is submitted.
+
 ### Build 10 uploaded 2026-09-15 5:45 PM — TestFlight; supersedes 9
 
 Master `41d87a3`. Build 9's keyboard fix did not work on a device: it drove
