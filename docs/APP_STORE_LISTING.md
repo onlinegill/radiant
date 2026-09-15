@@ -191,6 +191,16 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+### Build 8 uploaded 2026-09-15 1:04 PM — for TestFlight, NOT attached to the submission
+
+Tony was away from his devices and asked for TestFlight. Build 8 = master
+`0a056ac` (Hugging Face search on the Models page). Archived at
+`~/Library/Developer/Xcode/Archives/2026-09-15/Radiant-build8.xcarchive`,
+uploaded with `exportOptions-upload.plist` ("Upload succeeded"). The version
+1.0 submission still holds build 7, Waiting for Review; build 8 was not
+attached and must not be until the age-rating questionnaire is answered again
+(see Age rating — the model list is no longer closed).
+
 ### Resubmitted 2026-09-14 10:15 AM — read from App Store Connect, not inferred
 
 Build 7 attached to version 1.0 (remove build 6 with the red minus, Add Build,
