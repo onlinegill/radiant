@@ -16,12 +16,21 @@
  *   3. Will it fit this device's memory? (fit.js, the same verdicts the
  *      catalogue rows get.)
  *
- * ⚠️ THE LIST IS OPEN NOW. The App Store age rating was answered on the basis
- * that "there is no field anywhere in the phone UI for pasting an arbitrary
- * Hugging Face repo, so the list is closed" (docs/APP_STORE_LISTING.md). This
- * search opens it. Repos whose name or tags say uncensored / abliterated /
- * NSFW are hidden from results; the rating questionnaire still has to be
- * revisited before the next submission.
+ * ⚠️ THE LIST IS OPEN, AND NOTHING IS FILTERED OUT OF IT. This search shipped
+ * with a regex that hid repos whose name or tags said uncensored / abliterated
+ * / NSFW — added defensively, to keep the App Store age-rating answers (which
+ * were written when the model list was closed and mainstream) from going
+ * stale. That was the wrong call and it was not mine to make. Tony: "why did
+ * you add a filter like that at all. I would want people to be able to
+ * download and use uncensored models." Radiant's whole proposition is open
+ * models on hardware you own; a word filter that hides models from the owner
+ * of the device contradicts it, was never a content review, and hid
+ * legitimate models while missing anything named differently.
+ *
+ * The App Store answer is to declare the app accurately for an open list —
+ * which is what the closest shipped peer (Locally AI, 12+) does — not to
+ * cripple the feature. The rating questionnaire must be re-answered on that
+ * basis before the next submission; see docs/APP_STORE_LISTING.md.
  */
 
 // model_type values the linked mlx-swift-lm (checkout 14414441, 2026-08-22)
@@ -41,7 +50,6 @@ export const SUPPORTED = new Set([
 ])
 export const VISION_TYPES = new Set(['fastvlm', 'glm_ocr', 'idefics3', 'lfm2-vl', 'lfm2_vl', 'llava_qwen2', 'muse_glimmer', 'paligemma', 'pixtral', 'qwen2_5_vl', 'qwen2_vl', 'qwen3_vl', 'qwen3_vl_moe', 'smolvlm', 'gemma3', 'gemma4', 'gemma4_unified'])
 
-const HIDDEN = /uncensored|abliterat|nsfw|heretic|uncensor|erotic|porn/i
 const UA = { accept: 'application/json' }
 
 /** Search results: MLX repos that look like chat models, most downloaded first. */
@@ -53,7 +61,7 @@ export async function searchModels (query, { limit = 25, signal } = {}) {
   if (!res.ok) throw new Error(`Hugging Face answered ${res.status}.`)
   const rows = await res.json()
   return rows
-    .filter(r => r && r.id && !HIDDEN.test(r.id + ' ' + (r.tags || []).join(' ')))
+    .filter(r => r && r.id)
     .filter(r => !/embed|rerank|lora|adapter/i.test(r.id))
     .slice(0, limit)
     .map(r => ({ repo: r.id, owner: r.id.split('/')[0], name: r.id.split('/').pop(), downloads: r.downloads || 0, likes: r.likes || 0, updated: r.lastModified || null }))

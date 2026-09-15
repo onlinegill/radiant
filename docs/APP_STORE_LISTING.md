@@ -518,7 +518,7 @@ rating ever would.
 
 Step 7 override: **Not Applicable**. No EULA age requirement, no age category.
 
-### Two things that make the low rows defensible
+### Two things that made the low rows defensible (one no longer holds)
 
 All catalogue models are mainstream instruction-tuned releases from Google,
 Meta, Mistral, Microsoft, Alibaba, IBM, Nvidia, Liquid, Allen AI and Hugging
@@ -526,18 +526,36 @@ Face — nothing abliterated or uncensored. When this was answered (2026-08-24)
 there was also no field anywhere in the phone UI for pasting an arbitrary
 Hugging Face repo, so the list was closed.
 
-⚠️ **The list is no longer closed as of 2026-09-15.** Build 7 (Waiting for
-Review) still has the closed list, but `master` now has "Find more on Hugging
-Face" at the foot of the Models page (`src/mobile/HuggingFaceSearch.jsx`): a
-search over Hugging Face's public MLX models with download. Search results
-skip repos whose id or tags match `HIDDEN` in `src/mobile/hf.js`
-(uncensored / abliterated / nsfw / heretic / erotic), which keeps the
-deliberately unfiltered fine-tunes out of the results but is a word filter, not
-a content review. **Before the next build is submitted, this questionnaire
-must be answered again with that in mind** — most likely the same rows (the
-app still ships no content of its own, and a person has to search for and
-download a model), but Tony decides, and the answers on record must match the
-build under review.
+⚠️ **The list is no longer closed as of 2026-09-15, and nothing is filtered
+out of it.** Build 7 (Waiting for Review) still has the closed list, but
+`master` has "Find more on Hugging Face" at the foot of the Models page
+(`src/mobile/HuggingFaceSearch.jsx`): an unrestricted search over Hugging
+Face's public MLX models, with download.
+
+It briefly shipped with a regex hiding repos whose name or tags said
+uncensored / abliterated / NSFW. That was removed on Tony's instruction
+(2026-09-15): *"why did you add a filter like that at all. I would want people
+to be able to download and use uncensored models."* It was never a content
+review — a word match on repo names — and it contradicted the product's own
+proposition. **Do not reintroduce it to make a rating easier.**
+
+**So this questionnaire MUST be answered again before the next submission, on
+the basis of an open list**, and the honest answers are very likely stronger
+than the ones on record. Reference points for whoever does it:
+
+- The closest shipped peer, **Locally AI (LM Studio), is 12+ with an open
+  model list** — the same shape of app and the same freedom.
+- Radiant ships no content of its own; a person has to search for, choose and
+  download a model deliberately, and any model can then say anything.
+- The current answers already assume no content filter on generation (that is
+  why "None" was refused down the content steps — see the warning above).
+  What changes is that the *catalogue* argument no longer supports the low
+  rows; the declaration has to stand on the generation argument alone.
+- Expect to raise at least the sexual-content and violence rows from None.
+  A 17+ rating is a legitimate outcome and costs nothing; an inaccurate
+  declaration is guideline 2.3 and costs a review cycle.
+
+Tony decides the final answers; they must match the build under review.
 
 ---
 

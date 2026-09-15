@@ -27,5 +27,20 @@ const swift = fs.readFileSync('apps/ios/ios/App/App/plugins/LocalModels.swift', 
 ok(/CAPPluginMethod\(name: "addCustom"/.test(swift) && /CAPPluginMethod\(name: "removeCustom"/.test(swift), 'the plugin exposes addCustom and removeCustom')
 ok(/radiant-custom-models\.json/.test(swift) && /rows \+= customEntries\(\)/.test(swift), 'custom rows are persisted and appended to the effective catalogue')
 ok(/"custom": customIDs\.contains\(\$0\.id\), "repo": \$0\.config\.name/.test(swift), 'list marks custom rows and carries the repo')
+// ⚠️ NOTHING IS FILTERED OUT OF THE RESULTS, AND THAT IS DELIBERATE. This
+// search briefly shipped with a regex hiding repos whose name or tags said
+// uncensored / abliterated / NSFW, added to keep an App Store age rating
+// tidy. Tony: "why did you add a filter like that at all. I would want people
+// to be able to download and use uncensored models." It hid the model he was
+// actually trying to install. Qualification is about whether the ENGINE can
+// run it, never about what it will say.
+const hf = fs.readFileSync('src/mobile/hf.js', 'utf8')
+ok(!/uncensor|abliterat|nsfw|heretic|erotic|porn/i.test(hf.replace(/\/\*[\s\S]*?\*\//g, '')),
+   'no content word-filter in the search path (only the comment explaining why there is none)')
+const unc = { ...q4, repo: 'osxest/Huihui-Ornith-1.5-9B-abliterated-mlx-4Bit', gb: 5.04, modelType: 'qwen3_5', params: 9e9, bytesPerParam: 0.56 }
+ok(qualify(unc, 'tight').ok && qualify(unc, 'tight').label === 'Runs tight',
+   'an abliterated model is judged on its architecture and size like any other')
+ok(customRow(unc).id === 'hf-osxest-huihui-ornith-1-5-9b-abliterated-mlx-4bit', 'and installs under an ordinary custom-row id')
+
 console.log(`\n${pass}/${pass + fail} passed  ·  a Hugging Face model is qualified before a byte is downloaded`)
 process.exit(fail ? 1 : 0)
