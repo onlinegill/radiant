@@ -191,6 +191,12 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+### Build 9 uploaded 2026-09-15 1:27 PM — TestFlight; supersedes 8
+
+Master `2c9ab1b`: the keyboard no longer covers a field at the foot of a
+screen (Tony hit it on the Hugging Face search box in build 8). Same rule as
+build 8: not attached to the submission, age rating first.
+
 ### Build 8 uploaded 2026-09-15 1:04 PM — for TestFlight, NOT attached to the submission
 
 Tony was away from his devices and asked for TestFlight. Build 8 = master
