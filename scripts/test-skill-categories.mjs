@@ -22,5 +22,14 @@ const st = fs.readFileSync('src/components/Settings.jsx', 'utf8')
 ok(/cat-chip/.test(st) && /cat-select/.test(st), 'Settings has the chips and the per-skill select')
 const chat = fs.readFileSync('src/components/Chat.jsx', 'utf8')
 ok(/SKILL_MENU_COLLAPSED/.test(chat) && /model-group-label/.test(chat), 'the chat menu folds by category and remembers it')
+// ⚠️ THE HEADERS ARE ALPHABETICAL, not the order SKILL_CATEGORIES declares.
+// Tony: "the skils list in the chat box should be alphabetical." The skills
+// inside each group were already sorted; the group headers were not.
+ok(/\(a === 'Other'\) - \(b === 'Other'\) \|\| a\.localeCompare\(b\)/.test(chat),
+   'the chat menu sorts its category headers alphabetically, Other last')
+const order = [...SKILL_CATEGORIES].sort((a, b) => (a === 'Other') - (b === 'Other') || a.localeCompare(b))
+ok(order[0] === 'Apple' && order[order.length - 1] === 'Other',
+   `that sort really is alphabetical with Other last: ${order.join(' ')}`)
+
 console.log(`\n${pass}/${pass + fail} passed  ·  skills have categories; the guess is editable`)
 process.exit(fail ? 1 : 0)

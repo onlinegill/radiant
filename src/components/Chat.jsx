@@ -845,7 +845,16 @@ function SkillMenu ({ skills, activeIds = [], onPick }) {
     .map(sk => ({ id: sk.id, cmd: '/' + slug(sk.name), name: sk.name, desc: sk.description || '', enabled: sk.enabled, category: sk.category || 'Other' }))
     .filter(c => !q || c.cmd.includes(q.toLowerCase()) || c.name.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => a.cmd.localeCompare(b.cmd))
-  const groups = SKILL_CATEGORIES.map(c => [c, list.filter(x => x.category === c)]).filter(([, xs]) => xs.length)
+  // ⚠️ THE HEADERS ARE ALPHABETICAL TOO, not SKILL_CATEGORIES order. The skills
+  // inside each group were already sorted, but the groups came out in the
+  // curated order the categories are declared in (Coding, Apple, Design,
+  // Writing…), which reads as no order at all when you are hunting for one by
+  // name. Tony: "the skils list in the chat box should be alphabetical."
+  // "Other" is a catch-all, not a peer category, so it stays at the bottom.
+  const groups = [...SKILL_CATEGORIES]
+    .sort((a, b) => (a === 'Other') - (b === 'Other') || a.localeCompare(b))
+    .map(c => [c, list.filter(x => x.category === c)])
+    .filter(([, xs]) => xs.length)
   return (
     <div ref={ref} style={{ position: 'relative', display: 'flex' }}>
       <button className={'attach-btn' + (open ? ' is-on' : '')} title='Skills' aria-expanded={open} data-tip={'Skills — pick one and it goes into\nthe message as /name; send to use it'} onClick={() => { setOpen(o => !o); setQ('') }}><Icon.sparkle size={15} /><span className='pill-label'>Skills</span></button>
