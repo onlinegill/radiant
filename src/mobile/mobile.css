@@ -779,6 +779,11 @@
   overscroll-behavior-y: contain;
 }
 .is-native .rx-screen-grouped { background: var(--rx-bg-grouped); }
+/* While the keyboard is up the foot of every shell scroller is behind it
+   (the web view never resizes). This gives the scroller that much extra
+   room so the last field on a screen can be scrolled clear; MobileShell's
+   keyboard metrics do the scrolling. */
+.is-native .rx-kb-open .rx-shell-scroll::after { content: ''; display: block; height: calc(var(--rx-kb, 0px) + 16px); }
 
 
 

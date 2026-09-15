@@ -260,6 +260,22 @@ function useKeyboardMetrics (rootRef) {
         const inset = vv ? Math.max(0, window.innerHeight - (vv.height + vv.offsetTop)) : 0
         el.style.setProperty('--rx-kb', `${Math.round(inset)}px`)
         el.classList.toggle('rx-kb-open', inset > 60)
+        // The web view does not resize (Keyboard.resize is 'none'), so a
+        // field near the foot of a screen — the Hugging Face search box at the
+        // end of Models, a key field in Providers — is simply covered by the
+        // keyboard, with nothing scrolling it clear. Tony: "the keyboard covers
+        // the field im typing in. cant see the search term or Search button."
+        // The stylesheet gives the scroller that much extra room while the
+        // keyboard is up (.rx-kb-open .rx-shell-scroll::after); this lifts the
+        // focused field above the keyboard once the inset is known.
+        const active = document.activeElement
+        if (inset > 60 && active && /^(INPUT|TEXTAREA)$/.test(active.tagName)) {
+          const scroller = active.closest('.rx-shell-scroll')
+          if (scroller) {
+            const over = active.getBoundingClientRect().bottom + 12 - (window.innerHeight - inset)
+            if (over > 0) scroller.scrollTop += over
+          }
+        }
       })
     }
     sync()

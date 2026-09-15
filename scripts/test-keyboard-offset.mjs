@@ -97,5 +97,16 @@ ok('movement claims driving instead',
 ok('a wheel claims driving too', /onTranscriptWheel\s*=\s*\(\)\s*=>\s*\{\s*userDriving\.current\s*=\s*true/.test(jsx))
 ok('and the wheel handler is actually wired up', /onWheel=\{onTranscriptWheel\}/.test(jsx))
 
+// A field at the foot of a screen — the Hugging Face search box — was simply
+// covered by the keyboard: the web view never resizes and nothing scrolled it
+// clear. Tony: "cant see the search term or Search button." The scroller gets
+// the keyboard's height as extra room, and the shell scrolls the focused field
+// above the keyboard once the inset is known.
+const shell = readFileSync('src/mobile/MobileShell.jsx', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const room = ruleFor('.rx-kb-open .rx-shell-scroll::after')
+ok('the scroller gets room under the keyboard', /var\(--rx-kb/.test(has(room, 'height')))
+ok('the focused field is scrolled clear', /closest\('\.rx-shell-scroll'\)[\s\S]{0,240}scrollTop \+= over/.test(shell))
+ok('and only when the keyboard is really up', /inset > 60 && active/.test(shell))
+
 console.log(`\n${pass}/${pass + fail} passed  ·  the keyboard is counted once`)
 process.exit(fail ? 1 : 0)
