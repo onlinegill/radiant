@@ -8,6 +8,29 @@ import { COMPUTER_TOOL_DEFS, COMPUTER_TOOL_NAMES, COMPUTER_SAFE, runComputerTool
 import { boundResult, withBudget, MAX_TOOL_MS, ToolTimeout } from './tool-bounds.js'
 import { COPILOT_HEADERS } from './oauth.js'
 import { contextWindow } from './context-windows.js'
+import { modelFetch } from './net.js'
+
+// ⚠️ OLLAMA LOADS A MODEL WITH A CONTEXT OF ITS OWN CHOOSING and truncates
+// any prompt that exceeds it FROM THE FRONT — the system prompt and the tool
+// definitions go first — without an error. The loaded size is readable from
+// /api/ps once the model is up, so a turn on a local model can fold before
+// the truncation instead of after. Cached a minute; a miss is null, never a
+// guess.
+const ollamaCtxCache = new Map()
+async function ollamaContext (provider, model) {
+  if (!provider || provider.type !== 'openai' || !/:11434\b/.test(provider.baseUrl || '')) return null
+  const key = `${provider.baseUrl}|${model}`
+  const hit = ollamaCtxCache.get(key)
+  if (hit && Date.now() - hit.at < 60_000) return hit.ctx
+  try {
+    const origin = provider.baseUrl.replace(/\/v1\/?$/, '')
+    const ps = await fetch(`${origin}/api/ps`, { signal: AbortSignal.timeout(1500) }).then(r => r.json())
+    const m = (ps.models || []).find(x => x.name === model || x.model === model)
+    const ctx = m?.context_length ? Number(m.context_length) : null
+    ollamaCtxCache.set(key, { at: Date.now(), ctx })
+    return ctx
+  } catch { return null }
+}
 import { voiceAsText } from './voice-text.js'
 
 // ⚠️ THIS WAS 30, AND 30 IS SMALLER THAN AN ORDINARY JOB. Tony asked Radiant to
@@ -404,7 +427,7 @@ async function anthropicRound ({ baseUrl, apiKey, accessToken, model, messages, 
     headers['x-api-key'] = apiKey
     if (cacheTtl === '1h') headers['anthropic-beta'] = 'extended-cache-ttl-2025-04-11'
   }
-  const res = await fetch(`${baseUrl}/v1/messages`, {
+  const res = await modelFetch(`${baseUrl}/v1/messages`, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -450,7 +473,7 @@ async function anthropicRound ({ baseUrl, apiKey, accessToken, model, messages, 
       throw new Error(ev.error?.message || 'stream error')
     }
   }
-  return { parts, stopOnTools: stopReason === 'tool_use' }
+  return { parts, stopOnTools: stopReason === 'tool_use', finish: stopReason === 'max_tokens' ? 'length' : stopReason }
 }
 
 // OpenRouter passes Anthropic-style cache_control breakpoints through to Claude
@@ -481,8 +504,17 @@ function withOpenRouterClaudeCaching (body, provider, model, cachingEnabled) {
   if (last && last !== sys && typeof last.content === 'string') last.content = asBlock(last.content)
 }
 
+// ⚠️ A STREAM WITHOUT USAGE IS A TURN THAT CANNOT SEE ITS OWN SIZE. Ollama,
+// OpenAI and OpenRouter send prompt_tokens on a streamed reply only when asked
+// with stream_options.include_usage — so for every local model lastPrompt
+// stayed 0, the 85% hard-fold never fired, the gauge showed nothing, and a
+// chat could grow past the model's context in silence. Providers that reject
+// the field (a 400 naming it) are remembered and asked without it.
+const noStreamOptions = new Set()
+
 async function openaiRound ({ baseUrl, apiKey, accessToken, model, messages, tools, toolDefs, extraHeaders, effort, provider, cachingEnabled, emit, signal }) {
   const body = { model, messages, stream: true }
+  if (!noStreamOptions.has(provider?.id)) body.stream_options = { include_usage: true }
   if (effort && effort !== 'auto') body.reasoning_effort = effort
   if (tools) {
     body.tools = (toolDefs || TOOL_DEFS).map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }))
@@ -491,7 +523,15 @@ async function openaiRound ({ baseUrl, apiKey, accessToken, model, messages, too
   const headers = { 'content-type': 'application/json', ...(extraHeaders || {}) }
   const bearer = accessToken || apiKey
   if (bearer) headers.authorization = `Bearer ${bearer}`
-  const res = await fetch(`${baseUrl}/chat/completions`, { method: 'POST', headers, body: JSON.stringify(body), signal })
+  let res = await modelFetch(`${baseUrl}/chat/completions`, { method: 'POST', headers, body: JSON.stringify(body), signal })
+  if (!res.ok && res.status === 400 && body.stream_options) {
+    const raw = await res.clone().text().catch(() => '')
+    if (/stream_options/i.test(raw)) {
+      noStreamOptions.add(provider?.id)
+      delete body.stream_options
+      res = await modelFetch(`${baseUrl}/chat/completions`, { method: 'POST', headers, body: JSON.stringify(body), signal })
+    }
+  }
   if (!res.ok) throw await httpErr(res)
 
   let text = ''
@@ -525,13 +565,39 @@ async function openaiRound ({ baseUrl, apiKey, accessToken, model, messages, too
     if (choice.finish_reason) finish = choice.finish_reason
   }
   const parts = []
+  let live = calls.filter(Boolean)
+  // ⚠️ A LOCAL MODEL CAN WRITE ITS TOOL CALL AS TEXT. A chat template without
+  // tool support — common on community quants — makes the model emit
+  // <tool_call>{"name":…,"arguments":…}</tool_call> inside content. Radiant
+  // used to show that as prose and end the turn: work stopped, nothing said.
+  if (!live.length && text && /<tool_call>/i.test(text)) {
+    const inline = parseInlineToolCalls(text)
+    if (inline.length) { live = inline; text = text.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '').trim() }
+  }
   if (text) parts.push({ type: 'text', text })
-  for (const c of calls.filter(Boolean)) {
+  for (const c of live) {
     let args = {}
     try { args = c.args ? JSON.parse(c.args) : {} } catch {}
     parts.push({ type: 'tool', id: c.id, name: c.name, args })
   }
-  return { parts, stopOnTools: finish === 'tool_calls' || calls.filter(Boolean).length > 0 }
+  return { parts, stopOnTools: finish === 'tool_calls' || live.length > 0, finish }
+}
+
+/** <tool_call>{"name":"x","arguments":{...}}</tool_call> blocks in text → calls. */
+export function parseInlineToolCalls (text) {
+  const out = []
+  const re = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/gi
+  let m, i = 0
+  while ((m = re.exec(text))) {
+    try {
+      const j = JSON.parse(m[1])
+      const name = j.name || j.function?.name
+      if (!name) continue
+      const args = j.arguments ?? j.parameters ?? j.function?.arguments ?? {}
+      out.push({ id: `inline_${Date.now()}_${i++}`, name, args: typeof args === 'string' ? args : JSON.stringify(args) })
+    } catch {}
+  }
+  return out
 }
 
 // ---------- ChatGPT subscription: OpenAI Responses API via the Codex backend ----------
@@ -627,7 +693,7 @@ async function chatgptRound ({ accessToken, accountId, model, messages, system, 
     let args = {}; try { args = c.args ? JSON.parse(c.args) : {} } catch {}
     parts.push({ type: 'tool', id: c.id, name: c.name, args })
   }
-  return { parts, stopOnTools: calls.length > 0 }
+  return { parts, stopOnTools: calls.length > 0, finish: null }
 }
 
 // Tool that lets one agent consult another. Injected only when peers exist.
@@ -802,7 +868,16 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   // for the rest of the turn rather than wait to be refused.
   let lastPrompt = 0
   let hardFold = false
-  const window_ = contextWindow(model)
+  // A local model's window is whatever Ollama loaded it with — ask, rather
+  // than guess from the name. See ollamaContext().
+  let window_ = contextWindow(model) || (await ollamaContext(provider, model))
+  // ⚠️ AN EMPTY ROUND MUST NOT END THE TURN IN SILENCE. A model that returns
+  // nothing — no text, no tool call — after a round of tool results used to
+  // hit the "no tools → done" exit and the chat simply stopped, mid-work, with
+  // nothing said. Tony, with a reviewer watching: "models just failing silently
+  // and stopping mid chat." One nudge, then a halt that says why.
+  let emptyRounds = 0
+  let nudge = ''
 
   const accessToken = getAccessToken ? await getAccessToken() : null
   const accountId = getAccountId ? await getAccountId() : null
@@ -851,7 +926,8 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   // strictly worse than the round cap it replaced. Take the mark at the start
   // and measure the difference.
   const tokensBefore = (stats.inTokens || 0) + (stats.outTokens || 0)
-  const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; if (ev.input) lastPrompt = ev.input } emit(ev) }
+  // the window rides with usage so the gauge can draw a local model it has no table row for
+  const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
   const finishStats = () => { session.stats = stats; emit({ type: 'stats', stats }) }
   for (let round = 0; round < MAX_ROUNDS; round++) {
     // ⚠️ STOP HAD EXACTLY ONE CHECK IN THIS WHOLE FUNCTION, and it sat after the
@@ -875,6 +951,8 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
       return
     }
     emit({ type: 'round_start', round })
+    // Ollama only reports a model's context once it is loaded, i.e. after the first round.
+    if (!window_ && round > 0) window_ = await ollamaContext(provider, model)
     if (!hardFold && window_ && lastPrompt > window_ * 0.85) {
       hardFold = true
       emit({ type: 'notice', text: `The conversation is close to ${model}'s limit (${Math.round(lastPrompt / 1000)}k of ${Math.round(window_ / 1000)}k tokens) — older tool results are trimmed from here on so it can keep going.` })
@@ -886,7 +964,7 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
       model,
       provider,
       systemStable: system.stable,
-      systemVolatile: system.volatile,
+      systemVolatile: nudge ? `${system.volatile}\n\n${nudge}` : system.volatile,
       cachingEnabled,
       cacheTtl,
       tools: toolsEnabled,
@@ -904,8 +982,8 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
       result = provider.type === 'anthropic'
         ? await anthropicRound({ ...args, messages: toAnthropic(reqMsgs) })
         : useChatgpt
-          ? await chatgptRound({ ...args, system: system.full, accountId, messages: reqMsgs })
-          : await openaiRound({ ...args, messages: toOpenAI(reqMsgs, system.full) })
+          ? await chatgptRound({ ...args, system: nudge ? `${system.full}\n\n${nudge}` : system.full, accountId, messages: reqMsgs })
+          : await openaiRound({ ...args, messages: toOpenAI(reqMsgs, nudge ? `${system.full}\n\n${nudge}` : system.full) })
       stats.llmMs += Date.now() - roundStart
     } catch (e) {
       // Model doesn't support tools (common with local models) -> retry once without them.
@@ -950,6 +1028,26 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
     for (const p of result.parts) {
       if (p.type === 'text') assistant.parts.push(p)
     }
+    // Cut off by the output cap: what arrived is kept, and the chat is told
+    // it is not the whole reply rather than left to look finished.
+    if (result.finish === 'length') emit({ type: 'notice', text: 'The model hit its output limit mid-reply — what it wrote is kept, but it did not finish. Say "continue" to get the rest.' })
+    if (!result.parts.length) {
+      emptyRounds++
+      if (emptyRounds === 1 && round < MAX_ROUNDS - 1) {
+        nudge = '[Your previous response was empty. Continue the work you were doing: call the next tool you need, or say what you did and what remains. Do not return an empty response.]'
+        emit({ type: 'notice', text: 'The model returned nothing — asked it to continue.' })
+        continue
+      }
+      finishStats()
+      emit({
+        type: 'halt',
+        reason: 'empty',
+        text: `${model} returned nothing twice in a row${lastPrompt && window_ ? ` at ${Math.round(lastPrompt / 1000)}k of ${Math.round(window_ / 1000)}k tokens` : ''}. That usually means the model ran out of context or its chat template broke on the tool results. Everything above is saved; press Continue to ask again, or switch to another model.`
+      })
+      emit({ type: 'done' })
+      return
+    }
+    emptyRounds = 0; nudge = ''
     if (!toolParts.length || !result.stopOnTools) { finishStats(); emit({ type: 'done' }); return }
 
     const toolLoopStart = Date.now()

@@ -1,6 +1,6 @@
 {
   "name": "radiant",
-  "version": "0.9.13",
+  "version": "0.9.14",
   "private": true,
   "description": "Radiant — a local coding harness: chat with coding agents across cloud and local models.",
   "author": "Tony Ricciardi",
@@ -124,6 +124,7 @@
     "node-pty": "1.1.0",
     "playwright-core": "1.62.1",
     "qrcode-generator": "2.0.4",
+    "undici": "7.29.1",
     "ws": "8.21.3"
   },
   "devDependencies": {

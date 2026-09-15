@@ -147,6 +147,16 @@ advertised 0.6.74 while 0.6.100 was current.
 
 ## Sharp edges
 
+- **Model calls go through `server/net.js` (`modelFetch`), never bare `fetch`.**
+  Node's fetch is undici with 300 s headers/body timeouts; a local 27B can be
+  silent longer than that while it loads and reads a prompt, and the round
+  died with `TypeError: terminated`. `scripts/test-slow-model.mjs` refuses a
+  bare fetch on a provider round. Cancellation is the turn's AbortSignal.
+- **An empty round is nudged once, then halted with a reason** (providers.js,
+  `emptyRounds`); `finish_reason: length` is announced; `<tool_call>` written
+  as text is parsed. `scripts/test-empty-turn-live.mjs` drives all four shapes
+  through the real server against a scripted provider.
+
 - **Voice conversations are opt-in and the key is server-side.** `src/voice.js`
   (WebRTC to GPT-Live from the renderer) and `server/voice.js` (creates the
   session with an OpenAI *API key* — a ChatGPT sign-in cannot; `voiceKey()`

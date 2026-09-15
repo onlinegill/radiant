@@ -1,3 +1,4 @@
+import { modelFetch } from './net.js'
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 // fetch that retries transient upstream errors (Cloudflare 502/503/504, network
@@ -7,7 +8,7 @@ export async function fetchRetry (url, opts = {}, { tries = 3, delayMs = 600 } =
   let last
   for (let i = 0; i < tries; i++) {
     try {
-      const res = await fetch(url, opts)
+      const res = await modelFetch(url, opts)
       if ([502, 503, 504].includes(res.status) && i < tries - 1) { last = res; await sleep(delayMs * (i + 1)); continue }
       return res
     } catch (e) {

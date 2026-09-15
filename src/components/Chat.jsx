@@ -789,7 +789,8 @@ function ContextGauge ({ usage, model }) {
   const bumped = bump ? ' is-bumped' : ''
   const used = usage?.input
   if (!used) return <span className={'usage-note' + bumped}>{usage?.output ?? '–'} out</span>
-  const win = contextWindow(model)
+  // a local model's window comes from the server (Ollama reports what it loaded)
+  const win = contextWindow(model) || usage?.window
   if (!win) return <span className={'usage-note' + bumped}>{kfmt(used)} in · {usage.output ?? '–'} out</span>
   const pct = Math.min(100, Math.round((used / win) * 100))
   const level = pct >= 90 ? ' is-full' : pct >= 70 ? ' is-high' : ''
