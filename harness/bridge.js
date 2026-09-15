@@ -14,6 +14,12 @@
  */
 const listeners = new Map()
 const emit = (ev, data) => (listeners.get(ev) || []).forEach(fn => fn(data))
+// ⚠️ THE KEYBOARD IS A PLUGIN EVENT, NOT A VIEWPORT CHANGE. On a device the
+// height arrives on keyboardWillShow; visualViewport reports it late or never
+// while Keyboard.resize is 'none'. A harness that can only simulate the
+// viewport tests the fallback and proves nothing about the phone — which is
+// how a keyboard fix shipped that did not work. Tests raise the real event
+// with window.__rxKeyboard(height).
 const addListener = (ev, fn) => {
   if (!listeners.has(ev)) listeners.set(ev, [])
   listeners.get(ev).push(fn)
@@ -147,5 +153,14 @@ window.Capacitor = {
     StatusBar: { setStyle: async () => ({}), setBackgroundColor: async () => ({}) },
     Keyboard: { addListener: (ev, fn) => Promise.resolve(addListener(ev, fn)), setAccessoryBarVisible: async () => ({}) },
     SplashScreen: { hide: async () => ({}) }
+  }
+}
+
+// Raise the keyboard the way iOS does: the plugin event first, then the
+// viewport change an animation later.
+if (typeof window !== 'undefined') {
+  window.__rxKeyboard = (height, { duration = 0.25 } = {}) => {
+    if (height > 0) emit('keyboardWillShow', { keyboardHeight: height, duration })
+    else emit('keyboardWillHide', { duration })
   }
 }

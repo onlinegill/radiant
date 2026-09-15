@@ -106,7 +106,16 @@ const shell = readFileSync('src/mobile/MobileShell.jsx', 'utf8').replace(/\/\*[\
 const room = ruleFor('.rx-kb-open .rx-shell-scroll::after')
 ok('the scroller gets room under the keyboard', /var\(--rx-kb/.test(has(room, 'height')))
 ok('the focused field is scrolled clear', /closest\('\.rx-shell-scroll'\)[\s\S]{0,240}scrollTop \+= over/.test(shell))
-ok('and only when the keyboard is really up', /inset > 60 && active/.test(shell))
+ok('and only when the keyboard is really up', /px > 60\) requestAnimationFrame\(\(\) => lift\(px\)\)/.test(shell))
+// ⚠️ THE HEIGHT MUST COME FROM THE PLUGIN. visualViewport reports the keyboard
+// late or not at all while Keyboard.resize is 'none' — MobileChat says so in
+// its own comment — so a shell that only watched the viewport never set
+// --rx-kb on a device and never lifted anything. That is how a keyboard fix
+// shipped that did not work on the phone. Tony, twice: "the keyboard pops up
+// and covers it while typing."
+ok('the shell takes the keyboard height from keyboardWillShow', /keyboardWillShow/.test(shell) && /info\?\.keyboardHeight/.test(shell))
+ok('and lowers it again on keyboardWillHide', /keyboardWillHide/.test(shell) && /apply\(0\)/.test(shell))
+ok('the duration handles both seconds and milliseconds', /raw < 10 \? Math\.round\(raw \* 1000\)/.test(shell))
 
 console.log(`\n${pass}/${pass + fail} passed  ·  the keyboard is counted once`)
 process.exit(fail ? 1 : 0)

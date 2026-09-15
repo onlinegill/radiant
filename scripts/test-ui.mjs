@@ -239,6 +239,41 @@ ok('and the app does not drag you back down', held && held.after < 80)
   await page.waitForTimeout(500)
   const box = page.locator('input[aria-label="Search Hugging Face for models"]')
   ok('the Models page has a Hugging Face search', await box.count() > 0)
+
+  // ⚠️ THE KEYBOARD MUST NOT COVER THE FIELD, AND THE PLUGIN EVENT IS THE ONLY
+  // HONEST WAY TO TEST IT. Keyboard.resize is 'none', so on a device the web
+  // view never shrinks and visualViewport reports the keyboard late or never —
+  // a shell driven only by the viewport set --rx-kb to 0 forever and lifted
+  // nothing. Simulating a viewport change here would have passed while the
+  // phone stayed broken, which is exactly what happened. So raise the real
+  // keyboardWillShow, leave the viewport alone, and measure.
+  //
+  // Run it HERE, on the full model list with the search box at the foot of the
+  // page — that is where Tony taps it. After a search the section grows and the
+  // field sits mid-screen, where the keyboard would never have covered it and
+  // the test proves nothing.
+  const kb = await page.evaluate(async () => {
+    const input = document.querySelector('input[aria-label="Search Hugging Face for models"]')
+    const scroller = input.closest('.rx-shell-scroll')
+    scroller.scrollTop = scroller.scrollHeight
+    input.focus()
+    await new Promise(r => setTimeout(r, 120))
+    const before = input.getBoundingClientRect().bottom
+    const H = 336                                    // an iPhone keyboard
+    window.__rxKeyboard(H, { duration: 0.25 })       // plugin event only; viewport untouched
+    await new Promise(r => setTimeout(r, 450))
+    const f = input.getBoundingClientRect()
+    const btn = document.querySelector('.rx-hf-go').getBoundingClientRect()
+    return { before: Math.round(before), fieldBottom: Math.round(f.bottom), fieldTop: Math.round(f.top),
+             buttonBottom: Math.round(btn.bottom), keyboardTop: window.innerHeight - H,
+             open: document.querySelector('.rx-kb-open') !== null }
+  })
+  ok('the keyboard marks the shell open even though the viewport never changed', kb.open)
+  ok(`the search box starts behind the keyboard (${kb.before} > ${kb.keyboardTop})`, kb.before > kb.keyboardTop)
+  ok(`and is lifted clear of it (${kb.before} → ${kb.fieldBottom})`, kb.fieldBottom <= kb.keyboardTop && kb.fieldTop >= 0)
+  ok(`and so is the Search button (${kb.buttonBottom})`, kb.buttonBottom <= kb.keyboardTop)
+  await page.evaluate(() => window.__rxKeyboard(0))
+  await page.waitForTimeout(300)
   await box.fill('tiny'); await page.keyboard.press('Enter'); await page.waitForTimeout(1500)
   const rows = page.locator('.rx-hf-row')
   is('two results', await rows.count(), 2)
@@ -252,6 +287,7 @@ ok('and the app does not drag you back down', held && held.after < 80)
   const listed = await page.evaluate(async () => (await window.Capacitor.Plugins.LocalModels.list()).models.find(m => m.repo === 'mlx-community/Tiny-Test-4bit'))
   ok('downloading adds it to the app’s own list, as a custom row', listed && listed.custom === true && listed.downloaded === true)
   ok('and the row now offers Chat', await rows.nth(0).locator('button', { hasText: 'Chat' }).count() > 0)
+
   await page.unroute('https://huggingface.co/**')
 }
 

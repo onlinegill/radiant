@@ -243,10 +243,19 @@ function useDynamicType () {
 
 /**
  * Keyboard metrics, published as --rx-kb (px) and --rx-kb-dur (ms) on the shell
- * root so the composer can ride the keyboard exactly rather than approximately.
- * Height comes from visualViewport because Keyboard.resize is 'none'; the
- * duration comes from the plugin's will-show event, because guessing 250ms is
- * visible in slow motion and somebody always films it in slow motion.
+ * root, plus the class rx-kb-open — and the one job that depends on them:
+ * lifting whatever field is focused clear of the keyboard.
+ *
+ * ⚠️ THE HEIGHT COMES FROM THE PLUGIN, NOT visualViewport. Keyboard.resize is
+ * 'none', so the web view never shrinks. visualViewport is the obvious source
+ * and it is the WRONG one on a device: as MobileChat found the hard way, it
+ * "only reports the final height, and often only once the animation ends" —
+ * and in this configuration frequently not at all. Driving --rx-kb from it
+ * alone meant rx-kb-open never went on, so the field was never lifted and the
+ * keyboard still covered the Hugging Face search box. Tony, twice: "the
+ * keyboard pops up and covers it while typing." keyboardWillShow carries
+ * keyboardHeight and arrives BEFORE the animation; visualViewport stays as a
+ * fallback for anywhere the plugin is absent (the browser harness).
  */
 function useKeyboardMetrics (rootRef) {
   useEffect(() => {
@@ -254,28 +263,35 @@ function useKeyboardMetrics (rootRef) {
     if (!el) return
     const vv = window.visualViewport
     let raf = 0
+
+    // Scroll the focused field above the keyboard. The stylesheet has already
+    // given the scroller that much extra room (.rx-kb-open .rx-shell-scroll
+    // ::after), which is what makes the last field on a screen reachable at
+    // all — without it there is nothing below to scroll into.
+    const lift = inset => {
+      const active = document.activeElement
+      if (!active || !/^(INPUT|TEXTAREA)$/.test(active.tagName)) return
+      const scroller = active.closest('.rx-shell-scroll')
+      if (!scroller) return
+      const over = active.getBoundingClientRect().bottom + 12 - (window.innerHeight - inset)
+      if (over > 0) scroller.scrollTop += over
+    }
+
+    // Applied from two sources, so it must be idempotent and must not fight
+    // itself: the plugin leads, visualViewport confirms the same number later.
+    const apply = inset => {
+      const px = Math.round(Math.max(0, inset))
+      el.style.setProperty('--rx-kb', `${px}px`)
+      el.classList.toggle('rx-kb-open', px > 60)
+      // after the var lands, so the scroller has its extra room measured in
+      if (px > 60) requestAnimationFrame(() => lift(px))
+    }
+
     const sync = () => {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => {
-        const inset = vv ? Math.max(0, window.innerHeight - (vv.height + vv.offsetTop)) : 0
-        el.style.setProperty('--rx-kb', `${Math.round(inset)}px`)
-        el.classList.toggle('rx-kb-open', inset > 60)
-        // The web view does not resize (Keyboard.resize is 'none'), so a
-        // field near the foot of a screen — the Hugging Face search box at the
-        // end of Models, a key field in Providers — is simply covered by the
-        // keyboard, with nothing scrolling it clear. Tony: "the keyboard covers
-        // the field im typing in. cant see the search term or Search button."
-        // The stylesheet gives the scroller that much extra room while the
-        // keyboard is up (.rx-kb-open .rx-shell-scroll::after); this lifts the
-        // focused field above the keyboard once the inset is known.
-        const active = document.activeElement
-        if (inset > 60 && active && /^(INPUT|TEXTAREA)$/.test(active.tagName)) {
-          const scroller = active.closest('.rx-shell-scroll')
-          if (scroller) {
-            const over = active.getBoundingClientRect().bottom + 12 - (window.innerHeight - inset)
-            if (over > 0) scroller.scrollTop += over
-          }
-        }
+        if (!vv) return
+        apply(window.innerHeight - (vv.height + vv.offsetTop))
       })
     }
     sync()
@@ -284,12 +300,34 @@ function useKeyboardMetrics (rootRef) {
 
     const P = window.Capacitor?.Plugins?.Keyboard
     const subs = []
-    const readCurve = (info) => {
-      const secs = typeof info?.duration === 'number' && info.duration > 0 ? info.duration : 0.25
-      el.style.setProperty('--rx-kb-dur', `${Math.round(secs * 1000)}ms`)
+    // iOS reports seconds on some versions and milliseconds on others.
+    const dur = info => {
+      const raw = Number(info?.duration)
+      if (!raw || Number.isNaN(raw)) return 250
+      return raw < 10 ? Math.round(raw * 1000) : Math.round(raw)
     }
-    P?.addListener?.('keyboardWillShow', readCurve)?.then?.(h => subs.push(h))
-    P?.addListener?.('keyboardWillHide', readCurve)?.then?.(h => subs.push(h))
+    const onShow = info => {
+      const ms = dur(info)
+      el.style.setProperty('--rx-kb-dur', `${ms}ms`)
+      if (info?.keyboardHeight) {
+        apply(info.keyboardHeight)
+        // Twice: the first lift can land before the keyboard's height is in
+        // the layout, exactly as the composer has to do.
+        setTimeout(() => lift(info.keyboardHeight), ms + 30)
+      }
+    }
+    const onHide = info => {
+      el.style.setProperty('--rx-kb-dur', `${dur(info)}ms`)
+      apply(0)
+    }
+    const sub = (event, fn) => {
+      if (!P?.addListener) return
+      const h = P.addListener(event, fn)
+      Promise.resolve(h).then(x => { if (x?.remove) subs.push(x) }).catch(() => {})
+    }
+    sub('keyboardWillShow', onShow)
+    sub('keyboardDidShow', onShow)
+    sub('keyboardWillHide', onHide)
 
     return () => {
       cancelAnimationFrame(raf)
