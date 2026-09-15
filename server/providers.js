@@ -17,8 +17,24 @@ import { modelFetch } from './net.js'
 // the truncation instead of after. Cached a minute; a miss is null, never a
 // guess.
 const ollamaCtxCache = new Map()
+
+/** A local Ollama, whose context is Ollama's choice rather than the model's. */
+export function isOllama (provider) {
+  return Boolean(provider && provider.type === 'openai' && /:11434\b/.test(provider.baseUrl || ''))
+}
+
+// ⚠️ OLLAMA SIZES THE CONTEXT FROM THE MACHINE'S MEMORY, NOT THE CHAT'S NEEDS:
+// under 24 GiB it loads 4k, 24-48 GiB 32k, and 48 GiB or more **256k**. On a
+// 48 GB Mac that made Devstral reserve a 262144-token KV cache and balloon to
+// 59 GB. Radiant does not (and through the OpenAI-compatible /v1 endpoint
+// cannot) ask for a size — but it DID treat whatever Ollama reported as the
+// point to start trimming, so a local chat was allowed to grow toward a
+// quarter of a million tokens, re-sent in full every round. That is glacial
+// long before it is fatal. See LOCAL_CONTEXT_DEFAULT.
+export const LOCAL_CONTEXT_DEFAULT = 32_768
+
 async function ollamaContext (provider, model) {
-  if (!provider || provider.type !== 'openai' || !/:11434\b/.test(provider.baseUrl || '')) return null
+  if (!isOllama(provider)) return null
   const key = `${provider.baseUrl}|${model}`
   const hit = ollamaCtxCache.get(key)
   if (hit && Date.now() - hit.at < 60_000) return hit.ctx
@@ -824,7 +840,7 @@ function planBlocked (name) {
 }
 
 // ---------- the agent loop ----------
-export async function runTurn ({ provider, model, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, planMode, onPlanExit, effort, summarize, autoCompact, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
+export async function runTurn ({ provider, model, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
   // ⚠️ NOT `session.cwd || os.homedir()`. A folder that is set and not here is
   // the case that broke every tool call in the chat — see usableCwd.
   const { dir: cwd, missing: strayCwd } = usableCwd(session.cwd)
@@ -870,7 +886,16 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   let hardFold = false
   // A local model's window is whatever Ollama loaded it with — ask, rather
   // than guess from the name. See ollamaContext().
-  let window_ = contextWindow(model) || (await ollamaContext(provider, model))
+  //
+  // ⚠️ TWO DIFFERENT NUMBERS, AND CONFLATING THEM MAKES IT WORSE. `reported`
+  // is what the model is loaded with and is what costs the memory; `window_`
+  // is how much of it Radiant will fill before it starts trimming. Raising
+  // Radiant's does not change Ollama's reservation, and vice versa — so when
+  // the cap bites, the notice names both places.
+  let reported = contextWindow(model) || (await ollamaContext(provider, model))
+  const localCap = isOllama(provider) && localContext !== 0 ? (localContext || LOCAL_CONTEXT_DEFAULT) : 0
+  const capOf = n => (n && localCap && n > localCap ? localCap : n)
+  let window_ = capOf(reported)
   // ⚠️ AN EMPTY ROUND MUST NOT END THE TURN IN SILENCE. A model that returns
   // nothing — no text, no tool call — after a round of tool results used to
   // hit the "no tools → done" exit and the chat simply stopped, mid-work, with
@@ -952,10 +977,13 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
     }
     emit({ type: 'round_start', round })
     // Ollama only reports a model's context once it is loaded, i.e. after the first round.
-    if (!window_ && round > 0) window_ = await ollamaContext(provider, model)
+    if (!window_ && round > 0) { reported = await ollamaContext(provider, model); window_ = capOf(reported) }
     if (!hardFold && window_ && lastPrompt > window_ * 0.85) {
       hardFold = true
-      emit({ type: 'notice', text: `The conversation is close to ${model}'s limit (${Math.round(lastPrompt / 1000)}k of ${Math.round(window_ / 1000)}k tokens) — older tool results are trimmed from here on so it can keep going.` })
+      const k = n => `${Math.round(n / 1000)}k`
+      emit({ type: 'notice', text: localCap && reported > window_
+        ? `This chat reached the ${k(window_)} working limit Radiant uses for local models (${lastPrompt ? k(lastPrompt) + ' used; ' : ''}${model} is loaded in Ollama with ${k(reported)}). Older tool results are trimmed from here on so it can keep going. To let local chats use more, raise "Local model context" in Settings → Models — that is separate from how much memory Ollama reserves, which is Ollama's own Settings → Context length.`
+        : `The conversation is close to ${model}'s limit (${k(lastPrompt)} of ${k(window_)} tokens) — older tool results are trimmed from here on so it can keep going.` })
     }
     const args = {
       baseUrl: provider.baseUrl,

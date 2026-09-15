@@ -580,6 +580,77 @@ function FallbackModelBlock ({ config, onSettings }) {
   )
 }
 
+/**
+ * How much of a local model's context Radiant will fill, and — separately —
+ * how much Ollama has actually reserved.
+ *
+ * ⚠️ TWO NUMBERS, AND THEY ARE NOT THE SAME KNOB. Ollama picks a model's
+ * context from the machine's RAM (under 24 GiB → 4k, 24–48 → 32k, 48 GiB and
+ * up → 256k) and reserves the KV cache for all of it at load: on a 48 GB Mac
+ * that made Devstral take 59 GB. Radiant never asks for a size and cannot —
+ * the OpenAI-compatible endpoint has no such option — but it DID treat
+ * whatever Ollama reported as the point to start trimming, so a local chat
+ * could grow toward a quarter-million tokens, re-sent in full every round.
+ *
+ * So Radiant caps its own working window, and this block says plainly which
+ * number does what and where each one is changed. Tony: "yes as long as its
+ * clear how to increase the context length."
+ */
+const LOCAL_CTX_CHOICES = [8192, 16384, 32768, 65536, 131072, 0]
+const ctxLabel = n => (n === 0 ? 'Whatever Ollama loaded' : `${Math.round(n / 1024)}K tokens`)
+
+function LocalContextBlock ({ config, onSettings }) {
+  const [loaded, setLoaded] = useState({ running: false, models: [] })
+  useEffect(() => { api.getLoadedLocalModels().then(setLoaded).catch(() => {}) }, [])
+  const cur = Number.isFinite(Number(config?.settings?.localContext)) ? Number(config.settings.localContext) : 32768
+  const big = (loaded.models || []).filter(m => m.context && cur !== 0 && m.context > cur)
+  return (
+    <div className='set-block' style={{ marginBottom: 16 }}>
+      <div className='set-block-title'>Local model context</div>
+      <p className='hint' style={{ marginTop: 2 }}>
+        How much of a local model&rsquo;s context a chat may fill before Radiant starts trimming older
+        tool results. Raising this lets local chats stay longer before they are trimmed; it does not
+        change how much memory the model reserves.
+      </p>
+      <div style={{ marginTop: 8 }}>
+        {/* ⚠️ text-input, NOT set-input. set-input paints a dark field and the
+            text stays dark on it — 43,49,41 on 59,59,59, which is invisible.
+            Every other select on this screen uses text-input; matching it is
+            also the only way this follows a theme change. */}
+        <select
+          className='text-input'
+          value={String(cur)}
+          onChange={e => onSettings({ localContext: Number(e.target.value) })}
+        >
+          {LOCAL_CTX_CHOICES.map(n => <option key={n} value={String(n)}>{ctxLabel(n)}</option>)}
+        </select>
+      </div>
+      {loaded.running && (loaded.models || []).length > 0 && (
+        <div className='hint' style={{ marginTop: 10 }}>
+          <strong>Loaded in Ollama right now:</strong>
+          {(loaded.models || []).map(m => (
+            <div key={m.name} style={{ marginTop: 2 }}>
+              {m.name} — {m.context ? `${Math.round(m.context / 1024)}K context` : 'context unknown'}
+              {m.sizeGB ? ` · ${m.sizeGB} GB` : ''}
+            </div>
+          ))}
+        </div>
+      )}
+      <p className='hint' style={{ marginTop: 10 }}>
+        <strong>To change the memory a model reserves, use Ollama, not Radiant.</strong> Ollama picks a
+        model&rsquo;s context from the memory it finds &mdash; under 24&nbsp;GB it loads 4K, 24&ndash;48&nbsp;GB 32K,
+        and 48&nbsp;GB or more 256K &mdash; and reserves it all when the model loads, which is how a
+        single model can take tens of gigabytes. Change it in <strong>Ollama&rsquo;s own Settings &rarr; Context
+        length</strong>, or start the server with <code>OLLAMA_CONTEXT_LENGTH=32768 ollama serve</code>.
+        {big.length > 0 && (
+          <> Right now {big.map(m => m.name).join(', ')} {big.length === 1 ? 'is' : 'are'} loaded with more
+          context than Radiant will use, so the extra is reserved memory you are not getting the benefit of.</>
+        )}
+      </p>
+    </div>
+  )
+}
+
 function ModelsPane ({ onModelsChanged, config, onSettings }) {
   const [system, setSystem] = useState(null)
   // ⚠️ EVERYTHING ON THIS SCREEN BELONGS TO THE SERVER'S MAC, NOT NECESSARILY
@@ -670,6 +741,7 @@ function ModelsPane ({ onModelsChanged, config, onSettings }) {
     <div className='set-section'>
       <DefaultModelBlock config={config} onSettings={onSettings} />
       <FallbackModelBlock config={config} onSettings={onSettings} />
+      <LocalContextBlock config={config} onSettings={onSettings} />
       <h3>Local models</h3>
       {onAnotherMac && (
         <div className='set-hint' style={{ marginBottom: 10 }}>
@@ -3168,6 +3240,7 @@ const GUIDE = [
   {
     title: 'Models & providers',
     items: [
+      ['Local models no longer let a chat grow to a quarter of a million tokens', 'Ollama decides how big a local model\u2019s context is from the memory it finds \u2014 on a Mac with 48 GB or more it loads 256K and reserves all of it, which is how one model can take tens of gigabytes. Radiant used to treat that whole number as the point to start trimming, so a local chat could grow toward 262,000 tokens and be re-sent in full every round, which is painfully slow long before it breaks. Radiant now fills 32K of a local model\u2019s context before it starts trimming older tool results, and Settings \u2192 Models \u2192 Local model context lets you raise that (or turn it off and use whatever Ollama loaded). That setting is about what Radiant SENDS; the memory the model reserves is Ollama\u2019s own Settings \u2192 Context length, and the same page now shows what Ollama currently has loaded and how big its context is, so you can see which one needs changing.'],
       ['Find more models on Hugging Face, from your iPhone', 'The Models page on the phone ends with a search box. Type a name \u2014 \u201cllama 3.2\u201d, \u201cqwen 4bit\u201d, \u201cgemma\u201d \u2014 and Radiant searches Hugging Face for models in the MLX format it runs. Before you download anything, each result is checked the way the built-in list is: whether the engine has a loader for that kind of model, whether its weights really are what its description says (a mismatch there fails after a 3 GB download, so it is caught first), and whether it fits the memory of this particular phone. You get the same green, amber or red label as the catalogue \u2014 Runs well, Runs tight, Won\u2019t fit \u2014 or a plain reason it cannot run. Download installs it beside the built-in models, with the same progress, stop, chat and remove. The search is not filtered \u2014 anything published in a format the phone can run will show up, uncensored and abliterated builds included; they are other people\u2019s models, and one with its safety training removed will say anything. The keyboard no longer covers the search box: any field near the foot of a screen now scrolls up clear of it.'],
       ['Subscriptions', 'Sign in with a subscription instead of an API key (Settings → Providers): Claude, ChatGPT, Nous Portal, xAI (Grok), Qwen, and GitHub Copilot — Copilot unlocks GPT, Claude, and Gemini models through your plan.'],
       ['Ready-to-add providers', 'One-tap presets for DeepSeek, Kimi, GLM, MiniMax, Mistral, Groq, Together, Fireworks, Cerebras, Perplexity, Gemini, Ollama Cloud, and Vercel AI Gateway — just paste a key.'],

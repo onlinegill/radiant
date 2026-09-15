@@ -1916,6 +1916,29 @@ app.get('/api/local-models', async (req, res) => {
   }
 })
 
+// What Ollama has LOADED right now, and with how much context. This is the
+// number that costs the memory: Ollama sizes it from the machine's RAM (48 GB
+// or more gets 256k), so a big Mac can quietly reserve a 262144-token KV cache
+// and take 59 GB for one model. Radiant cannot set it — the OpenAI-compatible
+// /v1 endpoint has no such option — so Settings shows it and says where it
+// lives, rather than leaving people to guess which app is at fault.
+app.get('/api/local-models/loaded', async (req, res) => {
+  try {
+    const r = await fetch(`${OLLAMA}/api/ps`, { signal: AbortSignal.timeout(4000) })
+    const data = await r.json()
+    res.json({
+      running: true,
+      models: (data.models || []).map(m => ({
+        name: m.name || m.model,
+        context: m.context_length || null,
+        sizeGB: m.size ? +(m.size / 1024 ** 3).toFixed(1) : null
+      }))
+    })
+  } catch {
+    res.json({ running: false, models: [] })
+  }
+})
+
 app.delete('/api/local-models/:name', async (req, res) => {
   try {
     const r = await fetch(`${OLLAMA}/api/delete`, {
@@ -3217,6 +3240,9 @@ app.post('/api/chat', async (req, res) => {
     memory,
     summarize,
     autoCompact: config.settings.autoCompact !== false,
+    // How much of a local model's context Radiant will fill before it trims.
+    // 0 means "use whatever Ollama loaded it with". See LOCAL_CONTEXT_DEFAULT.
+    localContext: Number.isFinite(Number(config.settings.localContext)) ? Number(config.settings.localContext) : undefined,
     autoApproveComputer: config.settings.fullAutomation === true,
     cachingEnabled: config.settings.promptCaching !== false,
     cacheTtl: config.settings.cacheTtl === '1h' ? '1h' : '5m',

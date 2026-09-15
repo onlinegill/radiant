@@ -6,7 +6,8 @@
 // grok-build chat reached 259,445 tokens on a 256,000 model inside a single
 // assistant message; xAI's refusal matched none of the phrasings the retry
 // looked for; he got `400: {"code":"invalid-argument", ...}` and a dead turn.
-import { foldOldToolResults, isContextError } from '../server/providers.js'
+import { readFileSync } from 'node:fs'
+import { foldOldToolResults, isContextError, isOllama, LOCAL_CONTEXT_DEFAULT } from '../server/providers.js'
 
 let pass = 0, fail = 0
 const ok = (cond, what) => { if (cond) pass++; else { fail++; console.log('  FAIL', what) } }
@@ -64,6 +65,36 @@ ok(hard2[1].parts.every(p => p.result.length < 8000), 'and folds every result in
 // untagged parts from a transcript older than this change are never trusted whole in hard mode
 const legacy = [{ role: 'user', text: 'a' }, { role: 'assistant', parts: [{ type: 'tool', id: 'x', name: 'read_file', args: {}, result: big(8000) }] }, { role: 'user', text: 'b' }, turn(5)]
 ok(foldOldToolResults(legacy, { hard: true })[1].parts[0].result.length < 8000, 'legacy untagged results in earlier messages fold too')
+
+// ── Ollama's context is Ollama's choice, and Radiant must not chase it ─────
+// ⚠️ Ollama sizes a model's context from the MACHINE's memory: 48 GB or more
+// loads 256k and reserves the whole KV cache, which is how Devstral took 59 GB
+// on a 48 GB Mac. Radiant never asks for a size (the /v1 endpoint has no such
+// option) but it did trim at whatever Ollama reported, letting a local chat
+// grow toward a quarter-million tokens, re-sent every round.
+ok(isOllama({ type: 'openai', baseUrl: 'http://127.0.0.1:11434/v1' }), 'a local Ollama is recognised by its port')
+ok(!isOllama({ type: 'openai', baseUrl: 'https://api.openai.com/v1' }), 'a cloud provider is not')
+ok(!isOllama({ type: 'anthropic', baseUrl: 'http://127.0.0.1:11434/v1' }), 'and neither is a non-openai type')
+ok(LOCAL_CONTEXT_DEFAULT === 32768, 'the default working window for local models is 32k')
+
+// the cap itself, as providers.js applies it
+const capOf = (n, localCap) => (n && localCap && n > localCap ? localCap : n)
+ok(capOf(262144, 32768) === 32768, "Ollama's 262k is capped to the working window")
+ok(capOf(8192, 32768) === 8192, 'a model loaded with LESS than the cap keeps its own smaller window')
+ok(capOf(262144, 0) === 262144, '0 means use whatever Ollama loaded, uncapped')
+ok(capOf(262144, 131072) === 131072, 'and a raised cap is honoured')
+
+// ⚠️ THE NOTICE MUST NAME BOTH KNOBS. Radiant's cap controls what is SENT;
+// Ollama's context controls what is RESERVED. Raising one does not change the
+// other, and a message that implies it would send someone to the wrong app.
+// Tony: "yes as long as its clear how to increase the context length."
+const src = readFileSync('server/providers.js', 'utf8')
+ok(/Local model context" in Settings → Models/.test(src), 'the fold notice says where to raise Radiant\'s window')
+ok(/Ollama's own Settings → Context length/.test(src), 'and where to change what Ollama reserves')
+const ui = readFileSync('src/components/Settings.jsx', 'utf8')
+ok(/OLLAMA_CONTEXT_LENGTH=32768/.test(ui) && /Context\s*\n?\s*length<\/strong>/.test(ui.replace(/&rarr;/g, '→')),
+   'Settings spells out how to change Ollama\'s own context length')
+ok(/localContext/.test(ui) && /Whatever Ollama loaded/.test(ui), 'and offers an uncapped choice, not just a lock')
 
 console.log(`\n${pass}/${pass + fail} passed  ·  a long turn is trimmed, not killed`)
 process.exit(fail ? 1 : 0)

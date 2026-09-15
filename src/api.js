@@ -291,6 +291,7 @@ export const api = {
   getStorage: () => json('GET', '/api/storage'),
   clearSessions: days => json('POST', '/api/storage/clear-sessions', { days }),
   getModels: () => json('GET', '/api/models'),
+  getLoadedLocalModels: () => json('GET', '/api/local-models/loaded'),
   exportChat: (id, format) => json('GET', `/api/sessions/${id}/export?format=${format || 'json'}`),
   exportAllChats: () => json('GET', '/api/chats/export'),
   importChats: payload => json('POST', '/api/chats/import', payload),
