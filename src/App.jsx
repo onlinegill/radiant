@@ -538,6 +538,14 @@ function DesktopApp () {
     // "this is the 'dropping chat' bug i was talking about... chat box is not
     // blinking, no working or thinking notice, nothing."
     let sawEnd = false
+    // Did the turn ever actually begin? A send can be refused before a single
+    // event (a turn already running on this chat → 409, a dropped POST). When
+    // that happens the message you just typed must NOT silently vanish: the
+    // cleanup below refetches the saved session, which never had it, and the
+    // typed text disappears with only a banner left behind. Tony: "the command
+    // i entered is disappearing in the chat itself." So on a never-started
+    // send, keep the optimistic message and say why instead of wiping it.
+    let started = false
     let chatTitle = target.title || 'Radiant'
     const endThinking = () => {
       if (liveMsg.thinkingActive) {
@@ -559,6 +567,7 @@ function DesktopApp () {
         // after the guard meant switching chats mid-turn made every turn look like
         // a dropped connection.
         if (ev.type === 'done' || ev.type === 'closed') sawEnd = true
+        started = true
         if (!streamingRef.current.has(sessionId)) return
         // ⚠️ EVERY EVENT IS STAMPED so the status strip can tell "thinking" from
         // "stuck". Without it the only honest thing it could say was "working",
@@ -672,10 +681,20 @@ function DesktopApp () {
       // any approval prompt still sitting in Notification Center for this chat.
       notifyAway({ sessionId, title: chatTitle, body: turnBody({ sawEnd, parts: liveMsg.parts }) })
       setLiveFor(sessionId, null)
-      try {
-        const fresh = await api.getSession(sessionId)
-        setSession(prev => (prev && prev.id === sessionId ? fresh : prev))
-      } catch {}
+      // A turn that never started never wrote the user's message to disk, so
+      // refetching the saved session here is exactly what erased it. Keep the
+      // optimistic message on screen and tell them why it did not run; a real
+      // reload (switching chats) will reconcile. Only refetch once the turn
+      // actually began — then the server holds the message and the refetch is
+      // what brings back the saved reply.
+      if (started) {
+        try {
+          const fresh = await api.getSession(sessionId)
+          setSession(prev => (prev && prev.id === sessionId ? fresh : prev))
+        } catch {}
+      } else if (openSessionRef.current === sessionId) {
+        setError(prev => prev || 'That message did not send — a turn is already running in this chat. Stop it, or wait for it to finish, then try again.')
+      }
       refreshSessions()
       // ⚠️ AFTER THE TRANSCRIPT IS SAVED, NOT BEFORE. The server reads the last
       // assistant message to find the check's verdict, so advancing any earlier

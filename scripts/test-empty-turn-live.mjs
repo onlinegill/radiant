@@ -28,6 +28,9 @@ const prov = http.createServer((req, res) => {
     if (req.url.endsWith('/models')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ data: [{ id: 'm1' }] })) }
     const b = JSON.parse(body); seen.push(b)
     const kind = script.shift() || 'text'
+    // A model that errors outright — the local case Tony keeps hitting: Ollama
+    // 500s, or the chat template breaks on the tool results. The turn THROWS.
+    if (kind === 'boom') { res.writeHead(500, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ error: { message: 'the model exploded' } })) }
     res.writeHead(200, { 'content-type': 'text/event-stream' })
     const chunk = o => res.write(`data: ${JSON.stringify(o)}\n\n`)
     if (kind === 'empty') chunk({ choices: [{ delta: {}, finish_reason: 'stop' }] })
@@ -87,6 +90,17 @@ try {
 
   // 5. usage was requested on the stream
   ok(seen.every(b => b.stream_options?.include_usage === true), 'every request asks for usage on the stream')
+
+  // 6. THE SILENT-DEATH BUG. A turn that throws must leave its reason IN the
+  // transcript, not only in a transient banner the next reload wipes. Before
+  // the fix the saved assistant message had zero parts and the chat looked like
+  // it died for no reason.
+  script = ['boom']
+  r = await turn('build me something')
+  ok(r.events.some(e => e.type === 'halt' && e.reason === 'error' && /exploded/.test(e.text)), 'a thrown turn emits a halt that names the reason')
+  ok(r.last.role === 'assistant' && r.last.parts.some(p => p.type === 'halt' && /exploded/.test(p.text)),
+     `the reason is SAVED in the message, so a reload still shows it (parts: ${JSON.stringify(r.last.parts.map(p => p.type))})`)
+  ok(r.events.some(e => e.type === 'closed'), 'the stream still closes cleanly')
 } finally {
   srv.kill(); prov.close(); await sleep(200)
   fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(ws, { recursive: true, force: true })

@@ -2927,6 +2927,29 @@ app.post('/api/sessions/:id/truncate', (req, res) => {
   res.json(s)
 })
 
+// A turn that THROWS must leave its reason in the transcript, not only in a
+// banner. Notices and halts were made to survive the stream closing (see the
+// emit wrapper in providers.js), but a top-level throw — a local model
+// erroring, its chat template breaking on tool results, the context
+// overflowing — became a transient `error` event that the client showed as a
+// banner and never wrote into the assistant message. On the next reload the
+// chat showed an empty bubble with no explanation. That IS the "chats die
+// mid-turn with no warning" class Tony keeps hitting on local models. Persist
+// the reason as a halt (the shape the client already renders prominently, with
+// a Continue button) BEFORE the finally saves the session, then emit it live.
+// The banner still fires too, for immediate feedback.
+function recordTurnFailure (session, emit, message) {
+  let assistant = session.messages[session.messages.length - 1]
+  if (!assistant || assistant.role !== 'assistant') {
+    assistant = { role: 'assistant', parts: [] }
+    session.messages.push(assistant)
+  }
+  if (!Array.isArray(assistant.parts)) assistant.parts = []
+  assistant.parts.push({ type: 'halt', reason: 'error', text: message })
+  emit({ type: 'halt', reason: 'error', text: message })
+  emit({ type: 'error', message })
+}
+
 // ---------- chat (SSE) ----------
 app.post('/api/chat', async (req, res) => {
   config = loadConfig() // see the latest keys/oauth before the turn
@@ -2974,7 +2997,7 @@ app.post('/api/chat', async (req, res) => {
       if (reply) assistant.parts.push({ type: 'text', text: reply })
       emit({ type: 'done' })
     } catch (e) {
-      if (!controller.signal.aborted) emit({ type: 'error', message: e.message })
+      if (!controller.signal.aborted) recordTurnFailure(session, emit, e.message)
     } finally {
       activeTurns.delete(sessionId)
       saveTurnSession(session)
@@ -3372,9 +3395,9 @@ app.post('/api/chat', async (req, res) => {
           onPlanExit: () => { session.planMode = false; emit({ type: 'plan_mode', on: false }) }
         })
       } catch (e2) {
-        if (!controller.signal.aborted) emit({ type: 'error', message: `${e.message} — and the fallback (${fb.model}) failed too: ${e2.message}` })
+        if (!controller.signal.aborted) recordTurnFailure(session, emit, `${e.message} — and the fallback (${fb.model}) failed too: ${e2.message}`)
       }
-    } else if (!controller.signal.aborted) emit({ type: 'error', message: e.message })
+    } else if (!controller.signal.aborted) recordTurnFailure(session, emit, e.message)
   } finally {
     activeTurns.delete(sessionId)
     saveTurnSession(session)
