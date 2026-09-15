@@ -191,6 +191,15 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+### Build 10 uploaded 2026-09-15 5:45 PM — TestFlight; supersedes 9
+
+Master `41d87a3`. Build 9's keyboard fix did not work on a device: it drove
+`--rx-kb` from visualViewport, which with `Keyboard.resize: 'none'` reports the
+keyboard late or not at all, so nothing was ever lifted. The height now comes
+from the Keyboard plugin's `keyboardWillShow`. The UI gate raises a real plugin
+event with the viewport untouched, which is the only way to test the device
+path. Same rule as 8 and 9: not attached to the submission, age rating first.
+
 ### Build 9 uploaded 2026-09-15 1:27 PM — TestFlight; supersedes 8
 
 Master `2c9ab1b`: the keyboard no longer covers a field at the foot of a
