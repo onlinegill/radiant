@@ -350,6 +350,24 @@ const activeTurns = new Map() // sessionId -> { controller }
 const pendingApprovals = new Map() // callId -> resolve(bool)
 const pendingQuestions = new Map() // questionId -> resolve(answer string)
 
+// A quiet "thinking" phase or a slow tool call can leave an SSE connection with
+// no bytes flowing for a minute or more. A local client never notices, but a
+// remote one — this Mac reached from another over Tailscale, say — often routes
+// through NAT traversal or a DERP relay, and both commonly reap connections
+// that go idle that long, which silently drops the turn (res 'close' below,
+// same path recordTurnStopped now explains) well before either side did
+// anything wrong. A small periodic comment line keeps real bytes moving so
+// those hops never see the connection as idle in the first place.
+function startHeartbeat (res) {
+  // ⚠️ `destroyed`, NOT `writableEnded`. After a client vanishes, writableEnded
+  // stays FALSE (nobody called res.end()) while destroyed is already true —
+  // measured, not assumed — so the writableEnded guard never fires and the
+  // pings keep going into a dead socket until the turn unwinds. Node swallows
+  // them rather than throwing, so this is tidiness, not a crash.
+  const timer = setInterval(() => { if (!res.writableEnded && !res.destroyed) res.write(': ping\n\n') }, 20000)
+  return () => clearInterval(timer)
+}
+
 // Reload config from disk before handling config-touching requests, so a second
 // instance (or a stale in-memory copy) can't clobber another's keys/oauth when
 // it saves. Skips long-lived streams that captured config at their start.
@@ -3131,6 +3149,7 @@ app.post('/api/chat', async (req, res) => {
     const controller = new AbortController()
     activeTurns.set(sessionId, { controller })
     res.on('close', () => { if (!res.writableEnded) controller.abort() })
+    const stopHeartbeat = startHeartbeat(res)
     const assistant = { role: 'assistant', parts: [] }
     if (agent.id) assistant.agentId = agent.id
     session.messages.push(assistant)
@@ -3141,6 +3160,7 @@ app.post('/api/chat', async (req, res) => {
     } catch (e) {
       if (!controller.signal.aborted) recordTurnFailure(session, emit, e.message)
     } finally {
+      stopHeartbeat()
       if (controller.signal.aborted) recordTurnStopped(session, { byUser: Boolean(activeTurns.get(sessionId)?.stoppedByUser) })
       activeTurns.delete(sessionId)
       saveTurnSession(session)
@@ -3205,6 +3225,7 @@ app.post('/api/chat', async (req, res) => {
   // res 'close' fires on client disconnect (req 'close' fires once the body is
   // consumed in modern Node, which would abort the turn immediately)
   res.on('close', () => { if (!res.writableEnded) controller.abort() })
+  const stopHeartbeat = startHeartbeat(res)
 
   const requestApproval = call => new Promise(resolve => {
     // approval mode: 'ask' = confirm every command, 'auto' = only risky ones, 'off' = never
@@ -3216,19 +3237,33 @@ app.post('/api/chat', async (req, res) => {
       emit({ type: 'notice', text: `Ran: ${call.args.command}` })
       return resolve(true)
     }
+    // The client that would answer this is already gone. Waiting out the full
+    // 10 minutes here kept activeTurns occupied that whole time, so a dropped
+    // connection left the session showing "a turn is already running" for up to
+    // 10 minutes even after recordTurnStopped had already offered Continue.
+    if (controller.signal.aborted) return resolve(false)
     pendingApprovals.set(call.id, resolve)
     emit({ type: 'approval_request', id: call.id, name: call.name, args: call.args })
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (pendingApprovals.delete(call.id)) resolve(false)
     }, 10 * 60 * 1000)
+    controller.signal.addEventListener('abort', () => {
+      clearTimeout(timer)
+      if (pendingApprovals.delete(call.id)) resolve(false)
+    }, { once: true })
   })
 
   // pause the turn and ask the user a multiple-choice question (ask_user tool)
   const requestUserChoice = (question, options) => new Promise(resolve => {
+    if (controller.signal.aborted) return resolve('(no answer — the connection dropped)')
     const id = crypto.randomUUID()
     pendingQuestions.set(id, resolve)
     emit({ type: 'question_request', id, question, options: Array.isArray(options) ? options : [] })
-    setTimeout(() => { if (pendingQuestions.delete(id)) resolve('(no answer — the user did not respond in time)') }, 10 * 60 * 1000)
+    const timer = setTimeout(() => { if (pendingQuestions.delete(id)) resolve('(no answer — the user did not respond in time)') }, 10 * 60 * 1000)
+    controller.signal.addEventListener('abort', () => {
+      clearTimeout(timer)
+      if (pendingQuestions.delete(id)) resolve('(no answer — the connection dropped)')
+    }, { once: true })
   })
 
   // let this agent consult the OTHER agents (peers) via the ask_agent tool
@@ -3511,6 +3546,7 @@ app.post('/api/chat', async (req, res) => {
       }
     } else if (!controller.signal.aborted) recordTurnFailure(session, emit, e.message)
   } finally {
+    stopHeartbeat()
     // An aborted turn threw nothing and emitted nothing that survives — say so
     // in the transcript before it is written, or the chat keeps its empty reply.
     if (controller.signal.aborted) recordTurnStopped(session, { byUser: Boolean(activeTurns.get(sessionId)?.stoppedByUser) })
