@@ -2973,6 +2973,30 @@ function recordTurnFailure (session, emit, message) {
   emit({ type: 'error', message })
 }
 
+// ⚠️ AND AN ABORTED TURN IS THE SAME CLASS OF SILENCE. recordTurnFailure above
+// only runs when the turn THREW; every `emit` of a 'stopped' event is dropped
+// on the floor because the emit wrapper in providers.js persists only notices
+// and halts. So a turn killed by the connection going away — the window
+// closed, the app quit, the network blinked, the user pressed Stop — saved an
+// assistant message with ZERO parts, and the chat showed an empty reply with
+// no explanation. That is the same thing Tony keeps reporting, arriving by a
+// different route: session e0b6fae9 had three of them (messages 5, 7 and 31),
+// none carrying a word about what happened.
+//
+// A dropped connection and a deliberate Stop are different sentences, so the
+// stop route marks which one it was. Nothing is emitted here — for a drop the
+// response is already gone — it is written into the transcript, which is the
+// only place that survives.
+function recordTurnStopped (session, { byUser }) {
+  const assistant = session.messages[session.messages.length - 1]
+  if (!assistant || assistant.role !== 'assistant') return
+  if (!Array.isArray(assistant.parts)) assistant.parts = []
+  if (assistant.parts.some(p => p.type === 'halt' || (p.type === 'notice' && p.text === 'Stopped.'))) return
+  assistant.parts.push(byUser
+    ? { type: 'notice', text: 'Stopped.' }
+    : { type: 'halt', reason: 'dropped', text: 'The connection to this turn dropped before it finished — the window was closed, the app quit, or the network went away. Anything the agent had already done is saved above. Press Continue to carry on from here.' })
+}
+
 // ---------- chat (SSE) ----------
 app.post('/api/chat', async (req, res) => {
   config = loadConfig() // see the latest keys/oauth before the turn
@@ -3022,6 +3046,7 @@ app.post('/api/chat', async (req, res) => {
     } catch (e) {
       if (!controller.signal.aborted) recordTurnFailure(session, emit, e.message)
     } finally {
+      if (controller.signal.aborted) recordTurnStopped(session, { byUser: Boolean(activeTurns.get(sessionId)?.stoppedByUser) })
       activeTurns.delete(sessionId)
       saveTurnSession(session)
       emit({ type: 'closed' })
@@ -3425,6 +3450,9 @@ app.post('/api/chat', async (req, res) => {
       }
     } else if (!controller.signal.aborted) recordTurnFailure(session, emit, e.message)
   } finally {
+    // An aborted turn threw nothing and emitted nothing that survives — say so
+    // in the transcript before it is written, or the chat keeps its empty reply.
+    if (controller.signal.aborted) recordTurnStopped(session, { byUser: Boolean(activeTurns.get(sessionId)?.stoppedByUser) })
     activeTurns.delete(sessionId)
     saveTurnSession(session)
     emit({ type: 'closed' })
@@ -3451,7 +3479,9 @@ app.post('/api/answer-question', (req, res) => {
 
 app.post('/api/abort', (req, res) => {
   const turn = activeTurns.get(req.body.sessionId)
-  if (turn) turn.controller.abort()
+  // Mark it BEFORE aborting: the turn's finally reads this to tell "you
+  // pressed Stop" from "the connection died", which are different sentences.
+  if (turn) { turn.stoppedByUser = true; turn.controller.abort() }
   res.json({ ok: true })
 })
 

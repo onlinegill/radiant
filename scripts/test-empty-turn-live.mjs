@@ -31,6 +31,13 @@ const prov = http.createServer((req, res) => {
     // A model that errors outright — the local case Tony keeps hitting: Ollama
     // 500s, or the chat template breaks on the tool results. The turn THROWS.
     if (kind === 'boom') { res.writeHead(500, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ error: { message: 'the model exploded' } })) }
+    // A round that never finishes, so a turn can be interrupted mid-stream the
+    // way a closed window or a dropped network interrupts a real one.
+    if (kind === 'hang') {
+      res.writeHead(200, { 'content-type': 'text/event-stream' })
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: 'thinking' } }] })}\n\n`)
+      return  // deliberately never ends
+    }
     res.writeHead(200, { 'content-type': 'text/event-stream' })
     const chunk = o => res.write(`data: ${JSON.stringify(o)}\n\n`)
     if (kind === 'empty') chunk({ choices: [{ delta: {}, finish_reason: 'stop' }] })
@@ -49,6 +56,11 @@ fs.mkdirSync(path.join(dir, 'sessions'), { recursive: true })
 const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'radiant-ws-')); fs.writeFileSync(path.join(ws, 'README.md'), 'hello')
 fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ providers: [{ id: 'fakeco', name: 'FakeCo', type: 'openai', baseUrl: `http://127.0.0.1:${pp}/v1`, auth: 'key', removable: true }], keys: { fakeco: 'k' }, oauth: {}, accounts: {}, activeAccount: {}, settings: { autoCompact: false, approvalMode: 'off' } }))
 const srv = spawn('node', ['server/index.js'], { env: { ...process.env, RADIANT_PORT: String(pr), RADIANT_DIR: dir }, stdio: ['ignore', 'pipe', 'pipe'] })
+// ⚠️ SURFACE THE SERVER'S OWN CRASH. A test that only sees ECONNREFUSED from
+// its next request cannot say WHY the server went away, and that is the most
+// useful line in the run.
+srv.stderr.on('data', d => { const t = String(d); if (/Error|error:|throw|at /.test(t)) process.stderr.write('  [server] ' + t) })
+srv.on('exit', (code, sig) => process.stderr.write(`  [server] EXITED code=${code} sig=${sig}\n`))
 const turn = async (text, useTools = true) => {
   const s = await (await fetch(`http://127.0.0.1:${pr}/api/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'fakeco', model: 'm1', useTools, cwd: ws }) })).json()
   const t = await (await fetch(`http://127.0.0.1:${pr}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: s.id, content: { text } }) })).text()
@@ -101,6 +113,38 @@ try {
   ok(r.last.role === 'assistant' && r.last.parts.some(p => p.type === 'halt' && /exploded/.test(p.text)),
      `the reason is SAVED in the message, so a reload still shows it (parts: ${JSON.stringify(r.last.parts.map(p => p.type))})`)
   ok(r.events.some(e => e.type === 'closed'), 'the stream still closes cleanly')
+
+  // 7. THE OTHER HALF OF THE SILENT DEATH. A turn killed by the connection going
+  // away threw nothing, and its 'stopped' event is not one of the two the emit
+  // wrapper persists — so it saved an assistant message with ZERO parts and the
+  // chat showed an empty reply. Same symptom as the thrown-error case, different
+  // route; session e0b6fae9 had three of them.
+  script = ['hang']
+  {
+    const s2 = await (await fetch(`http://127.0.0.1:${pr}/api/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'fakeco', model: 'm1', useTools: false, cwd: ws }) })).json()
+    const ac = new AbortController()
+    // Read the stream until tokens are actually flowing, THEN cut the
+    // connection — that is the moment a real window closing interrupts a turn,
+    // and it is deterministic where a fixed delay is a race.
+    const res2 = await fetch(`http://127.0.0.1:${pr}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: s2.id, content: { text: 'start something long' } }), signal: ac.signal })
+    const reader = res2.body.getReader()
+    let flowing = false
+    for (let i = 0; i < 40 && !flowing; i++) {
+      const { value, done } = await reader.read()
+      if (done) break
+      if (/"type":"(text_delta|round_start)"/.test(new TextDecoder().decode(value))) flowing = true
+    }
+    ok(flowing, 'the turn was underway before it was interrupted')
+    ac.abort()               // the window closes / the network goes away
+    await reader.cancel().catch(() => {})
+    await sleep(900)         // let the server's finally write the session
+    const saved = await (await fetch(`http://127.0.0.1:${pr}/api/sessions/${s2.id}`)).json()
+    const last = saved.messages[saved.messages.length - 1]
+    ok(last.role === 'assistant', 'the interrupted turn left an assistant message')
+    ok((last.parts || []).length > 0, `and it is NOT empty (parts: ${JSON.stringify((last.parts || []).map(x => x.type))})`)
+    const h = (last.parts || []).find(x => x.type === 'halt')
+    ok(h && h.reason === 'dropped' && /connection to this turn dropped/.test(h.text), 'it says the connection dropped, and can be continued')
+  }
 } finally {
   srv.kill(); prov.close(); await sleep(200)
   fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(ws, { recursive: true, force: true })
