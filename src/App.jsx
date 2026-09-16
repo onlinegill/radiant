@@ -816,6 +816,9 @@ function DesktopApp () {
         onNewProject={newProject}
         onRenameProject={renameProject}
         onDeleteProject={deleteProject}
+        onSetProjectCwd={async (id, cwd) => {
+          try { await api.patchProject(id, { cwd }); refreshProjects() } catch (e) { setError(e.message) }
+        }}
         onMoveSession={moveSession}
         onNewGroup={() => { setGroupPickerOpen(true); setNavOpen(false) }}
         onCloseNav={() => setNavOpen(false)}
@@ -900,6 +903,11 @@ function DesktopApp () {
         onNewGroup={newGroup}
         onTruncate={truncateSession}
         onFork={forkSession}
+        onFollowUp={async on => {
+          if (!session) return
+          const fresh = await api.patchSession(session.id, { groupFollowUp: on })
+          setSession(prev => (prev && prev.id === fresh.id ? fresh : prev))
+        }}
         skillSuggestion={skillSuggestion}
         onReviewSkill={() => { setSkillSuggestion(null); setSettingsTab('skills'); setSettingsOpen(true) }}
         onOpenLibrary={() => { setAgentView('library'); setSettingsTab('agents'); setSettingsOpen(true) }}
@@ -937,6 +945,9 @@ function DesktopApp () {
         onNewProject={newProject}
         onRenameProject={renameProject}
         onDeleteProject={deleteProject}
+        onSetProjectCwd={async (id, cwd) => {
+          try { await api.patchProject(id, { cwd }); refreshProjects() } catch (e) { setError(e.message) }
+        }}
         onMoveSession={moveSession}
         onRefreshModels={refreshModels}
       />

@@ -3474,3 +3474,21 @@ html[data-window-chrome='native'] .brand { padding-top: 12px; }
 }
 .cat-select.is-guess { color: var(--text-faint); font-style: italic; }
 .skill-menu .model-group-label { width: 100%; }
+
+/* The room's one option, sitting with the roster it applies to. */
+.group-roster-opt {
+  margin-left: auto;
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.group-roster-opt:hover { color: var(--text); }
+.group-roster-opt.on { color: var(--accent); border-color: var(--accent); }
+
+/* What a project actually is, said where one is made. */
+.proj-hint { font-size: 11px; line-height: 1.4; color: var(--text-faint); padding: 4px 10px 2px; }
+.bot-new.is-set { color: var(--accent); }

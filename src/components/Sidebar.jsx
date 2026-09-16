@@ -238,7 +238,7 @@ function SessionRow ({ s, showAgent = true, ctx }) {
 // index in this list, so reordering it moves the pill; it is not decoration.
 const WORK = ['tasks', 'loops', 'graph']
 
-export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, sessions, activeId, working, onOpen, onNew, onNewGroup, onDelete, onArchive, onRename, onPin, agents = [], projects = [], projectsError = null, onNewProject, onRenameProject, onDeleteProject, onMoveSession, onSettings, mode, onToggleMode, updateInfo, onUpdate, onCloseNav, platform }) {
+export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, sessions, activeId, working, onOpen, onNew, onNewGroup, onDelete, onArchive, onRename, onPin, agents = [], projects = [], projectsError = null, onNewProject, onRenameProject, onDeleteProject, onSetProjectCwd, onMoveSession, onSettings, mode, onToggleMode, updateInfo, onUpdate, onCloseNav, platform }) {
   const agentOf = id => agents.find(a => a.id === id)
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem('radiant.sidebarWidth'))
@@ -422,7 +422,14 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
       <button className='new-session' onClick={() => onNew()}>+ New session</button>
       {view === 'chats' && onNewProject && (
         editing?.kind === 'new-project'
-          ? <div className='new-group-btn as-input'><InlineEdit placeholder='Project name…' edit={edit} /></div>
+          ? <div>
+              <div className='new-group-btn as-input'><InlineEdit placeholder='Project name…' edit={edit} /></div>
+              {/* iandouglas, issue #17: "It might be important to signify, in
+                  some way, that making a project folder is simply an in-app
+                  organization, and not actually making a folder on the
+                  filesystem." It is not, and nothing said so. */}
+              <div className='proj-hint'>Groups chats in the sidebar. It does not create a folder on disk — give it one with the folder button and new chats here start there.</div>
+            </div>
           : <button className='new-group-btn' onClick={() => setEditing({ kind: 'new-project', value: '' })}><Icon.folder size={13} /> New project</button>
       )}
       {view === 'bots' && agents.length >= 2 && onNewGroup && (
@@ -478,6 +485,20 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
                     {onRenameProject && (
                       <button className='bot-new' title={`Rename ${project.name}`}
                         onClick={() => setEditing({ kind: 'project', id: project.id, value: project.name })}>✎</button>
+                    )}
+                    {/* ⚠️ A PROJECT COULD ALWAYS CARRY A FOLDER AND NOTHING EVER
+                        ASKED FOR ONE. The server already starts a new chat in
+                        project.cwd — the field existed, unset, so every chat in
+                        a project began in the home folder instead. iandouglas,
+                        issue #17: "allow us to add a disk path, and THEN access
+                        chat/agents". This is that missing half. */}
+                    {onSetProjectCwd && window.radiantNative?.pickFolder && (
+                      <button className={'bot-new' + (project.cwd ? ' is-set' : '')}
+                        title={project.cwd ? `New chats here start in ${project.cwd}` : `Choose the folder new chats in ${project.name} should start in`}
+                        onClick={async () => {
+                          const next = await window.radiantNative.pickFolder(project.cwd || undefined)
+                          if (next) onSetProjectCwd(project.id, next)
+                        }}><Icon.folder size={12} /></button>
                     )}
                     {onDeleteProject && (
                       <button className='bot-new' title={`Delete ${project.name}`}

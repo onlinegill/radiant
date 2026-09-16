@@ -15,7 +15,7 @@ import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, l
 import { runTurn, listModels } from './providers.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from './voice.js'
 import { geminiVoiceKey, checkGeminiVoiceRequest, geminiSetupFrame, mintEphemeralToken, geminiLiveModel, GEMINI_WS_URL, GEMINI_LIVE_MODELS, GEMINI_LIVE_VOICES, GEMINI_RATE_IN_PER_MINUTE, GEMINI_RATE_OUT_PER_MINUTE } from './voice-gemini.js'
-import { addressedParticipants, groupPersona } from './group.js'
+import { addressing, groupPersona } from './group.js'
 import { shouldFallBack, fallbackNotice } from './fallback.js'
 import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAccessToken, startDevice, pollDevice } from './oauth.js'
 import { checkForUpdate } from './updater.js'
@@ -2968,7 +2968,7 @@ app.patch('/api/sessions/:id', (req, res) => {
   // every conversation (the Settings checkbox) or bound to an agent — so a skill
   // you want occasionally had to live in every chat's system prompt. This is the
   // third source: skills the user added to THIS chat, and only this chat.
-  for (const k of ['title', 'model', 'provider', 'cwd', 'useTools', 'computerControl', 'agentId', 'projectId', 'pinned', 'archived', 'planMode', 'skillIds', 'effort']) {
+  for (const k of ['title', 'model', 'provider', 'cwd', 'useTools', 'computerControl', 'agentId', 'projectId', 'pinned', 'archived', 'planMode', 'skillIds', 'effort', 'groupFollowUp']) {
     if (k in req.body) s[k] = req.body[k]
   }
   if ('title' in req.body) s.autoTitle = false // manual rename pins the title
@@ -3405,22 +3405,48 @@ app.post('/api/chat', async (req, res) => {
       // group chat: each participant agent responds in turn, seeing the others' replies
       const names = participants.map(id => agentsStore.get(id)?.name).filter(Boolean)
       const groupNames = Object.fromEntries(participants.map(id => [id, agentsStore.get(id)?.name || 'Agent']))
-      // @Name picks who acts this turn — with tools. See group.js.
-      const addressed = addressedParticipants(text, participants.map(id => ({ id, name: groupNames[id] })))
-      const speakers = addressed.length ? addressed : participants
-      if (addressed.length) emit({ type: 'notice', text: `${addressed.map(id => groupNames[id]).join(' and ')} ${addressed.length === 1 ? 'is' : 'are'} acting on this; the rest of the room is listening.` })
+      // @Name picks who ACTS this turn — with tools; @others sweeps the rest in
+      // to RE-PLAN, without. See group.js for why those must not read alike.
+      const addr = addressing(text, participants.map(id => ({ id, name: groupNames[id] })))
+      const named = addr.named
+      // ⚠️ THE ROOM OPTION, issue #18. iandouglas: "when sending output from one
+      // agent to another, ask that second agent to evaluate if its previous
+      // work/planning needs to change." With it on, naming one agent sweeps the
+      // rest in automatically — the same thing typing @others does by hand, so
+      // there is one behaviour to understand rather than two.
+      const auto = Boolean(session.groupFollowUp) && named.length > 0
+      const swept = addr.swept.length
+        ? addr.swept
+        : (auto ? participants.filter(id => !named.includes(id) && !addr.excluded.includes(id)) : [])
+      const speakers = (named.length || swept.length) ? [...named, ...swept] : participants
+      if (named.length || swept.length) {
+        const nameList = ids => ids.map(id => groupNames[id]).join(' and ')
+        const parts = []
+        if (named.length) parts.push(`${nameList(named)} ${named.length === 1 ? 'is' : 'are'} acting on this`)
+        if (swept.length) parts.push(`${nameList(swept)} ${swept.length === 1 ? 'is' : 'are'} updating ${swept.length === 1 ? 'its' : 'their'} own plan`)
+        if (addr.excluded.length) parts.push(`${nameList(addr.excluded)} sits this one out`)
+        emit({ type: 'notice', text: parts.join('; ') + '.' })
+      }
       for (const pid of speakers) {
         if (controller.signal.aborted) break
         const ag = agentsStore.get(pid)
         if (!ag) continue
         emit({ type: 'agent_turn', agentId: pid, name: ag.name })
-        const isAddressed = addressed.includes(pid)
-        const persona = groupPersona(ag.persona, { names, self: ag.name, addressed: isAddressed, others: names.filter(n => n !== ag.name) })
+        const acting = named.includes(pid)
+        const replanning = swept.includes(pid)
+        const persona = groupPersona(ag.persona, {
+          names, self: ag.name, addressed: acting || replanning,
+          others: names.filter(n => n !== ag.name),
+          role: acting ? 'act' : 'replan'
+        })
         await runTurn({
           ...common, agentId: pid, groupSpeakerId: pid, groupNames, persona,
-          skills: isAddressed ? mergedSkills : [],
-          useTools: isAddressed && session.useTools !== false,
-          computerControl: isAddressed && Boolean(session.computerControl)
+          // Only the agent doing the work gets tools. A re-planning agent is
+          // revising its own notes; four agents with tools on one folder is
+          // the thing addressing exists to prevent.
+          skills: acting ? mergedSkills : [],
+          useTools: acting && session.useTools !== false,
+          computerControl: acting && Boolean(session.computerControl)
         })
       }
     } else {

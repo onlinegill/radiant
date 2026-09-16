@@ -945,7 +945,7 @@ function VoiceCaptions ({ rows = [] }) {
   )
 }
 
-export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking, voice = null, onToggleVoice }) {
+export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, onFollowUp, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking, voice = null, onToggleVoice }) {
   // ⚠️ TOOLS RUN ON THE SERVER'S MAC. Computer control is the one where that is
   // dangerous rather than merely surprising: the mouse that moves, the keys that
   // get typed and the screen that is captured all belong to the machine running
@@ -1321,6 +1321,22 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
               </span>
             )
           })}
+          {/* ⚠️ THE ROOM OPTION, issue #18. iandouglas asked for exactly this:
+              "when sending output from one agent to another, ask that second
+              agent to evaluate if its previous work/planning needs to change."
+              On, naming one agent sweeps the rest in to re-plan — the same
+              thing typing @others does by hand, so there is one behaviour to
+              learn rather than two. Off by default: it is a turn per agent. */}
+          <button
+            type='button'
+            className={'group-roster-opt' + (session.groupFollowUp ? ' on' : '')}
+            onClick={() => onFollowUp?.(!session.groupFollowUp)}
+            aria-pressed={Boolean(session.groupFollowUp)}
+            data-tip={'When you address one agent by name, the others update\ntheir own plans in light of it instead of staying silent.\nSame as typing @others yourself.'}
+            data-tip-below
+          >
+            {session.groupFollowUp ? '✓ ' : ''}others re-plan
+          </button>
         </div>
       )}
 
