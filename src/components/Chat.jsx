@@ -812,7 +812,7 @@ function StatsChip ({ stats }) {
        working, and the only thing that says whether it is expensive is the share
        the provider served from its prompt cache at a fraction of the price.
        Without it the chip is just a frightening number. */
-    <span className='stats-chip' title={`This session\n${stats.turns} turn(s)\n${stats.inTokens.toLocaleString()} in${stats.cachedIn ? ` (${Math.round(stats.cachedIn / stats.inTokens * 100)}% served from the provider's cache)` : ''} / ${stats.outTokens.toLocaleString()} out tokens\nAn agentic turn re-sends the conversation each round, so "in" counts every round.\nLLM: ${(stats.llmMs / 1000).toFixed(1)}s · tools: ${(stats.toolMs / 1000).toFixed(1)}s`}>
+    <span className='stats-chip' title={`This session\n${stats.turns} turn(s)\n${stats.inTokens.toLocaleString()} in${stats.cachedIn ? ` (${Math.round(stats.cachedIn / stats.inTokens * 100)}% served from the provider's cache)` : ''} / ${stats.outTokens.toLocaleString()} out tokens\nAn agentic turn re-sends the conversation each round, so "in" counts every round.\nLLM: ${(stats.llmMs / 1000).toFixed(1)}s · tools: ${(stats.toolMs / 1000).toFixed(1)}s${stats.bgIn ? `\nBackground housekeeping (titles, memory, skill ideas): ${stats.bgCalls || 0} call(s), ${(stats.bgIn + (stats.bgOut || 0)).toLocaleString()} tokens on a cheap model` : ''}`}>
       {stats.turns}⟳ · {fmtTok(stats.inTokens + stats.outTokens)} tok{stats.cachedIn ? ` · ${Math.round(stats.cachedIn / stats.inTokens * 100)}% cached` : ''} · {secs}s
     </span>
   )

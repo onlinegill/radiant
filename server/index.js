@@ -2973,6 +2973,76 @@ function recordTurnFailure (session, emit, message) {
   emit({ type: 'error', message })
 }
 
+// ⚠️ BACKGROUND WORK MUST NOT COST FLAGSHIP PRICES, AND MUST NOT BE INVISIBLE.
+// Every turn quietly fires three or four MORE model calls — name the chat,
+// extract durable facts, draft a skill proposal, summarize for compaction —
+// and each one ran on the CHAT'S model with an emit that collected only
+// text_delta. So grok-4.6 was being paid top rates to write a one-line note to
+// itself, and none of it reached the session's token count: spend that was
+// both needlessly expensive AND unmeasurable. Tony: "that will kill this
+// product if its burning tokens for no reason."
+//
+// These are small summarisation jobs. A cheap model does them just as well, so
+// one is chosen from the models the chat's OWN provider already offers — the
+// key is known to work and no second account is needed. The pick is
+// data-driven rather than a hardcoded id, because a wrong id would silently
+// stop titles and memory from working at all.
+const UTILITY_HINTS = [/haiku/i, /flash[-_ ]?lite/i, /\bnano\b/i, /\bmini\b/i, /flash/i, /\blite\b/i, /\bsmall\b/i, /\b[0-4](?:\.\d)?b\b/i]
+const utilityCache = new Map()   // providerId -> { at, model }
+
+async function pickUtilityModel (provider, sessionModel) {
+  // An explicit choice always wins; Settings → Models shows what is in use.
+  const set = config.settings.utilityModel
+  if (set && set.model) return { provider: config.providers.find(p => p.id === set.provider) || provider, model: set.model }
+  const hit = utilityCache.get(provider.id)
+  if (hit && Date.now() - hit.at < 600_000) return { provider, model: hit.model || sessionModel }
+  let chosen = null
+  try {
+    const hasOAuth = Boolean(config.oauth[provider.id])
+    const accessToken = hasOAuth ? await validAccessToken(provider.id, config, saveConfig).catch(() => null) : null
+    const models = await listModels(provider, config.keys[provider.id], accessToken, hasOAuth ? config.oauth[provider.id]?.accountId : null)
+    const ids = (models || []).map(m => m.id)
+    for (const rx of UTILITY_HINTS) { const m = ids.find(id => rx.test(id)); if (m) { chosen = m; break } }
+  } catch {}
+  utilityCache.set(provider.id, { at: Date.now(), model: chosen })
+  return { provider, model: chosen || sessionModel }
+}
+
+/**
+ * One small model call for Radiant's own housekeeping. Returns the text, never
+ * throws, and ADDS ITS TOKENS to the session so the counter tells the truth
+ * about what the chat cost — under their own heading, because they are not
+ * what the user asked for.
+ */
+async function utilityTurn ({ provider, apiKey, session, tmp, signal }) {
+  const { provider: up, model } = await pickUtilityModel(provider, session.model)
+  const hasOAuth = Boolean(config.oauth[up.id])
+  let out = ''
+  const count = ev => {
+    if (ev.type === 'usage') {
+      const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
+      st.bgIn = (st.bgIn || 0) + (ev.input || 0)
+      st.bgOut = (st.bgOut || 0) + (ev.output || 0)
+      st.bgCalls = (st.bgCalls || 0) + (ev.input ? 1 : 0)
+    }
+    if (ev.type === 'text_delta') out += ev.text
+  }
+  const run = async m => runTurn({
+    provider: up, model: m, apiKey: config.keys[up.id] || apiKey,
+    getAccessToken: hasOAuth ? () => validAccessToken(up.id, config, saveConfig) : null,
+    getAccountId: hasOAuth ? () => config.oauth[up.id]?.accountId || null : null,
+    session: tmp, useTools: false, computerControl: false, persona: '', skills: [],
+    emit: count, requestApproval: null, signal
+  })
+  try { await run(model) } catch {
+    // ⚠️ A CHEAP MODEL THAT IS NOT ON THIS ACCOUNT MUST NOT KILL THE FEATURE.
+    // Falling back once keeps titles and memory working rather than quietly
+    // disappearing, which is how a cost optimisation becomes a bug report.
+    if (model !== session.model) { out = ''; try { await run(session.model) } catch {} }
+  }
+  return out
+}
+
 // ⚠️ AND AN ABORTED TURN IS THE SAME CLASS OF SILENCE. recordTurnFailure above
 // only runs when the turn THREW; every `emit` of a 'stopped' event is dropped
 // on the floor because the emit wrapper in providers.js persists only notices
@@ -3202,18 +3272,8 @@ app.post('/api/chat', async (req, res) => {
   // one-shot summarizer used by auto-compaction (runs on the session's model, no tools)
   const summarize = async text => {
     const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `Summarize this conversation so it can continue without losing context. Preserve: decisions made, files created or edited, the current task and its state, and any open questions or next steps. Be concise but complete; use short bullet points.\n\n${text}` }] }
-    let out = ''
-    try {
-      await runTurn({
-        provider, model: session.model, apiKey,
-        getAccessToken: hasOAuth ? () => validAccessToken(provider.id, config, saveConfig) : null,
-        getAccountId: hasOAuth ? () => config.oauth[provider.id]?.accountId || null : null,
-        session: tmp, useTools: false, computerControl: false, persona: '', skills: [],
-        emit: ev => { if (ev.type === 'text_delta') out += ev.text },
-        requestApproval: null, signal: controller.signal
-      })
-    } catch {}
-    return out
+    // housekeeping runs on a cheap model and IS counted — see utilityTurn
+    return await utilityTurn({ provider, apiKey, session, tmp, signal: controller.signal })
   }
 
   const memoryOn = config.settings.memory !== false
@@ -3329,16 +3389,8 @@ app.post('/api/chat', async (req, res) => {
       if (cloud) {
         try {
           const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `Reply with ONLY a 3-6 word title (no quotes, no punctuation) summarizing this coding request:\n\n${firstUser.text.slice(0, 600)}` }] }
-          let out = ''
-          await runTurn({
-            provider, model: session.model, apiKey,
-            getAccessToken: hasOAuth ? () => validAccessToken(provider.id, config, saveConfig) : null,
-            getAccountId: hasOAuth ? () => config.oauth[provider.id]?.accountId || null : null,
-            session: tmp, useTools: false, computerControl: false, persona: '', skills: [],
-            emit: ev => { if (ev.type === 'text_delta') out += ev.text },
-            requestApproval: null, signal: controller.signal
-          })
-          out = clean(out.split('\n').find(l => l.trim()) || '')
+          const raw = await utilityTurn({ provider, apiKey, session, tmp, signal: controller.signal })
+          const out = clean(raw.split('\n').find(l => l.trim()) || '')
           // use it unless the model just echoed the request
           if (out && !firstUser.text.toLowerCase().startsWith(out.toLowerCase().slice(0, 20))) t = out
         } catch {}
@@ -3365,15 +3417,7 @@ app.post('/api/chat', async (req, res) => {
         const lastAsst = [...session.messages].reverse().find(m => m.role === 'assistant')
         const exchange = `User: ${(lastUser?.text || '').slice(0, 1500)}\n\nAssistant: ${(lastAsst?.parts || []).filter(p => p.type === 'text').map(p => p.text).join(' ').slice(0, 1500)}`
         const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `From this exchange, extract any NEW durable facts worth remembering long-term about the USER or their PROJECT — preferences, decisions, names, conventions, tools/environment, or goals. Only lasting facts, not task-specific chatter or one-off requests. Write each as a short standalone sentence, one per line. If there is nothing durable, reply exactly "none".\n\n${exchange}` }] }
-        let out = ''
-        await runTurn({
-          provider, model: session.model, apiKey,
-          getAccessToken: hasOAuth ? () => validAccessToken(provider.id, config, saveConfig) : null,
-          getAccountId: hasOAuth ? () => config.oauth[provider.id]?.accountId || null : null,
-          session: tmp, useTools: false, computerControl: false, persona: '', skills: [],
-          emit: ev => { if (ev.type === 'text_delta') out += ev.text },
-          requestApproval: null, signal: controller.signal
-        })
+        const out = await utilityTurn({ provider, apiKey, session, tmp, signal: controller.signal })
         if (out && !/^\s*none\b/i.test(out.trim())) {
           // Replacing a fact is not adding one. addFacts used to return the two
           // summed, so restating a preference reported facts remembered when the
@@ -3398,15 +3442,7 @@ app.post('/api/chat', async (req, res) => {
           const toolNames = [...new Set((lastAsst?.parts || []).filter(p => p.type === 'tool' && p.name).map(p => p.name))].join(', ')
           const exchange = `User: ${(lastUser?.text || '').slice(0, 1800)}\n\nAssistant (tools used: ${toolNames || 'none'}): ${asstText.slice(0, 1800)}`
           const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: reflectionPrompt(exchange, skillsStore.list()) }] }
-          let out = ''
-          await runTurn({
-            provider, model: session.model, apiKey,
-            getAccessToken: hasOAuth ? () => validAccessToken(provider.id, config, saveConfig) : null,
-            getAccountId: hasOAuth ? () => config.oauth[provider.id]?.accountId || null : null,
-            session: tmp, useTools: false, computerControl: false, persona: '', skills: [],
-            emit: ev => { if (ev.type === 'text_delta') out += ev.text },
-            requestApproval: null, signal: controller.signal
-          })
+          const out = await utilityTurn({ provider, apiKey, session, tmp, signal: controller.signal })
           const proposal = parseProposal(out)
           if (proposal) {
             const sug = addSuggestion(config, proposal, session.id)

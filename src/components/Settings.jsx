@@ -599,6 +599,43 @@ function FallbackModelBlock ({ config, onSettings }) {
 const LOCAL_CTX_CHOICES = [8192, 16384, 32768, 65536, 131072, 0]
 const ctxLabel = n => (n === 0 ? 'Whatever Ollama loaded' : `${Math.round(n / 1024)}K tokens`)
 
+/**
+ * The model Radiant uses for its OWN housekeeping — naming a chat, extracting
+ * durable facts, drafting a skill idea, summarizing for compaction.
+ *
+ * ⚠️ THESE RAN ON THE CHAT'S MODEL AND WERE NOT COUNTED. Three or four extra
+ * calls per turn, at flagship prices, for one-line summarisation — and invisible
+ * in the token counter, so it was spend nobody could see. Radiant now picks a
+ * cheap model from the same provider the chat uses (so the key already works)
+ * and counts what it spends. This overrides that pick.
+ */
+function UtilityModelBlock ({ config, onSettings }) {
+  const [models, setModels] = useState([])
+  useEffect(() => { api.getModels().then(r => setModels(r.models || r || [])).catch(() => {}) }, [])
+  const um = config?.settings?.utilityModel || null
+  return (
+    <div className='set-block' style={{ marginBottom: 16 }}>
+      <div className='set-block-title'>Background work</div>
+      <p className='hint' style={{ marginTop: 2 }}>
+        Naming a chat, remembering a fact, suggesting a skill and summarizing a long conversation are
+        small jobs Radiant does for itself, a few times per turn. They run on a cheap model from the
+        same provider your chat uses, and what they spend is shown in the token counter beside the
+        composer. Pick one here to override that choice.
+      </p>
+      <div className='model-pick-field' style={{ marginTop: 8 }}>
+        <ModelPicker
+          session={{ model: um?.model || '', provider: um?.provider }}
+          models={models}
+          placeholder='Automatic — the cheapest model this provider offers'
+          clearLabel='Automatic — the cheapest model this provider offers'
+          onPick={m => onSettings({ utilityModel: m ? { provider: m.provider, model: m.id } : null })}
+          onRefresh={() => {}}
+        />
+      </div>
+    </div>
+  )
+}
+
 function LocalContextBlock ({ config, onSettings }) {
   const [loaded, setLoaded] = useState({ running: false, models: [] })
   useEffect(() => { api.getLoadedLocalModels().then(setLoaded).catch(() => {}) }, [])
@@ -742,6 +779,7 @@ function ModelsPane ({ onModelsChanged, config, onSettings }) {
       <DefaultModelBlock config={config} onSettings={onSettings} />
       <FallbackModelBlock config={config} onSettings={onSettings} />
       <LocalContextBlock config={config} onSettings={onSettings} />
+      <UtilityModelBlock config={config} onSettings={onSettings} />
       <h3>Local models</h3>
       {onAnotherMac && (
         <div className='set-hint' style={{ marginBottom: 10 }}>
@@ -3241,6 +3279,7 @@ const GUIDE = [
   {
     title: 'Models & providers',
     items: [
+      ['Radiant\u2019s own housekeeping runs on a cheap model, and is counted', 'After every reply Radiant quietly makes a few more model calls for itself \u2014 naming the chat, noting anything worth remembering, drafting a skill idea, and summarizing when a conversation gets long. Those ran on whatever model the chat was using, so an expensive model was being paid top rates to write a one-line note, and none of it appeared in the token counter. They now run on the cheapest model the same provider offers, and what they spend is shown in the counter\u2019s tooltip under its own heading. Settings \u2192 Models \u2192 Background work lets you choose the model yourself.'],
       ['The token counter now says how much was cached', 'A chat\u2019s token count could look alarming for a reason that was never explained: an agent re-sends the whole conversation to the model on every round of its work, so a chat holding 150,000 tokens can legitimately report millions of input tokens across a day \u2014 that is the loop working, not a leak. What decides whether it costs anything is how much the provider served from its own prompt cache, at a fraction of the price. Radiant was reading that number and discarding it. The counter beside the composer now shows the cached share, and its tooltip spells out why the input number counts every round, so an expensive chat can be told apart from a busy one.'],
       ['Local models no longer let a chat grow to a quarter of a million tokens', 'Ollama decides how big a local model\u2019s context is from the memory it finds \u2014 on a Mac with 48 GB or more it loads 256K and reserves all of it, which is how one model can take tens of gigabytes. Radiant used to treat that whole number as the point to start trimming, so a local chat could grow toward 262,000 tokens and be re-sent in full every round, which is painfully slow long before it breaks. Radiant now fills 32K of a local model\u2019s context before it starts trimming older tool results, and Settings \u2192 Models \u2192 Local model context lets you raise that (or turn it off and use whatever Ollama loaded). That setting is about what Radiant SENDS; the memory the model reserves is Ollama\u2019s own Settings \u2192 Context length, and the same page now shows what Ollama currently has loaded and how big its context is, so you can see which one needs changing.'],
       ['Find more models on Hugging Face, from your iPhone', 'The Models page on the phone ends with a search box. Type a name \u2014 \u201cllama 3.2\u201d, \u201cqwen 4bit\u201d, \u201cgemma\u201d \u2014 and Radiant searches Hugging Face for models in the MLX format it runs. Before you download anything, each result is checked the way the built-in list is: whether the engine has a loader for that kind of model, whether its weights really are what its description says (a mismatch there fails after a 3 GB download, so it is caught first), and whether it fits the memory of this particular phone. You get the same green, amber or red label as the catalogue \u2014 Runs well, Runs tight, Won\u2019t fit \u2014 or a plain reason it cannot run. Download installs it beside the built-in models, with the same progress, stop, chat and remove. The search is not filtered \u2014 anything published in a format the phone can run will show up, uncensored and abliterated builds included; they are other people\u2019s models, and one with its safety training removed will say anything. The keyboard no longer covers the search box: any field near the foot of a screen now scrolls up clear of it.'],

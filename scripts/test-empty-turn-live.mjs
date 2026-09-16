@@ -25,7 +25,7 @@ ok(parseInlineToolCalls('no calls here').length === 0, 'plain text has none')
 let script = [], seen = []
 const prov = http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
-    if (req.url.endsWith('/models')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ data: [{ id: 'm1' }] })) }
+    if (req.url.endsWith('/models')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ data: [{ id: 'm1' }, { id: 'm1-mini' }] })) }
     const b = JSON.parse(body); seen.push(b)
     const kind = script.shift() || 'text'
     // A model that errors outright — the local case Tony keeps hitting: Ollama
@@ -130,7 +130,23 @@ try {
     ok(st && st.stats.inTokens >= st.stats.cachedIn, 'cached can never exceed total input')
   }
 
-  // 8. THE OTHER HALF OF THE SILENT DEATH. A turn killed by the connection going
+  // 8. HOUSEKEEPING RUNS CHEAP, AND IS COUNTED. Naming the chat, extracting
+  // facts and drafting a skill idea are three or four extra model calls per
+  // turn. They ran on the CHAT'S model at flagship prices and their usage was
+  // dropped, so it was spend nobody could see. Tony: "yes do it."
+  {
+    script = ['text']; seen = []
+    const s3 = await (await fetch(`http://127.0.0.1:${pr}/api/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'fakeco', model: 'm1', useTools: false, cwd: ws }) })).json()
+    await (await fetch(`http://127.0.0.1:${pr}/api/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: s3.id, content: { text: 'make me a thing' } }) })).text()
+    await sleep(1200)   // housekeeping runs after the reply
+    const used = seen.map(b => b.model)
+    ok(used.includes('m1'), `the chat itself used the chosen model (models used: ${JSON.stringify(used)})`)
+    ok(used.includes('m1-mini'), 'and the housekeeping used the cheap one from the same provider')
+    const saved = await (await fetch(`http://127.0.0.1:${pr}/api/sessions/${s3.id}`)).json()
+    ok((saved.stats.bgIn || 0) > 0, `background tokens are counted, not invisible (bgIn: ${saved.stats?.bgIn}, calls: ${saved.stats?.bgCalls})`)
+  }
+
+  // 9. THE OTHER HALF OF THE SILENT DEATH. A turn killed by the connection going
   // away threw nothing, and its 'stopped' event is not one of the two the emit
   // wrapper persists — so it saved an assistant message with ZERO parts and the
   // chat showed an empty reply. Same symptom as the thrown-error case, different
