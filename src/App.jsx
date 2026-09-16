@@ -3,6 +3,11 @@ import { api, streamChat } from './api.js'
 import { applyTheme } from './theme.js'
 import { notifyAway, turnBody } from './notify.js'
 import { VoiceSession } from './voice.js'
+// ⚠️ TWO VOICES, ONE INTERFACE. GeminiVoiceSession takes the same options and
+// exposes the same methods as VoiceSession, so everything below this line is
+// provider-agnostic — which is why adding Gemini was a setting rather than a
+// rewrite of the call handling.
+import { GeminiVoiceSession } from './voice-gemini.js'
 import { spokenFrom, progressLine } from '../server/voice-text.js'
 import Sidebar from './components/Sidebar.jsx'
 import WhatsNew from './components/WhatsNew.jsx'
@@ -719,7 +724,8 @@ function DesktopApp () {
     if (voiceRef.current) { voiceRef.current.stop(); return }
     if (!session) return
     const sessionId = session.id
-    const v = new VoiceSession({
+    const Session = config?.settings?.voice?.provider === 'gemini' ? GeminiVoiceSession : VoiceSession
+    const v = new Session({
       sessionId,
       onState: (state, extra) => {
         setVoice(prev => ({ ...prev, state, sessionId, seconds: extra?.seconds ?? prev.seconds }))

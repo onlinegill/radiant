@@ -953,7 +953,8 @@ export function publicConfig (cfg) {
     settings: { ...cfg.settings, ...loadMachineSettings() },
     // Voice has its own key slot (Settings → Voice), so it never depends on
     // which OpenAI account the chats use. Only whether one is saved, never the key.
-    voiceKeySaved: Boolean(cfg.keys?.['openai-voice'])
+    voiceKeySaved: Boolean(cfg.keys?.['openai-voice']),
+    geminiVoiceKeySaved: Boolean(cfg.keys?.['gemini-voice'])
   }
 }
 

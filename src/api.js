@@ -267,7 +267,7 @@ async function json (method, path, body) {
 
 export const api = {
   browserExtension: () => json('GET', '/api/browser/extension'),
-  setVoiceKey: key => json('PUT', '/api/voice/key', { key }),
+  setVoiceKey: (key, provider) => json('PUT', '/api/voice/key', { key, ...(provider ? { provider } : {}) }),
   saveVoiceTranscript: (sessionId, body) => json('POST', `/api/sessions/${sessionId}/voice`, body),
   getConfig: () => json('GET', '/api/config'),
   // ⚠️ ANNOUNCE HERE, NOT AT THE CALL SITES. Settings runs in its own Electron

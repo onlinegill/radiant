@@ -228,6 +228,11 @@ function ProvidersPane ({ config, onConfigChange }) {
  * are on. Off by default: it costs money per minute and sends the microphone
  * to OpenAI, and neither should happen because a button was in reach.
  */
+const GEMINI_MODELS = [
+  ['gemini-3.8-live', 'Gemini 3.8 Live — fastest'],
+  ['gemini-3.8-live-extended-thinking', 'Gemini 3.8 Live, extended thinking — slower, reasons more']
+]
+const GEMINI_VOICES = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede', 'Leda', 'Orus', 'Zephyr']
 const LIVE_VOICES = [
   ['marin', 'Marin — default'], ['gleam', 'Gleam — North American, feminine'], ['meridian', 'Meridian — North American, masculine'],
   ['quartz', 'Quartz — Australian, feminine'], ['ripple', 'Ripple — Australian, masculine'], ['vesper', 'Vesper — British, masculine'],
@@ -253,6 +258,24 @@ function VoicePane ({ config, onSettings, onConfigChange }) {
   const removeKey = async () => {
     setBusy(true)
     try { onConfigChange(await api.setVoiceKey('')) } catch (e) { window.alert(e.message) }
+    setBusy(false)
+  }
+  // ⚠️ TWO PROVIDERS, TWO KEYS, AND THEY ARE NOT INTERCHANGEABLE. Gemini Live
+  // needs a Google AI Studio key of its own; an OpenAI key does nothing for it.
+  // Saying so here is the difference between "voice does not work" and a
+  // person knowing exactly what to paste.
+  const which = v.provider === 'gemini' ? 'gemini' : 'openai'
+  const gemSaved = Boolean(config?.geminiVoiceKeySaved)
+  const [gemDraft, setGemDraft] = useState('')
+  const saveGem = async () => {
+    if (!gemDraft.trim()) return
+    setBusy(true)
+    try { onConfigChange(await api.setVoiceKey(gemDraft.trim(), 'gemini')); setGemDraft('') } catch (e) { window.alert(e.message) }
+    setBusy(false)
+  }
+  const removeGem = async () => {
+    setBusy(true)
+    try { onConfigChange(await api.setVoiceKey('', 'gemini')) } catch (e) { window.alert(e.message) }
     setBusy(false)
   }
   return (
@@ -282,6 +305,46 @@ function VoicePane ({ config, onSettings, onConfigChange }) {
       </div>
 
       <div className='set-block'>
+        <div className='set-block-title'>Which voice</div>
+        <p className='hint' style={{ marginTop: 2 }}>
+          Both do the same job: they listen and speak, and hand every real request back to Radiant so your own
+          model, tools and approvals do the work. They bill by the minute and need different keys.
+        </p>
+        <div className='row' style={{ marginTop: 6, alignItems: 'center', gap: 8 }}>
+          <select className='text-input' style={{ width: 'auto' }} value={which} onChange={e => onSettings({ voice: { ...v, provider: e.target.value } })}>
+            <option value='openai'>OpenAI GPT-Live — about 5¢ a minute</option>
+            <option value='gemini'>Google Gemini 3.8 Live — about 0.5¢ a minute in, 1.8¢ out</option>
+          </select>
+        </div>
+        {which === 'gemini' && (
+          <div style={{ marginTop: 10 }}>
+            <div className='row' style={{ alignItems: 'center', gap: 8 }}>
+              <select className='text-input' style={{ width: 'auto' }} value={GEMINI_MODELS.some(([id]) => id === v.geminiModel) ? v.geminiModel : 'gemini-3.8-live'} onChange={e => onSettings({ voice: { ...v, geminiModel: e.target.value } })}>
+                {GEMINI_MODELS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+              <select className='text-input' style={{ width: 'auto' }} value={GEMINI_VOICES.includes(v.geminiVoice) ? v.geminiVoice : 'Kore'} onChange={e => onSettings({ voice: { ...v, geminiVoice: e.target.value } })}>
+                {GEMINI_VOICES.map(id => <option key={id} value={id}>{id}</option>)}
+              </select>
+            </div>
+            <p className='hint' style={{ marginTop: 8 }}>
+              Gemini needs a Google AI Studio API key of its own — an OpenAI key does not work for it. Get one at{' '}
+              <span className='mono'>aistudio.google.com</span>. It stays on this Mac; the app hands the browser only a
+              short-lived token that lasts one call.
+            </p>
+            {gemSaved
+              ? <div className='row' style={{ marginTop: 6, alignItems: 'center', gap: 8 }}>
+                  <span className='key-ok'>✓ Gemini key saved</span>
+                  <button className='small-btn' onClick={removeGem} disabled={busy}>Remove key</button>
+                </div>
+              : <div className='row' style={{ marginTop: 6, gap: 8 }}>
+                  <input className='text-input' type='password' placeholder='Paste Google AI Studio key' value={gemDraft} onChange={e => setGemDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveGem()} style={{ flex: 1, minWidth: 220 }} />
+                  <button className='small-btn primary' onClick={saveGem} disabled={busy || !gemDraft.trim()}>Save</button>
+                </div>}
+          </div>
+        )}
+      </div>
+
+      <div className='set-block' style={{ display: which === 'openai' ? undefined : 'none' }}>
         <div className='set-block-title'>OpenAI API key for voice</div>
         <p className='hint' style={{ marginTop: 2 }}>
           GPT-Live is API-only — a ChatGPT sign-in does not cover it. Paste a key from{' '}
@@ -300,7 +363,10 @@ function VoicePane ({ config, onSettings, onConfigChange }) {
             </div>}
       </div>
 
-      <div className='set-block'>
+      {/* GPT-Live's own voice list. Hidden under Gemini, which picks its voice
+          in the block above — leaving both on screen offers a choice that does
+          nothing, which reads as a bug. */}
+      <div className='set-block' style={{ display: which === 'openai' ? undefined : 'none' }}>
         <div className='set-block-title'>Voice</div>
         <div className='row' style={{ marginTop: 4, alignItems: 'center', gap: 8 }}>
           <select className='text-input' style={{ width: 'auto' }} value={LIVE_VOICES.some(([id]) => id === v.voice) ? v.voice : 'marin'} onChange={e => onSettings({ voice: { ...v, voice: e.target.value } })}>
@@ -312,8 +378,9 @@ function VoicePane ({ config, onSettings, onConfigChange }) {
       <div className='set-block'>
         <div className='set-block-title'>What leaves this Mac</div>
         <p className='hint' style={{ marginTop: 2 }}>
-          While a call is open, your microphone and the spoken replies go to OpenAI, at their rate — about 5¢ a minute
-          at launch. The strip above the composer shows the running minutes and an End button; switching chats ends
+          While a call is open, your microphone and the spoken replies go to {which === 'gemini' ? 'Google' : 'OpenAI'},
+          at their rate — {which === 'gemini' ? 'about 0.5¢ a minute for what you say and 1.8¢ for what it says back' : 'about 5¢ a minute'}.
+          The strip above the composer shows the running minutes and an End button; switching chats ends
           the call. The chat's own model, tools and files are untouched — the voice only carries the conversation.
           An approval or a question still waits for you in the app, and the voice says so.
         </p>
@@ -3279,6 +3346,7 @@ const GUIDE = [
   {
     title: 'Models & providers',
     items: [
+      ['Voice can now use Google\u2019s Gemini Live as well as OpenAI', 'Settings \u2192 Voice has a choice of who does the talking. OpenAI\u2019s GPT-Live is about 5\u00a2 a minute; Google\u2019s Gemini 3.8 Live is about half a cent a minute for what you say and 1.8\u00a2 for what it says back, and can keep talking while Radiant works rather than going quiet. Both behave identically in every way that matters: they listen and speak, and hand every real request back to Radiant so your own model, tools and approvals do the work \u2014 the conversation is the only thing that leaves your Mac. Gemini needs its own key from Google AI Studio; an OpenAI key does not work for it, and the key stays on your Mac \u2014 the app hands the browser only a short-lived token that lasts one call. You can also pick the voice and choose between the fast model and the one that reasons more.'],
       ['Radiant\u2019s own housekeeping runs on a cheap model, and is counted', 'After every reply Radiant quietly makes a few more model calls for itself \u2014 naming the chat, noting anything worth remembering, drafting a skill idea, and summarizing when a conversation gets long. Those ran on whatever model the chat was using, so an expensive model was being paid top rates to write a one-line note, and none of it appeared in the token counter. They now run on the cheapest model the same provider offers, and what they spend is shown in the counter\u2019s tooltip under its own heading. Settings \u2192 Models \u2192 Background work lets you choose the model yourself.'],
       ['The token counter now says how much was cached', 'A chat\u2019s token count could look alarming for a reason that was never explained: an agent re-sends the whole conversation to the model on every round of its work, so a chat holding 150,000 tokens can legitimately report millions of input tokens across a day \u2014 that is the loop working, not a leak. What decides whether it costs anything is how much the provider served from its own prompt cache, at a fraction of the price. Radiant was reading that number and discarding it. The counter beside the composer now shows the cached share, and its tooltip spells out why the input number counts every round, so an expensive chat can be told apart from a busy one.'],
       ['Local models no longer let a chat grow to a quarter of a million tokens', 'Ollama decides how big a local model\u2019s context is from the memory it finds \u2014 on a Mac with 48 GB or more it loads 256K and reserves all of it, which is how one model can take tens of gigabytes. Radiant used to treat that whole number as the point to start trimming, so a local chat could grow toward 262,000 tokens and be re-sent in full every round, which is painfully slow long before it breaks. Radiant now fills 32K of a local model\u2019s context before it starts trimming older tool results, and Settings \u2192 Models \u2192 Local model context lets you raise that (or turn it off and use whatever Ollama loaded). That setting is about what Radiant SENDS; the memory the model reserves is Ollama\u2019s own Settings \u2192 Context length, and the same page now shows what Ollama currently has loaded and how big its context is, so you can see which one needs changing.'],

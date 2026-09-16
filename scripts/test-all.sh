@@ -37,6 +37,7 @@ run "extension status" node scripts/test-extension-status.mjs
 run "turn context"   node scripts/test-turn-context.mjs
 run "api & css"      node scripts/test-api.mjs
 run "voice"          node scripts/test-voice.mjs
+run "gemini voice"   node scripts/test-voice-gemini.mjs
 run "packaged imports" node scripts/test-packaged-imports.mjs
 run "two macs"       node scripts/test-two-macs.mjs
 run "install location" node scripts/test-install-location.mjs

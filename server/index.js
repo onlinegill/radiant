@@ -14,6 +14,7 @@ import { execSync, spawn } from 'child_process'
 import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, loadConfig, saveConfig as writeConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession } from './config.js'
 import { runTurn, listModels } from './providers.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from './voice.js'
+import { geminiVoiceKey, checkGeminiVoiceRequest, geminiSetupFrame, mintEphemeralToken, geminiLiveModel, GEMINI_WS_URL, GEMINI_LIVE_MODELS, GEMINI_LIVE_VOICES, GEMINI_RATE_IN_PER_MINUTE, GEMINI_RATE_OUT_PER_MINUTE } from './voice-gemini.js'
 import { addressedParticipants, groupPersona } from './group.js'
 import { shouldFallBack, fallbackNotice } from './fallback.js'
 import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAccessToken, startDevice, pollDevice } from './oauth.js'
@@ -1681,11 +1682,35 @@ app.post('/api/sessions/:id/voice', (req, res) => {
 // The key voice uses, in its own slot. Saved through the same config writer as
 // every other key; never read back, only whether it is there.
 app.put('/api/voice/key', (req, res) => {
+  // Two voices, two keys. `slot` names which one; the default stays
+  // openai-voice so an older client that does not send it is unchanged.
+  const slot = req.body?.provider === 'gemini' ? 'gemini-voice' : 'openai-voice'
   const key = String(req.body?.key || '').trim()
-  if (key) config.keys['openai-voice'] = key
-  else delete config.keys['openai-voice']
+  if (key) config.keys[slot] = key
+  else delete config.keys[slot]
   saveConfig(config)
   res.json(publicConfig(config))
+})
+
+// The Gemini half of voice: mint a short-lived token and hand the renderer the
+// socket URL and the setup frame. The API key never leaves this process.
+app.post('/api/voice/gemini/session', async (req, res) => {
+  config = loadConfig()
+  const apiKey = geminiVoiceKey(config)
+  const bad = checkGeminiVoiceRequest({ settings: config.settings, apiKey })
+  if (bad) return res.status(bad.status).json({ error: bad.error })
+  const session = req.body?.sessionId ? loadSession(req.body.sessionId) : null
+  try {
+    const model = geminiLiveModel(config.settings)
+    const token = await mintEphemeralToken({ apiKey, model })
+    res.status(201).json({
+      token,
+      wsUrl: GEMINI_WS_URL,
+      setup: geminiSetupFrame({ session, settings: config.settings, host: LOCK_HOST })
+    })
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
 })
 
 // A spoken conversation over a chat: GPT-Live in front, this server's turn
