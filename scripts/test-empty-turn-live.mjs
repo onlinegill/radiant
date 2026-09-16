@@ -45,7 +45,7 @@ const prov = http.createServer((req, res) => {
     if (kind === 'length') { chunk({ choices: [{ delta: { content: 'This reply is cut off mid' } }] }); chunk({ choices: [{ delta: {}, finish_reason: 'length' }] }) }
     if (kind === 'tool') { chunk({ choices: [{ delta: { tool_calls: [{ index: 0, id: 'c1', function: { name: 'read_file', arguments: '{"path":"README.md"}' } }] } }] }); chunk({ choices: [{ delta: {}, finish_reason: 'tool_calls' }] }) }
     if (kind === 'inline') { chunk({ choices: [{ delta: { content: 'Reading it:\n<tool_call>\n{"name":"read_file","arguments":{"path":"README.md"}}\n</tool_call>' } }] }); chunk({ choices: [{ delta: {}, finish_reason: 'stop' }] }) }
-    chunk({ choices: [], usage: { prompt_tokens: 100, completion_tokens: 5 } })
+    chunk({ choices: [], usage: { prompt_tokens: 100, completion_tokens: 5, prompt_tokens_details: { cached_tokens: 80 } } })
     res.write('data: [DONE]\n\n'); res.end()
   })
 })
@@ -114,7 +114,23 @@ try {
      `the reason is SAVED in the message, so a reload still shows it (parts: ${JSON.stringify(r.last.parts.map(p => p.type))})`)
   ok(r.events.some(e => e.type === 'closed'), 'the stream still closes cleanly')
 
-  // 7. THE OTHER HALF OF THE SILENT DEATH. A turn killed by the connection going
+  // 7. THE BILL MUST BE READABLE. An agentic turn re-sends the conversation
+  // every round, so input tokens climb into the millions on a chat of a few
+  // hundred thousand — that is the loop working. The only thing that says
+  // whether it is EXPENSIVE is how much the provider served from its prompt
+  // cache, and that number was read off the stream and thrown away, leaving a
+  // frightening total the app could not explain. Tony: "that will kill this
+  // product if its burning tokens for no reason."
+  script = ['text']
+  r = await turn('count something')
+  ok(r.events.some(e => e.type === 'usage' && e.cacheRead === 80), 'a cache read on the stream reaches the client')
+  {
+    const st = r.events.filter(e => e.type === 'stats').pop()
+    ok(st && st.stats.cachedIn >= 80, `and is summed into the session stats (cachedIn: ${st?.stats?.cachedIn})`)
+    ok(st && st.stats.inTokens >= st.stats.cachedIn, 'cached can never exceed total input')
+  }
+
+  // 8. THE OTHER HALF OF THE SILENT DEATH. A turn killed by the connection going
   // away threw nothing, and its 'stopped' event is not one of the two the emit
   // wrapper persists — so it saved an assistant message with ZERO parts and the
   // chat showed an empty reply. Same symptom as the thrown-error case, different

@@ -941,7 +941,17 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   let askStreak = 0
   const REPEAT_NUDGES = { 3: 'stop and re-read the last result — this exact call has produced the same output 3 times', 5: 'you are stuck in a loop (5 identical calls). Change your approach or explain what is blocking you', 8: 'STOP repeating this call (8 times). Do something different or tell the user you are blocked' }
   // per-session stats (folded into session.stats)
+  // ⚠️ cachedIn IS THE DIFFERENCE BETWEEN A BILL AND A PANIC. An agentic turn
+  // re-sends the whole conversation every round — that is how the loop works,
+  // not a leak — so a 155k chat legitimately reports millions of input tokens
+  // over 18 turns. What decides whether that is expensive is how much of it the
+  // provider served from its prompt cache, which costs a fraction. The number
+  // was being READ off the stream (prompt_tokens_details.cached_tokens) and
+  // thrown away, so the app showed a frightening total it could not explain and
+  // nobody could tell a working cache from a burning one. Tony: "that will kill
+  // this product if its burning tokens for no reason." Count it and show it.
   const stats = session.stats || { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 }
+  if (typeof stats.cachedIn !== 'number') stats.cachedIn = 0
   stats.turns += 1
   // ⚠️ THIS COUNTER IS THE SESSION'S WHOLE LIFE, NOT THIS TURN'S. I added a
   // "per turn" ceiling and compared it against the running total, so a chat that
@@ -952,7 +962,7 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   // and measure the difference.
   const tokensBefore = (stats.inTokens || 0) + (stats.outTokens || 0)
   // the window rides with usage so the gauge can draw a local model it has no table row for
-  const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
+  const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
   const finishStats = () => { session.stats = stats; emit({ type: 'stats', stats }) }
   for (let round = 0; round < MAX_ROUNDS; round++) {
     // ⚠️ STOP HAD EXACTLY ONE CHECK IN THIS WHOLE FUNCTION, and it sat after the
