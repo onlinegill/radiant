@@ -191,6 +191,48 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+## What the live listing is NOT using — audited 2026-09-17
+
+Read from Apple's own data (`itunes.apple.com/lookup?id=6804891721`), not the
+rendered page.
+
+| Field | State | Needs review? |
+|---|---|---|
+| **Promotional text** | **empty** | **No — editable any time** |
+| Description | says "44 models"; the catalogue ships **53** | Yes (metadata review, no build) |
+| iPhone screenshots | **4** of a possible 10 | Yes |
+| iPad screenshots | **1** | Yes |
+| App preview video | **none** (up to 3 allowed) | Yes |
+| Release notes | none (correct for 1.0) | With the next version |
+| Categories | Productivity + Developer Tools | fine |
+| Age rating | 13+ | see the age-rating section |
+
+⚠️ **Promotional text is the only one of these that changes with no review at
+all** — 170 characters, shown above the description, editable whenever. It is
+empty. Drafted, ready to paste (164 chars):
+
+> Every model runs on your phone, not a server. 53 open models from Google,
+> Meta, Mistral and more — no account, no signal needed, nothing you type
+> leaves the device.
+
+Alternative (158 chars):
+
+> 53 open models, running on your iPhone. No account, no signal, nothing you
+> type leaves the device — and your own API keys for the big ones when you
+> want them.
+
+### ⚠️ It is not coming up in search
+
+Searching the app's OWN NAME — "Radiant Local AI Chat" — returns three results
+and none of them is Radiant. Searching the developer, "Anthony Ricciardi",
+finds it. So the record is in the catalogue and the keyword index has not
+taken, which is more than the usual propagation lag a day after release.
+Worth checking the **keywords** field in App Store Connect (100 characters,
+comma-separated, no spaces after commas, and do NOT repeat words already in
+the name or subtitle — they are indexed already).
+
+---
+
 ## ✅ APPROVED — 1.0 (build 7), 2026-09-16
 
 Apple accepted 1.0 on build 7, after two rejections:
