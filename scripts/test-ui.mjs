@@ -317,11 +317,33 @@ ok('and the app does not drag you back down', held && held.after < 80)
 // fill and the red Delete flashed through. Tony: "when i click on a chat, the
 // delete button flashes. it should only come up on left swipe."
 {
-  const css = readFileSync('src/mobile/mobile.css', 'utf8')
-  const rule = /\.is-native \.rx-swipe-face\.is-pressed \{([^}]*)\}/.exec(css)
-  ok('the pressed face has its own rule', Boolean(rule))
-  ok('it keeps an opaque background-color', /background-color: var\(--rx-cell\)/.test(rule?.[1] || ''))
-  ok('and paints the press tint over it rather than replacing it', /background-image: linear-gradient/.test(rule?.[1] || ''))
+  // ⚠️ MEASURE THE EFFECT, NOT THE SOURCE. The first version of this check
+  // asserted the rule EXISTED — and it did, at the same specificity as
+  // `.rx-row.is-pressed` further down the file, so source order beat it and
+  // the face was still see-through. The gate passed while the bug was live.
+  // Press a real row and read what the browser actually computed.
+  const pressed = await page.evaluate(() => {
+    const face = document.querySelector('.rx-swipe .rx-swipe-face')
+    if (!face) return null
+    face.classList.add('is-pressed')
+    const cs = getComputedStyle(face)
+    const out = { bg: cs.backgroundColor, image: cs.backgroundImage, transform: cs.transform }
+    face.classList.remove('is-pressed')
+    return out
+  })
+  ok('a swipe row exists to test', Boolean(pressed))
+  if (pressed) {
+    // ⚠️ ONLY rgba() HAS AN ALPHA. Matching the last number in the string
+    // read the BLUE channel of rgb(255,255,255) as the alpha and failed a
+    // passing fix — measure the right thing or the measurement lies too.
+    const m = pressed.bg.match(/^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/)
+    const alpha = m ? Number(m[1]) : 1
+    ok(`the pressed face stays fully opaque (computed ${pressed.bg}, alpha ${alpha})`, alpha === 1)
+    ok('and still shows a press tint', pressed.image && pressed.image !== 'none')
+    // a shrinking face would expose the buttons at its edges just as surely
+    ok(`the face does not scale on press (${pressed.transform})`,
+       pressed.transform === 'none' || /matrix\(1, 0, 0, 1/.test(pressed.transform))
+  }
   // and the archive action travels far enough to be tappable
   const swipe = readFileSync('src/mobile/SwipeRow.jsx', 'utf8')
   ok('the swipe opens by one width per action', /const openW = ACTION_W \* actions/.test(swipe))

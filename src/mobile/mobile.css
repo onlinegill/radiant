@@ -987,7 +987,14 @@
    delete button flashes. it should only come up on left swipe."
    Painting the fill as a background-IMAGE over an opaque background-color
    composites the same tint without ever making the face see-through. */
-.is-native .rx-swipe-face.is-pressed {
+/* ⚠️ AND IT MUST OUT-SPECIFY .rx-row.is-pressed, NOT MERELY DISAGREE WITH IT.
+   The first attempt at this fix was `.is-native .rx-swipe-face.is-pressed` —
+   three classes, exactly the same weight as `.is-native .rx-row.is-pressed`
+   further down the file, so source order decided it and the translucent fill
+   still won. The bug looked fixed, the gate passed because it only checked
+   that the rule existed, and Tony saw both buttons flash again. The extra
+   `.rx-swipe` ancestor makes this win on weight, wherever it sits. */
+.is-native .rx-swipe .rx-swipe-face.is-pressed {
   background-color: var(--rx-cell);
   background-image: linear-gradient(var(--rx-fill-1), var(--rx-fill-1));
 }
