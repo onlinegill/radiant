@@ -685,6 +685,27 @@ await page.waitForTimeout(600)
   await p4.locator('[aria-label="Settings"]').first().click({ force: true })
   await p4.waitForTimeout(500)
   ok('Settings has a Skills row', await row('Skills'))
+
+  // ⚠️ THE ORDER OF THIS GROUP IS THE FEATURE. "Download a model" sat between
+  // the "On this iPhone" count and the models it counts, so the heading
+  // described a list two rows below it. Tony: "download a model button should
+  // be right above the Remove all models button. The list of models should
+  // come right after On this iPhone." Read the RENDERED rows — a source check
+  // would pass on markup that renders in any order.
+  const modelRows = await p4.evaluate(() => {
+    const h = [...document.querySelectorAll('.rx-section-header')].find(x => x.textContent.trim() === 'Models')
+    const g = h?.nextElementSibling
+    return g ? [...g.children].map(c => c.innerText.replace(/\s+/g, ' ').trim()) : []
+  })
+  ok(`the Models group renders (${modelRows.length} rows)`, modelRows.length >= 3)
+  if (modelRows.length >= 3) {
+    ok('the count heads the group', /^On this /.test(modelRows[0]))
+    ok('the models follow it immediately', /Remove$/.test(modelRows[1]))
+    const dl = modelRows.findIndex(r => r === 'Download a model')
+    const rm = modelRows.findIndex(r => /^Remove all models/.test(r))
+    ok(`Download a model sits directly above Remove all models (${dl} then ${rm})`, dl > 0 && rm === dl + 1)
+    ok('and below every model row', modelRows.slice(1, dl).every(r => /Remove$/.test(r)))
+  }
   const screen = await p4.locator('body').innerText()
   ok('the phone offers every way in', /Write one/.test(screen) && /Paste a skill/.test(screen) && /Import from a file/.test(screen) && /Import from your Mac/.test(screen))
   // ⚠️ TWO GROUPS MUST NOT TOUCH. They collided into one lumpy shape when the

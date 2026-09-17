@@ -172,10 +172,12 @@ export default function SettingsScreen ({
       <h2 className="rx-section-header">Models</h2>
       <div className="rx-group">
         <Row label={`On this ${deviceWord()}`} value={`${downloaded.length} · ${fmt(used)}`} />
-        {/* the way OUT of this screen to the one that adds a model — Settings
-            listed what you had and offered no route to getting more */}
-        <Row label="Download a model" onTap={onGetModels} />
-        {/* Each model can be removed on its own — but the row does NOT delete
+        {/* ⚠️ THE LIST FOLLOWS ITS OWN HEADING. "Download a model" used to sit
+            between the "On this iPhone" count and the models it counts, so the
+            heading described a list two rows below it with an unrelated action
+            in between. Tony: "The list of models should come right after On
+            this iPhone."
+            Each model can be removed on its own — but the row does NOT delete
             on tap. It used to, looking exactly like the inert row above it,
             with no confirmation and no undo. The delete is its own labelled,
             red control at the trailing edge, and it confirms. */}
@@ -187,6 +189,12 @@ export default function SettingsScreen ({
             onRemove={() => removeOne(m)}
           />
         ))}
+        {/* The way OUT of this screen to the one that adds a model — Settings
+            listed what you had and offered no route to getting more. It sits
+            with the other action on this group rather than inside the list:
+            add above, remove below. Tony: "download a model button should be
+            right above the Remove all models button." */}
+        <Row label="Download a model" onTap={onGetModels} />
         {downloaded.length > 0 && (
           <Row label={busy ? 'Removing…' : 'Remove all models'} destructive onTap={clearAll} />
         )}
