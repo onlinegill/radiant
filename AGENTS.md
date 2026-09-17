@@ -1,72 +1,65 @@
 # Radiant — read this first, every turn
 
-## ⚠️ THE iPHONE APP — v1.0, build 7, Waiting for Review as of 2026-09-14 10:15 AM
+## THE iPHONE APP — 1.0 (build 7) APPROVED by Apple, 2026-09-16
 
-⚠️ **CHECK THE ACTUAL STATUS BEFORE YOU TRUST THIS HEADING.** It went stale
-again: it said "build 4 (resubmitted 2026-09-03)" while `CURRENT_PROJECT_VERSION`
-in `apps/ios/ios/App/App.xcodeproj/project.pbxproj` had moved to 6, with "iOS
-build 5" (`07bc4b2`) and "iOS build 6" (`b92628c`) committed in between. Which of
-those builds Apple actually holds, and what state it is in, is **not recorded
-here and cannot be** — read it from App Store Connect. It was also wrong for
-nine days before that. This file said "with Apple, build 2" while App Store Connect had it
-REJECTED since 2026-08-25 under 2.1 Information Needed — Tony had answered the
-same evening, but a rejected version does not re-enter the queue by replying, it
-has to be RESUBMITTED, and nobody knew because nobody looked. A whole day of iOS
-work was done on 2026-09-03 premised on a build that was not in review at all.
+⚠️ **STILL READ APP STORE CONNECT BEFORE YOU TRUST THIS.** The heading above has
+been wrong twice, once for nine days: it said "with Apple, build 2" while the
+app had been REJECTED since 2026-08-25, and later said build 4 while the project
+file had moved to 6. Approval does not make a written status reliable — whether
+1.0 is *Pending Developer Release*, *Ready for Sale*, or has been superseded is
+not recorded here and cannot be.
 
     https://appstoreconnect.apple.com/apps/6804891721/distribution/reviewsubmissions
 
-Reading that page costs one navigation. Do it before repeating anything below.
+**What got approved is build 7, and build 7 only.** It carries the consent sheet
+(5.1.1(i)/5.1.2(i)), the rewritten privacy policy, and the subtitle "Open
+models, on your phone". It does NOT carry anything after it.
+
+### ⚠️ BEFORE ANYTHING AFTER BUILD 7 IS SUBMITTED: RE-ANSWER THE AGE RATING
+
+`CURRENT_PROJECT_VERSION` is **11**. Builds 8–11 are on TestFlight and contain
+the Hugging Face search — an unrestricted search over Hugging Face's public MLX
+models, with download. The 13+ rating on record was answered on the explicit
+premise that "there is no field anywhere in the phone UI for pasting an
+arbitrary Hugging Face repo, so the list is closed". **That premise is gone**,
+and the word filter that briefly softened it was removed on Tony's instruction
+(TG-454) and must not come back to make a rating easier.
+
+So the questionnaire has to be answered again, honestly, for an open list before
+build 8 or later goes to review. `docs/APP_STORE_LISTING.md` carries the
+reference points (Locally AI ships an open list at 12+; expect to raise the
+sexual-content and violence rows; 17+ is a fine outcome, an inaccurate
+declaration is guideline 2.3 and costs a review cycle). Tony decides the
+answers; only Tony can drive App Store Connect.
+
+**A shipped 1.0 changes the rules for the next build.** While a version was
+*Waiting for Review* you could remove it from review and swap the binary. Once
+1.0 is out, build 8+ is an **update** — a new version number in App Store
+Connect, its own review, and its own "what's new". The subtitle, screenshots and
+description are tied to a version and change with that submission; promotional
+text and review notes do not need a build.
 
 **Anything to do with the submission: use the `app-store-review` skill**
 (`.claude/skills/app-store-review/`, also installed at `~/.claude/skills`;
 published at https://github.com/templetongroup/app-store-review — the repo is
-the copy people install, so a change here goes there too). It
-is the whole App Store adventure — both rejections, the TestFlight false alarm,
-the privacy Publish button, the two-button resubmit — turned into a protocol,
-and it is shareable with people outside this repo.
+the copy people install, so a change here goes there too). It is the whole
+adventure — both rejections, the TestFlight false alarm, the privacy Publish
+button, the two-button resubmit — turned into a protocol.
 
-Build 4 was archived from `~/Library/Developer/Xcode/Archives/2026-09-03/` and
-carries the Gemma 4 fix plus the fetched catalogue. Apple has this binary; the
-App Store is the one place Radiant ships where a push to `master` does NOT reach
-the user.
-
-**Build 2 carried a known defect, which is why build 4 exists.** Its catalogue points Gemma 4 E4B and E2B
-at `mlx-community/gemma-4-E*B-it-qat-mobile`, whose weights are packed 4-bit
-while their config.json declares no quantization. MLX builds a dense model, the
-tensor shapes disagree, and the user gets `mismatched parameters` — but only
-after downloading 3.5 GB. Fixed on `master` in `e3595d1` (both entries now use
-`LLMRegistry.gemma4_e{4,2}b_it_4bit`); the fix is NOT in the build under review.
-A reviewer who taps Google's newest model hits it.
-
-**To iterate on what Apple has:** a submitted binary cannot be edited. Raise
-`CURRENT_PROJECT_VERSION` (read it from the project file rather than from this
-sentence, which has been wrong twice — the next upload must be higher than
-whatever is there, App Store Connect rejects a repeat), archive, upload, then in
-App Store Connect
-attach the new build to the submission. While the state is *Waiting for Review*
-or *In Review*, use **Remove this version from review** first, swap the build,
-and submit again — that keeps the same version 1.0 listing. Once it is
-*Pending Developer Release* or on sale, the new build becomes an update instead.
-Only Tony can drive App Store Connect; prepare the archive, never assume the
-upload happened.
-
-**The catalogue is now published, not only compiled in.** `apps/ios/catalog.json`
-is fetched at launch and applied over the built-in Swift array, so a broken row —
-including the Gemma 4 one above — can be corrected in minutes instead of a review
-cycle. It is GENERATED from that array (`npm run catalog:export`), so the two
-cannot drift, and every failure falls back to what shipped.
+**The catalogue is published, not only compiled in.** `apps/ios/catalog.json` is
+fetched at launch and applied over the built-in Swift array, so a broken row can
+be corrected in minutes instead of a review cycle. It is GENERATED from that
+array (`npm run catalog:export`), so the two cannot drift, and every failure
+falls back to what shipped.
 
 ⚠️ **That also means a bad publish reaches every phone at once.** `npm run
 catalog:publish` runs the export, then `scripts/catalog-check.py`, which probes
 every repo and refuses on undeclared quantization, a size more than 10% off the
 real blob total, or a 404. Do not copy catalog.json to the website by hand.
-
-**Before any future submission, run `npm run catalog:check`.** It now fails
-any repo under ~1.2 bytes per parameter that declares no quantization — the
-exact defect above, which shipped because the old check only asked whether MLX
-implemented the architecture.
-
+**Before any future submission, run `npm run catalog:check`.** It fails any repo
+under ~1.2 bytes per parameter that declares no quantization — the Gemma 4
+defect, which shipped because the old check only asked whether MLX implemented
+the architecture.
 
 Radiant is Tony's own coding harness: an Electron app wrapping a local node
 server (`server/index.js`, port 5834) and a React UI (`src/`). It is a public,

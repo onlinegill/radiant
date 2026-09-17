@@ -191,6 +191,32 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+## ✅ APPROVED — 1.0 (build 7), 2026-09-16
+
+Apple accepted 1.0 on build 7, after two rejections:
+
+| | |
+|---|---|
+| 2.1 Information Needed | 2026-08-25 — answered same evening, but a rejected version does not re-enter the queue by replying; it sat nine days unnoticed |
+| 5.0.0 + 5.2.5 | "Open AI models" read as OpenAI (China deep-synthesis rule) and "iPhone" in the subtitle — one 30-character subtitle carried both citations |
+| 5.1.1(i) / 5.1.2(i) | no in-app disclosure before data went to a third party — fixed with the consent sheet in build 7 |
+
+What shipped: the consent sheet (`ConsentSheet.jsx` / `consent.js`), the
+rewritten privacy policy, and the subtitle **"Open models, on your phone"**.
+
+⚠️ **Read the live status from App Store Connect before acting on this.**
+Whether 1.0 is Pending Developer Release or Ready for Sale is not recorded here.
+This heading has been wrong twice before.
+
+⚠️ **Build 7 is the ONLY approved build.** `CURRENT_PROJECT_VERSION` is 11;
+builds 8–11 are on TestFlight and carry the Hugging Face search. See the age
+rating section — the questionnaire must be answered again for an open list
+before any of them is submitted, and a shipped 1.0 makes the next one an
+**update** (new version number, own review, own "what's new") rather than a
+build swap.
+
+---
+
 ### Build 11 uploaded 2026-09-15 6:29 PM — TestFlight; supersedes 10
 
 Master `470f554`: the Hugging Face search is no longer filtered. The
