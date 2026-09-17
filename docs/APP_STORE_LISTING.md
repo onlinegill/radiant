@@ -191,6 +191,45 @@ the app never asked. A NEW BUILD is required — this is in-app behaviour.
 - Reply to App Review drafted (the text is the same substance as the notes'
   first section) — sent with the resubmission, after build 7 is attached.
 
+## Driving App Store Connect from here — `scripts/asc.mjs`
+
+⚠️ **"Only Tony can drive App Store Connect" was true of the WEB UI and nobody
+had tested whether it was true of App Store Connect.** It is not. The API takes
+a key generated once, and metadata, builds, TestFlight and submissions are then
+reachable from a script. Tony: "why cant you handle the keywords... you ask me
+to constantly to intervene."
+
+**The one-time setup (about two minutes, and only he can do it** — generating an
+API key requires Account Holder or Admin):
+
+1. App Store Connect → **Users and Access** → **Integrations** → **App Store
+   Connect API** → **Team Keys**
+2. **+**, name it `radiant-cli`, access **App Manager**, Generate
+3. Download the `.p8` — **Apple only offers it once** — and put it at
+   `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8`
+4. Copy the **Key ID** and the **Issuer ID** from that page
+
+Then, and from then on without him:
+
+```bash
+export ASC_KEY_ID=<key id>
+export ASC_ISSUER_ID=<issuer id>
+node scripts/asc.mjs whoami                       # apps this key can see
+node scripts/asc.mjs get 6804891721               # the live listing, field by field
+node scripts/asc.mjs set-promo 6804891721 "..."   # live, no review
+node scripts/asc.mjs set-keywords 6804891721 "…"  # needs an editable version
+```
+
+The key is read from disk, never printed, never committed, never passed as an
+argument; the token it mints lasts 20 minutes. Every write reads the field back
+afterwards and fails if Apple accepted the request but the value does not match
+— a 204 means accepted, not stored.
+
+⚠️ **Keywords still need an editable version.** They belong to a version and a
+live one is locked; the script says exactly that instead of returning Apple's
+bare 409. Promotional text is the exception and can be set on the live version
+at any time.
+
 ## What the live listing is NOT using — audited 2026-09-17
 
 Read from Apple's own data (`itunes.apple.com/lookup?id=6804891721`), not the
