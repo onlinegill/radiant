@@ -23,6 +23,12 @@
  *                                with no review at all
  *   set-keywords <appId> "<kw>"  keywords — only on an EDITABLE version; says
  *                                so plainly if the live one is locked
+ *   shots <appId> [version]      how many screenshots each device size has —
+ *                                an empty size is a rejection, and the web UI
+ *                                is the only place it is otherwise visible
+ *   subs <appId>                 the review submissions and what is on them
+ *   submit <appId> <version>     put that version in Apple's review queue and
+ *                                read the state back
  *
  * Every write prints what it changed, from what, to what.
  */
@@ -272,6 +278,92 @@ try {
     const back = await call('GET', `/appStoreVersions/${target.id}/build?fields[builds]=version`)
     console.log(`attached build ${back.data.attributes.version} to ${value}`)
     if (back.data.attributes.version !== version) throw new Error('Apple accepted the write but a different build is attached.')
+  } else if (cmd === 'shots') {
+    // ⚠️ SCREENSHOTS BELONG TO A VERSION, AND A NEW VERSION DOES NOT ALWAYS
+    // INHERIT THEM. Submitting with a display type empty is a rejection that
+    // costs a whole cycle, and the web UI is the only place most people ever
+    // see the gap. This counts them, per device size, for the version named.
+    const vs = await versions(appId)
+    const target = vs.find(v => v.version === value) || vs[0]
+    const locs = await call('GET', `/appStoreVersions/${target.id}/appStoreVersionLocalizations?limit=20`)
+    for (const loc of locs.data) {
+      const sets = await call('GET', `/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=50`)
+      console.log(`${target.version} ${loc.attributes.locale}:`)
+      if (!sets.data.length) { console.log('  (none)'); continue }
+      for (const set of sets.data) {
+        const shots = await call('GET', `/appScreenshotSets/${set.id}/appScreenshots?limit=20&fields[appScreenshots]=fileName,assetDeliveryState`)
+        const bad = shots.data.filter(x => x.attributes.assetDeliveryState?.state !== 'COMPLETE').length
+        console.log(`  ${set.attributes.screenshotDisplayType.padEnd(28)} ${shots.data.length} shot(s)${bad ? `  ⚠️ ${bad} not COMPLETE` : ''}`)
+      }
+    }
+  } else if (cmd === 'subs') {
+    const r = await call('GET', `/apps/${appId}/reviewSubmissions?limit=10`)
+    if (!r.data.length) console.log('no review submissions')
+    for (const s of r.data) {
+      console.log(`  ${s.id}  ${s.attributes.state}`)
+      const items = await call('GET', `/reviewSubmissions/${s.id}/items?limit=10`)
+      for (const i of items.data) console.log(`     item ${i.id} ${JSON.stringify(i.relationships?.appStoreVersion?.data || {})}`)
+    }
+  } else if (cmd === 'submit') {
+    // ⚠️ THREE CALLS, AND THE LAST ONE IS THE ONE THAT SUBMITS. Creating a
+    // reviewSubmission and adding the version to it leaves it sitting in
+    // READY_FOR_REVIEW — indistinguishable, from the API, from a submission
+    // that has been sent. The PATCH with submitted:true is what puts it in
+    // Apple's queue, and this reads the state back afterwards rather than
+    // reporting the write.
+    const vs = await versions(appId)
+    const target = vs.find(v => v.version === value)
+    if (!target) throw new Error(`No version ${value}`)
+    const build = await call('GET', `/appStoreVersions/${target.id}/build?fields[builds]=version`).catch(() => null)
+    if (!build?.data) throw new Error(`Version ${value} has no build attached. Attach one first.`)
+    console.log(`submitting ${value} (${target.state}) with build ${build.data.attributes.version}`)
+
+    // ⚠️ THERE IS NO `submitted` ATTRIBUTE TO READ, ONLY A STATE. Asking for
+    // one returns 400, and treating its absence as "not submitted yet" makes
+    // every COMPLETE submission from previous releases look like a draft to
+    // reuse. READY_FOR_REVIEW is the only state that is still a draft;
+    // WAITING_FOR_REVIEW, IN_REVIEW, UNRESOLVED_ISSUES, CANCELING and COMPLETE
+    // are not.
+    const open = await call('GET', `/apps/${appId}/reviewSubmissions?limit=10`)
+    const live = open.data.find(s => ['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(s.attributes.state))
+    if (live) throw new Error(`A submission is already ${live.attributes.state} (${live.id}). Remove it from review before sending another.`)
+    let sub = open.data.find(s => s.attributes.state === 'READY_FOR_REVIEW')
+    if (sub) console.log(`reusing draft submission ${sub.id} (${sub.attributes.state})`)
+    else {
+      const made = await call('POST', '/reviewSubmissions', {
+        data: { type: 'reviewSubmissions', relationships: { app: { data: { type: 'apps', id: appId } } }, attributes: { platform: 'IOS' } }
+      })
+      sub = made.data
+      console.log(`created submission ${sub.id}`)
+    }
+
+    const items = await call('GET', `/reviewSubmissions/${sub.id}/items?limit=10`)
+    const already = items.data.some(i => i.relationships?.appStoreVersion?.data?.id === target.id)
+    if (already) console.log('version already on the submission')
+    else {
+      await call('POST', '/reviewSubmissionItems', {
+        data: {
+          type: 'reviewSubmissionItems',
+          relationships: {
+            reviewSubmission: { data: { type: 'reviewSubmissions', id: sub.id } },
+            appStoreVersion: { data: { type: 'appStoreVersions', id: target.id } }
+          }
+        }
+      })
+      console.log('added the version to the submission')
+    }
+
+    await call('PATCH', `/reviewSubmissions/${sub.id}`, {
+      data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } }
+    })
+    const back = await call('GET', `/reviewSubmissions/${sub.id}`)
+    const state = back.data.attributes.state
+    console.log(`submission ${sub.id} → ${state}`)
+    if (!['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(state)) {
+      throw new Error(`Apple accepted the write but the submission is ${state}, not in the queue.`)
+    }
+    const after = await versions(appId)
+    console.log('versions now:', after.map(v => `${v.version} ${v.state}`).join(' | '))
   } else if (cmd === 'infos') {
     const r = await call('GET', `/apps/${appId}/appInfos?limit=10`)
     for (const i of r.data) {

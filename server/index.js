@@ -2922,6 +2922,11 @@ app.post('/api/sessions', (req, res) => {
     cwd: req.body.cwd || (project && project.cwd) || config.settings.defaultCwd || os.homedir(),
     useTools: req.body.useTools !== undefined ? req.body.useTools !== false : (agent ? agent.useTools !== false : true),
     computerControl: req.body.computerControl !== undefined ? Boolean(req.body.computerControl) : Boolean(agent && agent.computerControl),
+    // ⚠️ MCP TOOLS ARE A PER-REQUEST COST, NOT A FREE CAPABILITY. One enabled
+    // Linear server is 69 tool schemas — 16.6k tokens — sent on EVERY model
+    // call of EVERY chat, coding or not. A chat can now opt out; the harness
+    // benchmark (scripts/bench-harness.mjs) measures both ways.
+    ...(req.body.mcp === false ? { mcp: false } : {}),
     createdAt: new Date().toISOString(),
     messages: []
   }
@@ -2968,7 +2973,7 @@ app.patch('/api/sessions/:id', (req, res) => {
   // every conversation (the Settings checkbox) or bound to an agent — so a skill
   // you want occasionally had to live in every chat's system prompt. This is the
   // third source: skills the user added to THIS chat, and only this chat.
-  for (const k of ['title', 'model', 'provider', 'cwd', 'useTools', 'computerControl', 'agentId', 'projectId', 'pinned', 'archived', 'planMode', 'skillIds', 'effort', 'groupFollowUp']) {
+  for (const k of ['title', 'model', 'provider', 'cwd', 'useTools', 'computerControl', 'agentId', 'projectId', 'pinned', 'archived', 'planMode', 'skillIds', 'effort', 'groupFollowUp', 'mcp']) {
     if (k in req.body) s[k] = req.body[k]
   }
   if ('title' in req.body) s.autoTitle = false // manual rename pins the title
@@ -3192,7 +3197,7 @@ app.post('/api/chat', async (req, res) => {
   // MCP tools from enabled servers, bridged into the tool set
   let mcpTools = []
   let callMcp = null
-  if ((config.mcpServers || []).some(s => s.enabled)) {
+  if (session.mcp !== false && (config.mcpServers || []).some(s => s.enabled)) {
     try {
       const mcp = await import('./mcp.js')
       mcpTools = await mcp.mcpToolDefs(config.mcpServers)

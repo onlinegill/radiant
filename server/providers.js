@@ -461,7 +461,18 @@ async function anthropicRound ({ baseUrl, apiKey, accessToken, model, messages, 
       // gauge still reflects the true prompt size, not just what was billed fresh.
       const u = ev.message.usage
       const totalIn = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0)
-      emit({ type: 'usage', input: totalIn, output: 0 })
+      // ⚠️ AND SAY HOW MUCH OF IT WAS CACHED. The OpenAI path reported
+      // cacheRead and this one did not, so on a Claude subscription — the
+      // provider Tony actually uses — the "% cached" readout never appeared
+      // and nobody could tell a working cache from a burning one. The split is
+      // also what a cost needs: a cached read is a tenth the price of a fresh
+      // token and a cache write a quarter more, so "input" alone cannot be
+      // priced. scripts/bench-harness.mjs prices from these three numbers.
+      emit({
+        type: 'usage', input: totalIn, output: 0,
+        ...(u.cache_read_input_tokens ? { cacheRead: u.cache_read_input_tokens } : {}),
+        ...(u.cache_creation_input_tokens ? { cacheWrite: u.cache_creation_input_tokens } : {})
+      })
     }
     else if (ev.type === 'content_block_start') {
       const b = ev.content_block
@@ -621,7 +632,8 @@ export function parseInlineToolCalls (text) {
 // (401 "missing scope: model.request"). The Codex CLI routes subscription traffic
 // to chatgpt.com/backend-api/codex/responses using the Responses API shape plus a
 // ChatGPT-Account-ID header. We mirror that. (Unofficial — same client as Codex.)
-const CHATGPT_BASE = 'https://chatgpt.com/backend-api/codex'
+// overridable so scripts/test-caching.mjs can point this path at a stub
+const CHATGPT_BASE = process.env.RADIANT_CHATGPT_BASE || 'https://chatgpt.com/backend-api/codex'
 const CODEX_CLIENT_VERSION = '0.146.0'
 const CHATGPT_DEFAULT_MODEL = 'gpt-5.6-sol'
 
@@ -660,12 +672,19 @@ function toResponsesInput (messages) {
   return input
 }
 
-async function chatgptRound ({ accessToken, accountId, model, messages, system, tools, toolDefs, effort, emit, signal }) {
+async function chatgptRound ({ accessToken, accountId, model, messages, system, tools, toolDefs, effort, emit, signal, cacheKey }) {
   // The Codex backend rejects retired ids (gpt-5, gpt-5-codex, gpt-5.1…); remap
   // those to the current default. Live ids (gpt-5.6-sol, gpt-5.5, …) pass through.
   const retired = /codex|^gpt-5$|^gpt-5\.1$|^gpt-4/i.test(model)
   const useModel = (!model || retired) ? CHATGPT_DEFAULT_MODEL : model
-  const body = { model: useModel, instructions: system, input: toResponsesInput(messages), store: false, stream: true }
+  // ⚠️ THE PROMPT CACHE WAS NEVER HIT. OpenAI routes a request to the cache
+  // by prompt_cache_key (and the session_id header), and this sent a NEW
+  // random session_id on every round with no cache key at all — so an
+  // identical 17k-token prefix was billed fresh every single call. The
+  // harness benchmark's first Radiant attempt read 286k input tokens, 0
+  // cached, on a 13-round task. Codex CLI sends one id per conversation;
+  // so does this now. (The usage log that found it: RADIANT_USAGE_DEBUG=1.)
+  const body = { model: useModel, instructions: system, input: toResponsesInput(messages), store: false, stream: true, ...(cacheKey ? { prompt_cache_key: cacheKey } : {}) }
   if (effort && effort !== 'auto') body.reasoning = { effort }
   if (tools) body.tools = (toolDefs || TOOL_DEFS).map(t => ({ type: 'function', name: t.name, description: t.description, parameters: t.input_schema, strict: false }))
   const headers = {
@@ -674,9 +693,10 @@ async function chatgptRound ({ accessToken, accountId, model, messages, system, 
     'chatgpt-account-id': accountId || '',
     'openai-beta': 'responses=experimental',
     originator: 'codex_cli_rs',
-    session_id: crypto.randomUUID(),
+    session_id: cacheKey || crypto.randomUUID(),
     accept: 'text/event-stream'
   }
+  if (process.env.RADIANT_USAGE_DEBUG) console.error('[req]', 'tools', body.tools ? body.tools.length : 0, 'toolBytes', JSON.stringify(body.tools || []).length, 'instrBytes', String(system).length, 'names', (body.tools||[]).map(t=>t.name).join(','))
   const res = await fetchRetry(`${CHATGPT_BASE}/responses`, { method: 'POST', headers, body: JSON.stringify(body), signal })
   if (!res.ok) throw await httpErr(res)
 
@@ -697,7 +717,14 @@ async function chatgptRound ({ accessToken, accountId, model, messages, system, 
         if (ev.item?.type === 'function_call') byItem[ev.item.id] = { id: ev.item.call_id, name: ev.item.name, args: ev.item.arguments || byItem[ev.item.id]?.args || '' }
         break
       case 'response.completed': {
-        const u = ev.response?.usage; if (u) emit({ type: 'usage', input: u.input_tokens, output: u.output_tokens }); break
+        // ⚠️ THE CACHED SHARE, HERE TOO. The Responses API reports it under
+        // input_tokens_details.cached_tokens; without it a ChatGPT sign-in
+        // showed no "% cached" and priced every token as fresh — the
+        // benchmark's first Radiant attempt read 313k in, 0 cached.
+        const u = ev.response?.usage
+        if (u && process.env.RADIANT_USAGE_DEBUG) console.error('[usage]', JSON.stringify(u))
+        if (u) emit({ type: 'usage', input: u.input_tokens, output: u.output_tokens, ...(u.input_tokens_details?.cached_tokens ? { cacheRead: u.input_tokens_details.cached_tokens } : {}) })
+        break
       }
       case 'response.failed': throw new Error(ev.response?.error?.message || 'ChatGPT response failed')
     }
@@ -952,6 +979,7 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   // this product if its burning tokens for no reason." Count it and show it.
   const stats = session.stats || { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 }
   if (typeof stats.cachedIn !== 'number') stats.cachedIn = 0
+  if (typeof stats.cacheWrite !== 'number') stats.cacheWrite = 0
   stats.turns += 1
   // ⚠️ THIS COUNTER IS THE SESSION'S WHOLE LIFE, NOT THIS TURN'S. I added a
   // "per turn" ceiling and compared it against the running total, so a chat that
@@ -962,7 +990,7 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   // and measure the difference.
   const tokensBefore = (stats.inTokens || 0) + (stats.outTokens || 0)
   // the window rides with usage so the gauge can draw a local model it has no table row for
-  const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
+  const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; stats.cacheWrite += ev.cacheWrite || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
   const finishStats = () => { session.stats = stats; emit({ type: 'stats', stats }) }
   for (let round = 0; round < MAX_ROUNDS; round++) {
     // ⚠️ STOP HAD EXACTLY ONE CHECK IN THIS WHOLE FUNCTION, and it sat after the
@@ -1020,7 +1048,7 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
       result = provider.type === 'anthropic'
         ? await anthropicRound({ ...args, messages: toAnthropic(reqMsgs) })
         : useChatgpt
-          ? await chatgptRound({ ...args, system: nudge ? `${system.full}\n\n${nudge}` : system.full, accountId, messages: reqMsgs })
+          ? await chatgptRound({ ...args, system: nudge ? `${system.full}\n\n${nudge}` : system.full, accountId, messages: reqMsgs, cacheKey: session.id })
           : await openaiRound({ ...args, messages: toOpenAI(reqMsgs, nudge ? `${system.full}\n\n${nudge}` : system.full) })
       stats.llmMs += Date.now() - roundStart
     } catch (e) {

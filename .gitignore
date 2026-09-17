@@ -18,3 +18,16 @@ apps/ios/ios/DerivedData/
 .env
 .env.*
 !.env.example
+
+# harness benchmark (scripts/bench-harness.mjs): environments, checkouts and
+# traces are rebuilt; the plan, the gold check and the report are kept
+bench/.venv/
+bench/repos/
+bench/work/
+bench/envs/
+bench/tmp/
+bench/bin/
+bench/logs/
+bench/data/swe-bench-lite.json
+bench/results/*/*__r*.json
+bench/results/*/preds-r*.jsonl
