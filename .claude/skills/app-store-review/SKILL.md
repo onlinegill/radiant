@@ -88,6 +88,57 @@ Work through `reference/checklist.md` in full. The items that bite:
   cannot run in the Simulator (anything using Metal/GPU: MLX, Core ML on GPU,
   camera). "Verified in the Simulator" is not a claim you can make about it.
 
+### 1b. The app has to survive being live, not just pass review
+
+⚠️ **THIS SECTION EXISTS BECAUSE THE SKILL DID NOT HAVE IT.** Everything above
+gets a binary through review. None of it makes the app a product once it is on
+sale, and Radiant shipped 1.0 with no way to rate it — discovered a day after
+launch, by the owner, not by the checklist. His words: "not being able to rate
+the app is a crippling problem."
+
+Review these **before the first submission**, because two of them cannot be
+fixed without another review cycle.
+
+**A rating prompt. Non-negotiable.** Ratings are a ranking input, and a new app
+has none. No ratings means no ranking means no downloads means no ratings —
+the loop does not break on its own, and every week without the prompt is a week
+of installs that could have left one and did not. Implement
+`AppStore.requestReview(in: scene)` (iOS 18+), falling back to
+`SKStoreReviewController.requestReview(in: scene)`, and:
+
+- ask **after a success the person can feel**, never on launch, never mid-task.
+  Radiant asks after a model finishes downloading AND the person has had a real
+  conversation — they have seen it work twice, on their own device;
+- ask **once**, and record that you asked **before** the call, so a slow or
+  failing request cannot produce a second prompt. The system caps it at three a
+  year, but "the system will stop me" is not a reason to ask twice;
+- it must never block, branch or report failure. The system decides whether a
+  prompt actually appears and never tells you;
+- **verify the class is in the shipped binary.** A new plugin/source file that
+  is not in the Xcode target's Sources phase compiles nothing, and the call is
+  refused at runtime where a `catch` swallows it. `strings -a <binary> | grep
+  <ClassName>` — do not trust BUILD SUCCEEDED.
+
+**Keywords, or nobody finds it.** 100 characters, comma-separated, **no spaces
+after the commas** (a space costs a character and buys nothing). Do not repeat
+words already in the name or subtitle — those are indexed and a repeat wastes
+the budget. No competitor brand names and no other companies' model names: the
+description is held to a looser standard than keywords, so name the models
+there instead. A day after Radiant launched it was findable at #17 for one
+narrow phrase and nowhere in the top 40 for anything else, including its own
+name — indexed, but ranking nowhere, which is the normal state of an app with
+no ratings and empty keywords.
+
+**Promotional text.** 170 characters, sits above the description, and is the
+**only** listing field that can be changed at any time with no review. Not
+indexed for search, so it is for what changes — a new feature, a moment — not
+for keywords. Radiant shipped with it empty.
+
+**Then look at the app the way a stranger will**, before the reviewer does:
+first launch with no data, the empty states, what the first sixty seconds asks
+of someone who has never seen it, and whether anything a new user hits first is
+half-built. A reviewer opens the app cold; so does every download.
+
 ### 2. While it is in review — statuses and what they mean
 
 | Status | Meaning | Do |
@@ -140,6 +191,16 @@ keeps the same version listing. Once it is *Pending Developer Release* or on
 sale, the new build is an update instead.
 
 ### 5. After approval
+
+**Being approved is not being found.** Check where the app actually ranks
+rather than assuming the store will surface it: `itunes.apple.com/search?
+term=<...>&entity=software&country=us&limit=50` and look for your `trackId`,
+and `itunes.apple.com/lookup?id=<id>` for what the listing really holds
+(promotional text, release notes, screenshot counts, description). Search a few
+terms including the app's **own name**. Found by developer name but not by app
+name means it is indexed and ranking nowhere — a keywords and ratings problem,
+not a propagation one. Do not report "the index hasn't caught up" without
+measuring; that was said about Radiant and was wrong.
 
 Nothing in the store updates itself. Metadata edits (promotional text, review
 notes, what's-new for the next version) do not need a build; the subtitle,

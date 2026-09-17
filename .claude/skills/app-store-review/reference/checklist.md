@@ -27,6 +27,20 @@ you saved, reloaded the page, and read the value back.
 - [ ] Promotional text is the one field editable without a new build — use it
       for anything that may change
 
+## Being a product once it is live — do these BEFORE submitting
+- [ ] **A rating prompt exists in the build.** `AppStore.requestReview(in:)`
+      with an `SKStoreReviewController` fallback, asked after a real success,
+      once, recorded as asked before the call, unable to block or throw
+- [ ] The rating class is **in the shipped binary** — `strings -a <binary> |
+      grep <ClassName>`, not BUILD SUCCEEDED. A source file missing from the
+      target's Sources phase compiles nothing and fails silently at runtime
+- [ ] Keywords filled: 100 chars, no spaces after commas, nothing repeated
+      from the name or subtitle, no competitor or third-party brand names
+- [ ] Promotional text filled (170) — the only field editable later with no
+      review
+- [ ] First launch opened cold, with no data, on a device: empty states,
+      onboarding, and the first sixty seconds of a stranger's experience
+
 ## URLs
 - [ ] Support URL, marketing URL, privacy policy URL each fetched; read the
       *title* of the page that came back, not just the status code
