@@ -245,8 +245,15 @@ Keywords).** Drafted, 99 chars, and deliberately repeats nothing already in the
 name or subtitle — Apple indexes those and a repeat wastes the budget:
 
 ```
-offline,llm,private,privacy,ondevice,mlx,llama,mistral,gemma,qwen,deepseek,assistant,gpt,opensource
+offline,llm,private,privacy,ondevice,openweight,assistant,opensource,nointernet,secure,chatbot
 ```
+
+⚠️ **An earlier draft of this line contained `gpt`, `llama`, `mistral`, `gemma`,
+`qwen` and `deepseek`. Do not restore them.** `gpt` is the exact term Apple made
+us strip from keywords under the 5.0.0 citation (see rejections.md), and the
+other five are other companies' product names — the checklist's "no competitor
+brand names" rule. The models are still described in the description, which is
+held to a different standard than keywords and a subtitle.
 
 Comma-separated, **no spaces after the commas** (a space costs a character and
 buys nothing). "offline" is the one most worth having: it is what people
