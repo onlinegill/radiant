@@ -230,6 +230,41 @@ live one is locked; the script says exactly that instead of returning Apple's
 bare 409. Promotional text is the exception and can be set on the live version
 at any time.
 
+## 1.1 is staged — 2026-09-17, via `scripts/asc.mjs`
+
+Nothing is submitted. Version 1.1 exists in PREPARE_FOR_SUBMISSION, which is
+invisible to the store and deletable, and is what unlocks the fields that are
+read-only once a version is on sale.
+
+| Field | 1.1 |
+|---|---|
+| **Age rating** | override **EIGHTEEN_PLUS** → computes to **17+** (was 12+/13+) |
+| Keywords | brand names out, 97/100 used |
+| Description | "CHOOSE FROM 53 MODELS" (was 44) |
+| What's New | written |
+| Promotional text | re-set — see the warning below |
+
+**The age rating was raised with the OVERRIDE, not by changing content
+answers.** Every questionnaire row still says what it said, and those answers
+were argued for below and remain true. The override is the field Apple provides
+for "rate this higher than my answers imply"; editing the rows to move the
+rating would be falsifying a declaration, which is guideline 2.3. Tony's call:
+"change the age rating. i dont care" — after a recommendation of 17+, because
+the app can download models with their safety training deliberately removed.
+
+⚠️ **A NEW VERSION DOES NOT INHERIT PROMOTIONAL TEXT.** 1.1 came up with it
+empty while 1.0 still had it. Anything not re-set on the new version is
+silently dropped the moment that version ships. Re-set from 1.0's copy.
+
+⚠️ **The age rating and the keywords live on DIFFERENT records.** Keywords are
+on the version localization; the age rating is on the app-level `appInfo`, and
+once a version is on sale there are TWO appInfos — the live one first in the
+list and read-only. Writing to `data[0]` gives "this age rating declaration is
+not editable", which names the symptom and not the cause.
+
+**Still to do before 1.1 is submitted:** attach build 19 (the rating prompt),
+and check the screenshots — four on iPhone of a possible ten, one on iPad.
+
 ## The listing, read from the API — corrected 2026-09-17
 
 ⚠️ **THE EARLIER AUDIT ON THIS PAGE WAS WRONG AND HAS BEEN DELETED.** It said
