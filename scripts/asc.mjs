@@ -238,6 +238,40 @@ try {
       console.log(`created ${value}`)
     }
     for (const v of await versions(appId)) console.log(`  ${v.version}  ${v.state}${EDITABLE.has(v.state) ? '  ← editable' : ''}`)
+  } else if (cmd === 'allbuilds') {
+    const r = await call('GET', `/builds?filter[app]=${appId}&limit=50&sort=-uploadedDate&fields[builds]=version,processingState,uploadedDate,expired`)
+    console.log('total returned:', r.data.length)
+    for (const b of r.data) {
+      const a = b.attributes
+      console.log(`  ${a.version.padEnd(5)} ${a.processingState.padEnd(10)} expired=${a.expired}  ${(a.uploadedDate||'').slice(0,19)}`)
+    }
+  } else if (cmd === 'builds') {
+    // ⚠️ NOT sort=-version. Apple sorts it as a STRING, so "8" comes above
+    // "19" and the newest build vanishes off the bottom of the list. Sort by
+    // upload date, which is what "newest" actually means here.
+    const r = await call('GET', `/builds?filter[app]=${appId}&limit=8&sort=-uploadedDate&fields[builds]=version,processingState,uploadedDate,expired`)
+    for (const b of r.data) {
+      const a = b.attributes
+      console.log(`  build ${a.version.padEnd(4)} ${a.processingState.padEnd(10)} uploaded ${(a.uploadedDate||'').slice(0,19)}  id=${b.id}`)
+    }
+  } else if (cmd === 'attach') {
+    // ⚠️ THE BUILD MUST BE VALID FIRST. Attaching one that is still PROCESSING
+    // fails in a way that reads like the build does not exist.
+    const version = process.argv[5]
+    if (!value || !version) throw new Error('node scripts/asc.mjs attach <appId> <versionString> <buildNumber>')
+    const vs = await versions(appId)
+    const target = vs.find(v => v.version === value)
+    if (!target) throw new Error(`No version ${value}`)
+    const r = await call('GET', `/builds?filter[app]=${appId}&filter[version]=${version}&limit=1`)
+    const build = r.data[0]
+    if (!build) throw new Error(`No build ${version} found for this app`)
+    if (build.attributes.processingState !== 'VALID') throw new Error(`Build ${version} is ${build.attributes.processingState}, not VALID yet.`)
+    await call('PATCH', `/appStoreVersions/${target.id}`, {
+      data: { type: 'appStoreVersions', id: target.id, relationships: { build: { data: { type: 'builds', id: build.id } } } }
+    })
+    const back = await call('GET', `/appStoreVersions/${target.id}/build?fields[builds]=version`)
+    console.log(`attached build ${back.data.attributes.version} to ${value}`)
+    if (back.data.attributes.version !== version) throw new Error('Apple accepted the write but a different build is attached.')
   } else if (cmd === 'infos') {
     const r = await call('GET', `/apps/${appId}/appInfos?limit=10`)
     for (const i of r.data) {
