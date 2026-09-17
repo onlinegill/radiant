@@ -159,7 +159,8 @@ window.Capacitor = {
     Haptics: { impact: async () => ({}), notification: async () => ({}), selection: async () => ({}) },
     StatusBar: { setStyle: async () => ({}), setBackgroundColor: async () => ({}) },
     Keyboard: { addListener: (ev, fn) => Promise.resolve(addListener(ev, fn)), setAccessoryBarVisible: async () => ({}) },
-    SplashScreen: { hide: async () => ({}) }
+    SplashScreen: { hide: async () => ({}) },
+    AppRating: { request: async () => { window.__ratingAsks = (window.__ratingAsks || 0) + 1; return { asked: true } } }
   }
 }
 

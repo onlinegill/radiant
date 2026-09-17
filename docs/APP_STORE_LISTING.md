@@ -221,7 +221,45 @@ Alternative (158 chars):
 > type leaves the device — and your own API keys for the big ones when you
 > want them.
 
-### ⚠️ It is not coming up in search
+### ⚠️ It ranks nowhere — and it IS indexed
+
+Measured 2026-09-17 against the search API, 50 results deep:
+
+| Search | Result |
+|---|---|
+| "Radiant Local" | **found, position #17** |
+| "Radiant" | not in top 47 |
+| "Radiant AI" | not in top 48 |
+| "Radiant - Local AI Chat" (its own name) | not in top 44 |
+| "local ai chat" | not in top 42 |
+| developer "Anthony Ricciardi" | found |
+
+So the record is indexed and simply ranks nowhere — which is what happens to a
+day-old app with no downloads and no ratings. This is a RANKING problem, not a
+propagation one, and the earlier note saying the index had not taken was wrong.
+
+**Two levers. Tony owns the first, Radiant now does the second.**
+
+**1. The keywords field (100 characters, App Store Connect → the version →
+Keywords).** Drafted, 99 chars, and deliberately repeats nothing already in the
+name or subtitle — Apple indexes those and a repeat wastes the budget:
+
+```
+offline,llm,private,privacy,ondevice,mlx,llama,mistral,gemma,qwen,deepseek,assistant,gpt,opensource
+```
+
+Comma-separated, **no spaces after the commas** (a space costs a character and
+buys nothing). "offline" is the one most worth having: it is what people
+actually search for and it is the app's whole claim.
+
+**2. Ratings, which Radiant now asks for.** Zero ratings is a large part of why
+it ranks nowhere, and it is the one input the app itself can move. iOS build 19
+adds `AppRating` (StoreKit) and asks exactly once, only after a model has
+finished downloading AND the person has had a real conversation — never on
+launch, never mid-task. See `src/mobile/rating.js` and `scripts/test-rating.mjs`.
+
+### Older note, kept because the conclusion above corrects it
+
 
 Searching the app's OWN NAME — "Radiant Local AI Chat" — returns three results
 and none of them is Radiant. Searching the developer, "Anthony Ricciardi",

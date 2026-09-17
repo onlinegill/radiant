@@ -23,6 +23,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fitOf } from './fit.js'
 import * as haptics from './haptics.js'
+import { maybeAskForRating } from './rating.js'
+import { listChats } from './chats.js'
 
 const LM = () => (typeof window !== 'undefined' ? window.Capacitor?.Plugins?.LocalModels : null)
 const DEVICE = () => (typeof window !== 'undefined' ? window.Capacitor?.Plugins?.Device : null)
@@ -147,6 +149,15 @@ export function useLocalModels () {
         setJustDone(id)
         haptics.notification('SUCCESS')
         refreshDisk()
+        // ⚠️ THE ONE MOMENT IT IS FAIR TO ASK. A model has just finished
+        // downloading and the person has already had a real conversation —
+        // they have seen it work twice, on their own hardware, with nothing
+        // gone wrong. Never on launch, never mid-task. See rating.js; it asks
+        // at most once, cannot fail and must not change anything here.
+        try {
+          const turns = listChats().reduce((n, c) => n + (c.turns || 0), 0)
+          maybeAskForRating({ turns })
+        } catch { /* a rating prompt must never affect a download */ }
         // ⚠️ A FINISHED DOWNLOAD THAT THE APP THEN DOES NOT RECOGNISE MUST SAY
         // SO. Marking it downloaded here is optimistic; the next refresh asks
         // the native side, and if that disagrees the row quietly reverts to

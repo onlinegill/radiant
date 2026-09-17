@@ -45,5 +45,21 @@ for (const file of readdirSync(dir).filter(f => f.endsWith('.swift'))) {
   }
 }
 
+// ⚠️ A PLUGIN FILE ON DISK IS NOT A PLUGIN IN THE APP. AppRating.swift was
+// written, compiled locally by `swift build`'s reckoning, installed, and was
+// NOT in the binary — because it was never added to the Xcode project's
+// Sources phase. Capacitor then refuses the call at runtime and the JS
+// `.catch()` swallows it, so the feature is simply absent and silent. Every
+// plugin file must appear in project.pbxproj as a file reference AND in the
+// build phase; one without the other compiles nothing.
+{
+  const pbx = readFileSync('apps/ios/ios/App/App.xcodeproj/project.pbxproj', 'utf8')
+  const files = readdirSync('apps/ios/ios/App/App/plugins').filter(f => f.endsWith('.swift'))
+  for (const f of files) {
+    is(`${f} is a file reference in the Xcode project`, /PBXFileReference/.test(pbx.split('\n').filter(l => l.includes(f)).join('\n')), true)
+    is(`${f} is in the Sources build phase`, pbx.includes(`${f} in Sources */,`), true)
+  }
+}
+
 console.log(`${pass}/${pass + fail} passed  ·  Swift, pluginMethods and bridge.js agree`)
 process.exit(fail ? 1 : 0)

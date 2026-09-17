@@ -27,6 +27,7 @@ const LOUD = {
   SecureStore: ['set', 'get', 'remove', 'keys'],
   ProviderChat: ['models', 'send', 'stop'],
   AppleModel: ['availability', 'send', 'stop'],
+  AppRating: ['request'],
   LocalModels: ['list', 'downloaded', 'download', 'cancelDownload', 'remove', 'generate', 'stop', 'diskInfo', 'deviceInfo', 'addCustom', 'removeCustom', 'diagnose'] }
 const QUIET = {
   Haptics: ['impact', 'notification', 'vibrate', 'selectionStart', 'selectionChanged', 'selectionEnd'],
