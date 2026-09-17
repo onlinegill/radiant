@@ -230,92 +230,48 @@ live one is locked; the script says exactly that instead of returning Apple's
 bare 409. Promotional text is the exception and can be set on the live version
 at any time.
 
-## What the live listing is NOT using — audited 2026-09-17
+## The listing, read from the API — corrected 2026-09-17
 
-Read from Apple's own data (`itunes.apple.com/lookup?id=6804891721`), not the
-rendered page.
+⚠️ **THE EARLIER AUDIT ON THIS PAGE WAS WRONG AND HAS BEEN DELETED.** It said
+promotional text was empty and keywords were probably empty. Both were already
+set. The mistake was reading `itunes.apple.com/lookup`, which **does not expose
+keywords at all** (they are never public) and does not reliably return
+promotional text — and then reporting "empty" for "not present in this
+response". Absence of evidence was reported as evidence of absence, and it sent
+Tony looking for a problem that did not exist.
 
-| Field | State | Needs review? |
-|---|---|---|
-| **Promotional text** | **empty** | **No — editable any time** |
-| Description | says "44 models"; the catalogue ships **53** | Yes (metadata review, no build) |
-| iPhone screenshots | **4** of a possible 10 | Yes |
-| iPad screenshots | **1** | Yes |
-| App preview video | **none** (up to 3 allowed) | Yes |
-| Release notes | none (correct for 1.0) | With the next version |
-| Categories | Productivity + Developer Tools | fine |
-| Age rating | 13+ | see the age-rating section |
+Read it with `node scripts/asc.mjs get 6804891721`, which asks App Store
+Connect itself. What is actually there on 1.0 (READY_FOR_SALE):
 
-⚠️ **Promotional text is the only one of these that changes with no review at
-all** — 170 characters, shown above the description, editable whenever. It is
-empty. Drafted, ready to paste (164 chars):
-
-> Every model runs on your phone, not a server. 53 open models from Google,
-> Meta, Mistral and more — no account, no signal needed, nothing you type
-> leaves the device.
-
-Alternative (158 chars):
-
-> 53 open models, running on your iPhone. No account, no signal, nothing you
-> type leaves the device — and your own API keys for the big ones when you
-> want them.
-
-### ⚠️ It ranks nowhere — and it IS indexed
-
-Measured 2026-09-17 against the search API, 50 results deep:
-
-| Search | Result |
+| Field | State |
 |---|---|
-| "Radiant Local" | **found, position #17** |
-| "Radiant" | not in top 47 |
-| "Radiant AI" | not in top 48 |
-| "Radiant - Local AI Chat" (its own name) | not in top 44 |
-| "local ai chat" | not in top 42 |
-| developer "Anthony Ricciardi" | found |
+| keywords | **set** — 76 of 100 characters used |
+| promotionalText | **set** |
+| description | 1,413 chars (says "44 models"; the catalogue ships 53) |
+| whatsNew | empty — correct for a 1.0 |
+| marketing / support URL | both set |
 
-So the record is indexed and simply ranks nowhere — which is what happens to a
-day-old app with no downloads and no ratings. This is a RANKING problem, not a
-propagation one, and the earlier note saying the index had not taken was wrong.
+### What is actually worth changing, with 1.1
 
-**Two levers. Tony owns the first, Radiant now does the second.**
+Small, and none of it urgent:
 
-**1. The keywords field (100 characters, App Store Connect → the version →
-Keywords).** Drafted, 99 chars, and deliberately repeats nothing already in the
-name or subtitle — Apple indexes those and a repeat wastes the budget:
+- **24 unused keyword characters.** The budget is 100 and 76 are used.
+- **Four third-party brand names** — `gemma`, `qwen`, `llama`, `mistral`. They
+  are live and Apple accepted them, but `gpt` was struck from this same field
+  under the 5.0.0 citation, so the precedent exists. The models stay named in
+  the description, which is held to a looser standard.
+- **The description undersells it**: 44 models claimed, 53 shipped.
+
+Proposed for 1.1 (97/100, no brand names, nothing repeated from the name or
+subtitle):
 
 ```
-offline,llm,private,privacy,ondevice,openweight,assistant,opensource,nointernet,secure,chatbot
+offline,private,llm,assistant,coding,code,on-device,privacy,ondevice,opensource,nointernet,secure
 ```
 
-⚠️ **An earlier draft of this line contained `gpt`, `llama`, `mistral`, `gemma`,
-`qwen` and `deepseek`. Do not restore them.** `gpt` is the exact term Apple made
-us strip from keywords under the 5.0.0 citation (see rejections.md), and the
-other five are other companies' product names — the checklist's "no competitor
-brand names" rule. The models are still described in the description, which is
-held to a different standard than keywords and a subtitle.
-
-Comma-separated, **no spaces after the commas** (a space costs a character and
-buys nothing). "offline" is the one most worth having: it is what people
-actually search for and it is the app's whole claim.
-
-**2. Ratings, which Radiant now asks for.** Zero ratings is a large part of why
-it ranks nowhere, and it is the one input the app itself can move. iOS build 19
-adds `AppRating` (StoreKit) and asks exactly once, only after a model has
-finished downloading AND the person has had a real conversation — never on
-launch, never mid-task. See `src/mobile/rating.js` and `scripts/test-rating.mjs`.
-
-### Older note, kept because the conclusion above corrects it
-
-
-Searching the app's OWN NAME — "Radiant Local AI Chat" — returns three results
-and none of them is Radiant. Searching the developer, "Anthony Ricciardi",
-finds it. So the record is in the catalogue and the keyword index has not
-taken, which is more than the usual propagation lag a day after release.
-Worth checking the **keywords** field in App Store Connect (100 characters,
-comma-separated, no spaces after commas, and do NOT repeat words already in
-the name or subtitle — they are indexed already).
-
----
+⚠️ **So the ranking problem is not empty metadata.** The keywords were always
+reasonable. It is a day-old app with **zero ratings**, which is the input the
+listing cannot fix and the app can — hence the rating prompt in iOS build 19.
 
 ## ✅ APPROVED — 1.0 (build 7), 2026-09-16
 
