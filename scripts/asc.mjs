@@ -32,8 +32,28 @@ import os from 'node:os'
 import path from 'node:path'
 
 const API = 'https://api.appstoreconnect.apple.com/v1'
-const KEY_ID = process.env.ASC_KEY_ID
-const ISSUER = process.env.ASC_ISSUER_ID
+
+/**
+ * The two ids, from the environment or from ~/.appstoreconnect/radiant.env.
+ *
+ * ⚠️ A FILE, SO IT SURVIVES THE SHELL. Exported variables live as long as one
+ * terminal; this has to work from any session, months later, without anyone
+ * being asked for them again. The .p8 is NOT in here — it stays a file in
+ * private_keys/, and nothing prints either.
+ */
+function ids () {
+  const out = { ASC_KEY_ID: process.env.ASC_KEY_ID, ASC_ISSUER_ID: process.env.ASC_ISSUER_ID }
+  if (out.ASC_KEY_ID && out.ASC_ISSUER_ID) return out
+  const cfg = path.join(os.homedir(), '.appstoreconnect', 'radiant.env')
+  if (fs.existsSync(cfg)) {
+    for (const line of fs.readFileSync(cfg, 'utf8').split('\n')) {
+      const m = /^\s*(ASC_KEY_ID|ASC_ISSUER_ID)\s*=\s*(.+?)\s*$/.exec(line)
+      if (m && m[2]) out[m[1]] = out[m[1]] || m[2]
+    }
+  }
+  return out
+}
+const { ASC_KEY_ID: KEY_ID, ASC_ISSUER_ID: ISSUER } = ids()
 
 function keyPath () {
   if (process.env.ASC_KEY_PATH) return process.env.ASC_KEY_PATH
@@ -48,7 +68,7 @@ function keyPath () {
  */
 function token () {
   if (!KEY_ID || !ISSUER) {
-    throw new Error('Set ASC_KEY_ID and ASC_ISSUER_ID (App Store Connect → Users and Access → Integrations).')
+    throw new Error('No API key configured. Fill in ASC_KEY_ID and ASC_ISSUER_ID in ~/.appstoreconnect/radiant.env (App Store Connect → Users and Access → Integrations).')
   }
   const file = keyPath()
   if (!fs.existsSync(file)) throw new Error(`No private key at ${file}. Put the .p8 Apple gave you there.`)
