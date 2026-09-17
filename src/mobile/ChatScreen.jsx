@@ -20,6 +20,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import MobileChat from './MobileChat.jsx'
 import { loadChat, saveChat, deleteChat, newChatId, listChats } from './chats.js'
+import { adoptDraft, saveDraft } from './drafts.js'
 
 const LEGACY_KEY = 'rx.chat.transcript'
 
@@ -48,6 +49,11 @@ export default function ChatScreen ({ nav, model, onModelInfo, chatId, downloade
   })
 
   const [initial] = useState(() => loadChat(id)?.messages || [])
+  // ⚠️ THE UNSENT SENTENCE SURVIVES LEAVING THE SCREEN. A chat with no model is
+  // the one you have to walk out of — to pick a model, or to start a download —
+  // and the composer's React state died with the layer. See drafts.js.
+  const [initialDraft] = useState(() => adoptDraft(id, listChats().map(c => c.id).concat(listChats({ archived: true }).map(c => c.id))))
+  const onDraftChange = useCallback((text) => saveDraft(id, text), [id])
   const [nonce, setNonce] = useState(0)
   // The skill this conversation is using, restored with the conversation.
   const [skillId, setSkillId] = useState(() => loadChat(id)?.skillId || null)
@@ -93,6 +99,11 @@ export default function ChatScreen ({ nav, model, onModelInfo, chatId, downloade
       onSwitchModel={onSwitchModel}
       initialMessages={nonce === 0 ? initial : []}
       onMessagesChange={onMessagesChange}
+      initialDraft={nonce === 0 ? initialDraft : ''}
+      onDraftChange={onDraftChange}
+      // A chat with nothing to answer it needs a way out that is not the Back
+      // button — see the strip above the composer in MobileChat.
+      onGetModel={() => nav.push('models', {})}
       onDeleteConversation={onDeleteConversation}
       skillId={skillId}
       onSkillChange={onSkillChange}

@@ -60,6 +60,13 @@ const sections = () => [
     ]
   },
   {
+    title: 'What you type is kept',
+    body: [
+      'Start writing a message, leave the chat to do something else, and it is still in the box when you come back. Nothing is sent until you tap the arrow.',
+      `That matters most when there is no model yet. A conversation opens whether or not anything can answer it, and it now says so above the box, with a button to go and choose one. Write your message first if you like — go pick a model or start a download, and your sentence is waiting for you on this ${deviceWord()} when you return.`
+    ]
+  },
+  {
     title: 'Keeping a conversation',
     body: [
       'Swipe a row left in Recent Sessions and you get two things: Archive and Delete. Archive puts a conversation under an Archived heading at the foot of the list, folded away until you tap it.',

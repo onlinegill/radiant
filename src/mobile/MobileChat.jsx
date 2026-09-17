@@ -342,6 +342,28 @@ function MenuRow ({ label, glyph, destructive, onPick }) {
   )
 }
 
+/** The one thing to say in a chat that has no model, and the way to fix it. */
+function NoModelStrip ({ onGetModel }) {
+  const { pressed, handlers } = usePress(() => onGetModel?.(), { haptic: 'LIGHT' })
+  return (
+    <div className='rx-chat-nomodel'>
+      <span className='rx-chat-nomodel-text'>No model yet — nothing can answer. What you type is kept.</span>
+      <span
+        className={'rx-chat-nomodel-btn' + (pressed ? ' is-pressed' : '')}
+        role='button'
+        tabIndex={0}
+        aria-label='Choose a model'
+        {...handlers}
+        // This file's usePress is touch-only; a phone can still have a
+        // keyboard, Full Keyboard Access or Switch Control.
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGetModel?.() } }}
+      >
+        Choose a model
+      </span>
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function MobileChat ({
@@ -352,9 +374,13 @@ export default function MobileChat ({
   onSwitchModel,
   initialMessages = [],
   onMessagesChange,
-  onDeleteConversation, skillId = null, onSkillChange, onManageSkills}) {
+  onDeleteConversation, skillId = null, onSkillChange, onManageSkills,
+  initialDraft = '', onDraftChange, onGetModel}) {
   const [messages, setMessages] = useState(initialMessages)
-  const [draft, setDraft] = useState('')
+  // ⚠️ SEEDED, AND WRITTEN BACK. What you typed and did not send belongs to the
+  // conversation, not to this component's lifetime — leaving the screen to go
+  // and get a model used to throw the sentence away. See drafts.js.
+  const [draft, setDraft] = useState(initialDraft)
   const [live, setLive] = useState(null) // { marker, error } for the turn being generated
   const [scrolled, setScrolled] = useState(false)
   const [showJump, setShowJump] = useState(false)
@@ -640,6 +666,19 @@ export default function MobileChat ({
 
   useLayoutEffect(grow, [draft, grow])
 
+  // ⚠️ DEBOUNCED WHILE TYPING, FLUSHED ON THE WAY OUT — BOTH HALVES MATTER.
+  // localStorage is a synchronous write on the same thread that is rendering
+  // each keystroke, so it must not run per character; and the moment the draft
+  // is worth keeping is the moment this screen is destroyed, which is exactly
+  // when a pending debounce would be thrown away. So the cleanup writes too.
+  const draftRef = useRef(draft); draftRef.current = draft
+  const draftOut = useRef(onDraftChange); draftOut.current = onDraftChange
+  useEffect(() => {
+    const t = setTimeout(() => draftOut.current?.(draftRef.current), 300)
+    return () => clearTimeout(t)
+  }, [draft])
+  useEffect(() => () => draftOut.current?.(draftRef.current), [])
+
   // ── generation ────────────────────────────────────────────────────────────
   useEffect(() => {
     const lm = plugins().LocalModels
@@ -729,7 +768,20 @@ export default function MobileChat ({
   const [consentAsk, setConsentAsk] = useState(null)   // { provider, text }
   const send = useCallback(text => {
     let body = (text ?? draft).trim()
-    if (!body || run.current || !model) return
+    if (!body || run.current) return
+    // ⚠️ THIS WAS `|| !model` ON THE LINE ABOVE, AND IT SAID NOTHING. Paul,
+    // testing 1.0 on 2026-09-17: he typed in a chat with no model and the
+    // message went nowhere — the send button ran this function, hit that guard,
+    // and returned. No error, no haptic, no way forward, and the composer's
+    // text was lost as soon as he left to go and find a model. Keep the
+    // sentence (drafts.js now persists it), say why nothing was sent, and take
+    // him to the one screen that fixes it.
+    if (!model) {
+      haptics.notification?.('WARNING')
+      if (text != null && text !== draft) setDraft(text)   // a tapped suggestion
+      onGetModel?.()
+      return
+    }
     const lm = plugins().LocalModels
     if (!lm) return
     {
@@ -817,7 +869,7 @@ export default function MobileChat ({
         }
       }, 250)
     })
-  }, [draft, messages, model, stick])
+  }, [draft, messages, model, stick, onGetModel])
 
   // ⚠️ STOP EVERY ENGINE, NOT THE LOCAL ONE. This only ever called
   // LocalModels.stop, so Stop did nothing at all to a cloud answer — it just
@@ -927,7 +979,15 @@ export default function MobileChat ({
             <div className='rx-chat-empty'>
               <BrandMark size={64} />
               <div className='rx-chat-empty-name'>{model?.name || 'No model'}</div>
-              <div className='rx-chat-empty-sub'>Running on this {deviceWord()}. Nothing leaves the device.</div>
+              {/* The privacy line is a claim about a model that is answering.
+                  With no model there is nothing to claim, and saying "nothing
+                  leaves the device" under the words "No model" reads as though
+                  something is running. */}
+              <div className='rx-chat-empty-sub'>
+                {model
+                  ? `Running on this ${deviceWord()}. Nothing leaves the device.`
+                  : `Choose a model and it runs on this ${deviceWord()}.`}
+              </div>
               <div className='rx-chat-suggestions'>
                 <Suggestion text='Rewrite this paragraph' onPick={send} />
                 <Suggestion text='Explain a shell command' onPick={send} />
@@ -1034,7 +1094,14 @@ export default function MobileChat ({
             >×</span>
           </div>
         )}
+        {/* ⚠️ A CHAT WITH NOTHING TO ANSWER IT HAS TO SAY SO. This screen is
+            reachable with no model at all — tap a conversation on Home after
+            removing every model, or open one on a phone where Apple
+            Intelligence is off — and it looked exactly like a working chat.
+            Paul typed into it and nothing happened. The strip says why, and is
+            the way out; what you have typed is kept while you are gone. */}
         <div className='rx-chat-composer' ref={composerRef}>
+          {!model && <NoModelStrip onGetModel={onGetModel} />}
           {model?.vision && (
             <>
               <span
@@ -1054,7 +1121,7 @@ export default function MobileChat ({
             className='rx-chat-field'
             value={draft}
             rows={1}
-            placeholder={'Message ' + (model?.name?.replace(/\s+\S+B$/i, '') || 'the model')}
+            placeholder={model ? 'Message ' + model.name.replace(/\s+\S+B$/i, '') : 'Type here — pick a model to send'}
             // 17px minimum, never reduced: below 16px iOS zooms the page on
             // focus and the illusion is over in one tap.
             onChange={e => setDraft(e.target.value)}
@@ -1417,7 +1484,13 @@ const CSS = `
 /* ── composer ── */
 .rx-chat-composer {
   position: absolute; left: var(--rx-gutter, 0px); right: var(--rx-gutter, 0px); bottom: 0; z-index: 3;
-  display: flex; align-items: flex-end; gap: 8px;
+  /* ⚠️ wrap, so the no-model strip can be a full-width row INSIDE the composer.
+     Everything anchored above the composer — the skill bar, the slash list, a
+     photo, the transcript's bottom padding — is offset by
+     --rx-chat-composerh, which is measured from this element. A strip rendered
+     as a sibling would have needed its own measurement and its own place in
+     four separate offsets; as a child it is free. */
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px;
   padding: 8px 8px 8px 16px;
   padding-bottom: max(8px, env(safe-area-inset-bottom));
   background: var(--rx-mat);
@@ -1427,6 +1500,24 @@ const CSS = `
   transform: translate3d(0, calc(-1 * var(--rx-kb)), 0);
   transition: transform var(--rx-kb-dur) var(--rx-down);
 }
+/* ── the chat that has no model ── */
+.rx-chat-nomodel {
+  order: -1; flex: 1 0 100%;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0 8px 8px 0; padding: 8px 10px;
+  border-radius: 12px; background: var(--rx-fill-2);
+}
+.rx-chat-nomodel-text {
+  font-size: calc(13px * var(--rx-dt)); line-height: 1.3; color: var(--rx-label-2);
+  min-width: 0;
+}
+.rx-chat-nomodel-btn {
+  flex: none; padding: 5px 11px; border-radius: 999px;
+  background: var(--rx-tint); color: var(--rx-on-tint);
+  font-size: calc(13px * var(--rx-dt)); font-weight: 590; white-space: nowrap;
+}
+.rx-chat-nomodel-btn.is-pressed { opacity: 0.72; }
+
 .rx-chat-field {
   flex: 1; min-width: 0; resize: none; border: 0; appearance: none;
   font-size: calc(17px * var(--rx-dt)); line-height: 1.294; font-weight: 400; /* 17px floor — anything smaller zooms on focus */

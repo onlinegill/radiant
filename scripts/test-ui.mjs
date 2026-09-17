@@ -809,6 +809,58 @@ await page.waitForTimeout(600)
   await p7.close()
 }
 
+// ── ⚠️ THE CHAT THAT HAS NO MODEL, AND THE SENTENCE TYPED INTO IT ───────
+// Paul, testing 1.0 on 2026-09-17: he typed in a chat with no model and the
+// message went nowhere — the send button ran a guard that returned, silently —
+// and the text was gone by the time he came back from finding a model. Tony,
+// relaying it: "the text should stay in the window while a model is being
+// picked/downloaded." This screen IS reachable with no model: a conversation
+// already in the list opens from Home whether or not anything can answer it.
+{
+  const pN = await browser.newPage({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 3, hasTouch: true })
+  await pN.goto(BASE + '?empty=1&apple=0', { waitUntil: 'networkidle' })
+  await pN.evaluate(() => {
+    localStorage.setItem('rx.firstRunDone', '1')
+    localStorage.setItem('radiant.phone.chats', JSON.stringify([{
+      id: 'paul', title: 'Rain', updated: Date.now(), modelId: 'qwen3-1.7b', modelName: 'Qwen 3 1.7B',
+      messages: [{ id: 'u1', role: 'user', text: 'hi' }, { id: 'a1', role: 'assistant', text: 'hello' }]
+    }]))
+  })
+  await pN.reload({ waitUntil: 'networkidle' })
+  await pN.waitForTimeout(900)
+  await pN.locator('text="Rain"').first().click({ force: true })
+  await pN.waitForTimeout(800)
+
+  const field = pN.locator('textarea').first()
+  ok('a conversation still opens when no model is installed', await field.count() === 1)
+  const t = await pN.locator('body').innerText()
+  ok('and says so, rather than looking like a working chat', /nothing can answer/i.test(t))
+  ok('with the way to fix it right there', /Choose a model/.test(t))
+
+  const SENTENCE = 'write me a haiku about rain'
+  await field.fill(SENTENCE)
+  await pN.waitForTimeout(500)
+  const send = pN.locator('button[aria-label*="Send" i]').first()
+  await send.click({ force: true })
+  await pN.waitForTimeout(900)
+
+  // ⚠️ MEASURE THE RENDERED VALUE, NOT THE SOURCE. The old guard read fine.
+  is('sending with no model keeps what you typed',
+    await pN.locator('textarea').first().inputValue(), SENTENCE)
+  ok('and takes you to the models, instead of doing nothing at all',
+    /Choose a model to run on this/i.test(await pN.locator('body').innerText()))
+
+  // The real test of "it stays while a model is picked": come back to a screen
+  // that was destroyed and rebuilt, which is what leaving the chat does.
+  await pN.reload({ waitUntil: 'networkidle' })
+  await pN.waitForTimeout(900)
+  await pN.locator('text="Rain"').first().click({ force: true })
+  await pN.waitForTimeout(900)
+  is('and it is still there after the screen is rebuilt',
+    await pN.locator('textarea').first().inputValue(), SENTENCE)
+  await pN.close()
+}
+
 // ── ⚠️ APPLE'S MODEL HAS TO BE VISIBLE ON THE MODELS SCREEN ─────────────
 // It was only ever in the in-chat switcher, so with any model downloaded the
 // Models screen never mentioned it. Tony: "I dont see apples model as an
