@@ -17,6 +17,7 @@ import SwipeRow from './SwipeRow.jsx'
 import { BrandMark } from './BrandSpinner.jsx'
 import wordUrl from '../assets/brand/radiant-wordmark.png'
 import { listChats, deleteChat, setArchived, whenLabel, onChatsChanged } from './chats.js'
+import CompanyLine from './CompanyLine.jsx'
 
 /** Time of day, because a greeting that never changes stops being one. */
 function greeting () {
@@ -216,9 +217,7 @@ export default function HomeScreen ({
       {/* The byline the first-run screen carries, kept at the foot of Home —
           once the intro stops appearing, Home is the only screen anyone sees
           on launch, and it was the only place the product said whose it is. */}
-      <p className="rx-home-byline">
-        Radiant is a Templeton&nbsp;Technologies product.
-      </p>
+      <CompanyLine className="rx-home-byline" />
     </>
   )
 }

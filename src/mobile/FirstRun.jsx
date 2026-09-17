@@ -19,6 +19,7 @@ import usePress from './usePress.js'
 import { BrandMark } from './BrandSpinner.jsx'
 import wordUrl from '../assets/brand/radiant-wordmark.png'
 import ttUrl from '../assets/brand/templeton-tech-mark.png'
+import CompanyLine from './CompanyLine.jsx'
 
 export default function FirstRun ({ onChooseModel, onStartChat, hasModel, appleReady }) {
   // Start Chat leads, but only when there is something to chat WITH. With an
@@ -117,9 +118,7 @@ export default function FirstRun ({ onChooseModel, onStartChat, hasModel, appleR
           oklch(0.15 0.018 262) behind it and so does this screen, so the mark
           is being used in the condition it was approved in. */}
       <div className="rx-intro-footer">
-        <p className="rx-intro-byline">
-          Radiant is a Templeton&nbsp;Technologies product.
-        </p>
+        <CompanyLine className="rx-intro-byline" />
         <img
           className="rx-intro-tt"
           src={ttUrl}

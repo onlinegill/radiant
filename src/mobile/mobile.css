@@ -2211,6 +2211,33 @@
   text-align: center;
 }
 
+/* ---- the byline, which is a link ---------------------------------------
+   "Radiant is a Templeton Technologies product." on the welcome screen, at the
+   foot of Home, under the Read me and under About. One component draws all
+   four (CompanyLine.jsx); these rules add the affordance without disturbing
+   the four different bylines' own type, color and spacing.
+
+   ⚠️ THE HIT AREA IS GROWN, NOT THE BOX. A caption line is about 16pt tall and
+   Apple's floor for a target is 44. Padding would have moved the byline on all
+   four screens — it sits under a hero on one, closes a scroll on another. The
+   pseudo-element is a 44pt strip centred on the text that changes no layout at
+   all; nothing near it is tappable, so there is nothing for it to steal. */
+.is-native .rx-byline {
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.is-native .rx-byline::after {
+  content: '';
+  position: absolute; left: 0; right: 0;
+  top: 50%; transform: translateY(-50%);
+  height: 44px;
+}
+/* Tinted, the way a link reads everywhere else in iOS — the surrounding
+   sentence keeps whatever color its screen gives it. */
+.is-native .rx-byline-co { color: var(--rx-tint-text); }
+.is-native .rx-byline.is-pressed .rx-byline-co { opacity: 0.55; }
+
 /* the phone's own guide — prose, so it gets a measure and real paragraph rhythm */
 .is-native .rx-readme { padding: 4px 20px 18px; }
 .is-native .rx-readme-title {

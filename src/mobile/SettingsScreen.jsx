@@ -17,6 +17,7 @@ import { deviceWord } from './device.js'
 import usePress from './usePress.js'
 import { BrandMark } from './BrandSpinner.jsx'
 import { THEMES, TEXT_SIZES, MODES, OPEN_TO, applyAppearance, swatch } from './theme.js'
+import CompanyLine from './CompanyLine.jsx'
 
 const GB = 1e9
 const fmt = (b) => (b >= GB ? `${(b / GB).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`)
@@ -239,7 +240,7 @@ export default function SettingsScreen ({
       </div>
       <div className="rx-about-mark">
         <BrandMark size={44} />
-        <p className="rx-about-line">Radiant is a Templeton&nbsp;Technologies product.</p>
+        <CompanyLine className="rx-about-line" />
       </div>
     </>
   )

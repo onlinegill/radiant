@@ -14,6 +14,7 @@
  */
 import React, { useEffect, useState } from 'react'
 import { deviceWord, onDeviceResolved } from './device.js'
+import CompanyLine from './CompanyLine.jsx'
 
 // ⚠️ BUILT PER RENDER, NOT AT IMPORT. This was a module-level const, so every
 // deviceWord() in it was resolved once — while the answer was still the default
@@ -101,6 +102,12 @@ const sections = () => [
     ]
   },
   {
+    title: 'Who makes this',
+    body: [
+      'Radiant is a Templeton Technologies product. That line sits at the foot of the welcome screen, of Home, of this guide and of About — tap it anywhere it appears and it opens templetontech.com in Safari, so you can see whose app this is.'
+    ]
+  },
+  {
     title: 'How it looks',
     body: [
       'Settings → Appearance chooses Dark, Medium, Light, or System — Medium is dark without the true black, and System follows your phone. Radiant opens dark unless you change it.',
@@ -123,9 +130,7 @@ export default function ReadMeScreen () {
           {s.body.map((p, i) => <p key={i} className="rx-readme-body">{p}</p>)}
         </section>
       ))}
-      <p className="rx-section-footer">
-        Radiant is a Templeton&nbsp;Technologies product.
-      </p>
+      <CompanyLine className="rx-section-footer" />
     </>
   )
 }

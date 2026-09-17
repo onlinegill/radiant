@@ -977,6 +977,96 @@ for (const [query, label, expect] of [['', 'available', /nothing to download/], 
   }
 }
 
+// ── ⚠️ THE BYLINE IS A LINK, ON EVERY SCREEN THAT CARRIES IT ────────────
+// "Radiant is a Templeton Technologies product." names the company on four
+// screens and, until now, gave nobody a way to find it. Tony, 2026-09-17: it
+// "should be clickable and take people to the templetontech.com website."
+// Four copies of one sentence is four chances for one of them to stay dead, so
+// this walks to each and taps it.
+{
+  const pB = await browser.newPage({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 3, hasTouch: true })
+  const armed = async () => pB.evaluate(() => { window.__opened = []; window.open = (u) => { window.__opened.push(u); return null } })
+  // ⚠️ WAIT FOR IT TO STOP MOVING. The welcome screen's footer rises in over
+  // the first 1.76s (rx-rise, 960ms delay + 800ms). A tap that lands while it
+  // is still travelling releases somewhere the element no longer is — which is
+  // a flaky test, not an app bug: nobody reads a welcome screen and reaches its
+  // footer inside two seconds.
+  const settled = async (sel) => {
+    await pB.evaluate(() => { window.__lastY = null })
+    await pB.waitForFunction((s) => {
+      const el = document.querySelector(s)
+      if (!el) return false
+      const y = el.getBoundingClientRect().top
+      if (window.__lastY === y) return true
+      window.__lastY = y
+      return false
+    }, sel, { timeout: 8000, polling: 120 })
+  }
+
+  // ⚠️ SCOPE IT TO THE SCREEN UNDER TEST. Every layer stays mounted under the
+  // one pushed over it — Home is still there beneath the welcome cover — so an
+  // unscoped `[role="link"]` picked up Home's byline, tapped it through the
+  // cover, and reported the welcome screen's as broken. Each of the four call
+  // sites has its own class, which is what is wanted here anyway: the point is
+  // that all four are wired, not that one of them is.
+  const tapByline = async (sel, where) => {
+    await settled(sel)
+    const line = pB.locator(sel).last()
+    ok(`${where}: the byline is there`, await line.count() >= 1)
+    ok(`${where}: and it is a link`, await line.getAttribute('role') === 'link')
+    const name = await line.getAttribute('aria-label') || ''
+    ok(`${where}: and says where it goes`, /templetontech\.com/i.test(name))
+    // ⚠️ MEASURE THE TARGET, NOT THE TEXT. A caption line is ~16pt tall and the
+    // floor is 44; the hit strip is a pseudo-element, so read what the browser
+    // actually hit-tests rather than the box.
+    const tall = await line.evaluate(el => {
+      const r = el.getBoundingClientRect()
+      const a = getComputedStyle(el, '::after')
+      return Math.max(r.height, parseFloat(a.height) || 0)
+    })
+    ok(`${where}: the tap target clears 44pt (${Math.round(tall)}px)`, tall >= 44)
+    await armed()
+    await line.click({ force: true })
+    await pB.waitForTimeout(250)
+    is(`${where}: tapping it opens templetontech.com`,
+      await pB.evaluate(() => window.__opened), ['https://templetontech.com'])
+  }
+
+  // the welcome screen, which is the first thing anyone ever sees
+  await pB.goto(BASE + '?empty=1&apple=0', { waitUntil: 'networkidle' })
+  await pB.waitForTimeout(1000)
+  await tapByline('.rx-intro-byline', 'welcome')
+
+  // Home
+  await pB.goto(BASE, { waitUntil: 'networkidle' })
+  await pB.waitForTimeout(900)
+  await tapByline('.rx-home-byline', 'Home')
+
+  // Settings → About, and Settings → Read me
+  for (const [row, where, sel] of [['Read me', 'Read me', '.rx-section-footer'], [null, 'About', '.rx-about-line']]) {
+    await pB.goto(BASE, { waitUntil: 'networkidle' })
+    await pB.waitForTimeout(900)
+    await pB.locator('[aria-label="Settings"]').first().click({ force: true })
+    await pB.waitForTimeout(800)
+    if (row) {
+      const r = pB.locator(`text=${JSON.stringify(row)}`).first()
+      if (await r.count()) { await r.click({ force: true }); await pB.waitForTimeout(700) }
+    } else {
+      await pB.evaluate(() => { const el = document.querySelector('.rx-about-mark'); el?.scrollIntoView() })
+      await pB.waitForTimeout(300)
+    }
+    await tapByline(sel, where)
+  }
+
+  // ⚠️ AND NOWHERE STILL SHOWS IT AS DEAD TEXT. The point of one component is
+  // that a fifth screen cannot quietly carry a fifth, unlinked copy.
+  const stray = await pB.evaluate(() => [...document.querySelectorAll('p, span, div')]
+    .filter(el => el.children.length === 0 && /Templeton\s*\u00a0?\s*Technologies product/.test(el.textContent || ''))
+    .filter(el => !el.closest('[role="link"]')).length)
+  is('no screen still carries the byline as plain text', stray, 0)
+  await pB.close()
+}
+
 // ── ⚠️ THE DEVICE NAMES ITSELF ──────────────────────────────────────────
 // "iPhone" was hard-coded in forty-six user-facing strings. On an iPad every
 // one of them was untrue, and "running on your iPhone" under a picture of an
