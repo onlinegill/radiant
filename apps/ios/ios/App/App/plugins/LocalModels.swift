@@ -459,8 +459,30 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
               let rows = try? JSONDecoder().decode([RemoteCatalog.Row].self, from: data) else { return [] }
         return rows
     }()
-    private func saveCustom() {
-        if let data = try? JSONEncoder().encode(custom) { try? data.write(to: customURL, options: .atomic) }
+    /// Persist the person's own finds. Returns false if it could not.
+    ///
+    /// ⚠️ APPLICATION SUPPORT DOES NOT EXIST ON iOS UNTIL YOU MAKE IT, and this
+    /// wrote into it with `try?`, so the write failed and said nothing. The
+    /// model survived in memory for that session — Remove appeared, the
+    /// download ran, the weights landed — and then vanished on the next launch
+    /// with its gigabytes orphaned in Caches. Read from a real phone:
+    /// Library held Caches, Cookies, HTTPStorages, Preferences, Saved and
+    /// SplashBoard, and no Application Support at all. Tony: "it says it
+    /// downloaded but it does not show up in the list of models installed",
+    /// then "did you remove bonsai from my phone?" — nothing was removed; it
+    /// was never saved.
+    @discardableResult
+    private func saveCustom() -> Bool {
+        let dir = customURL.deletingLastPathComponent()
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(custom)
+            try data.write(to: customURL, options: .atomic)
+            return true
+        } catch {
+            NSLog("[Radiant] could not save custom models to \(customURL.path): \(error)")
+            return false
+        }
     }
     private func customEntries() -> [Entry] {
         custom.map { r in
@@ -479,7 +501,13 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
                                     stop: call.getString("stop"), vision: call.getBool("vision") ?? false, video: false)
         custom.removeAll { $0.id == id || $0.repo == repo }
         custom.append(row)
-        saveCustom()
+        // ⚠️ AND IT MUST NOT CLAIM SUCCESS IT DID NOT HAVE. Resolving here
+        // regardless is what let a model download, work for one session and
+        // then disappear, with nothing anywhere saying why.
+        guard saveCustom() else {
+            custom.removeAll { $0.id == id }
+            return call.reject("The model could not be saved to this device, so it would disappear when Radiant restarts.")
+        }
         call.resolve(["id": id])
     }
 

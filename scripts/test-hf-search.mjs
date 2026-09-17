@@ -80,5 +80,18 @@ ok(/progressText\(local\.progress/.test(hfRow), 'the Hugging Face row uses the s
 ok(!/progress\[[^\]]*\] \* 100/.test(hfRow), 'and does no arithmetic of its own on the progress object')
 ok(/<BrandSpinner size=\{29\} \/>/.test(hfRow), 'and shows the same turning swirl as a catalogue row')
 
+// ⚠️ THE REGISTRY MUST ACTUALLY PERSIST. Library/Application Support does not
+// exist on iOS until an app creates it, and saveCustom() wrote into it with
+// `try?` — so the write failed silently, the model lived in memory for one
+// session, and vanished on the next launch with its weights orphaned in
+// Caches. Verified by listing a real phone: no Application Support directory.
+const lm = fs.readFileSync('apps/ios/ios/App/App/plugins/LocalModels.swift', 'utf8')
+ok(/createDirectory\(at: dir, withIntermediateDirectories: true\)/.test(lm),
+   'saveCustom creates Application Support before writing into it')
+ok(!/try\? data\.write\(to: customURL/.test(lm), 'and no longer swallows the write failure')
+ok(/private func saveCustom\(\) -> Bool/.test(lm), 'it reports whether it succeeded')
+ok(/guard saveCustom\(\) else/.test(lm), 'and addCustom refuses rather than claiming a save it did not make')
+ok(/could not be saved to this device/.test(lm), 'with a reason a person can act on')
+
 console.log(`\n${pass}/${pass + fail} passed  ·  a Hugging Face model is qualified before a byte is downloaded`)
 process.exit(fail ? 1 : 0)
