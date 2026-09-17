@@ -71,19 +71,11 @@ import HuggingFaceSearch from './HuggingFaceSearch.jsx'
 import DeviceSpecs from './DeviceSpecs.jsx'
 import { byMaker } from './makers.js'
 import { GB } from './useLocalModels.js'
+// pure, and therefore testable — see progress.js for why it moved
+export { progressText } from './progress.js'
+import { progressText } from './progress.js'
 
 const fmtGB = (gb) => `${Number(gb || 0).toFixed(1)} GB`
-// What to print while a download runs. A percent when the total is known; the
-// megabytes when it is not — never "0%" for ten minutes, which is what a
-// fraction-only relay produced.
-export const progressText = (p) => {
-  if (!p) return null
-  if (typeof p.pct === 'number') return `${Math.round(p.pct * 100)}%`
-  if (p.done > 0) return p.done >= 1e9
-    ? `${(p.done / 1e9).toFixed(1)} GB`
-    : `${Math.round(p.done / 1e6)} MB`
-  return null
-}
 
 // The one model the sheet also pre-highlights. Falls back to the smallest entry
 // so a catalog change can never leave the empty hero with nothing to open.

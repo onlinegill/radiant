@@ -147,6 +147,26 @@ export function useLocalModels () {
         setJustDone(id)
         haptics.notification('SUCCESS')
         refreshDisk()
+        // ⚠️ A FINISHED DOWNLOAD THAT THE APP THEN DOES NOT RECOGNISE MUST SAY
+        // SO. Marking it downloaded here is optimistic; the next refresh asks
+        // the native side, and if that disagrees the row quietly reverts to
+        // "Download" with no explanation — which is exactly what Tony hit:
+        // "it says it downloaded but it does not show up in the list of
+        // models installed." Ask why, once, and put the answer on the row.
+        const lm = LM()
+        if (lm?.diagnose) {
+          lm.diagnose({ id }).then(d => {
+            if (!alive.current || d?.onDisk) return
+            const gb = n => (Number(n || 0) / 1e9).toFixed(2) + ' GB'
+            setFailures(f => ({
+              ...f,
+              [id]: !d?.hasReceipt
+                ? 'The download finished but was not recorded. Try again.'
+                : `The download finished but Radiant found only ${gb(d.bytesOnDisk)} of the ${gb(d.expectedBytes)} expected in ${d.folder}. The files may be incomplete, or the repo may store them elsewhere.`
+            }))
+            setModels(ms => ms.map(m => (m.id === id ? { ...m, downloaded: false } : m)))
+          }).catch(() => {})
+        }
         setTimeout(() => { if (alive.current) setJustDone(cur => (cur === id ? null : cur)) }, 900)
       },
       // Stopping a download is a choice, not a failure: clear the job, the
@@ -186,8 +206,19 @@ export function useLocalModels () {
   const download = useCallback(async (id) => {
     const lm = LM()
     if (!lm?.download || !id) return
-    // one at a time — which is also what enforces "exactly one gauge animates"
-    if (Object.values(jobs).includes('downloading')) return
+    // ⚠️ ONE AT A TIME, BUT SAY SO. This returned silently, so tapping Download
+    // while another model was in flight — or while a job had got stuck in that
+    // state — did NOTHING: no message, no haptic, no row change. Tony, on a
+    // Hugging Face model: "just tried downloading Bonsai and nothing happens."
+    // A guard that refuses without a word is the same silent failure as a turn
+    // that dies without one.
+    const busy = Object.entries(jobs).find(([, v]) => v === 'downloading')
+    if (busy) {
+      const other = models.find(m => m.id === busy[0])
+      setFailures(f => ({ ...f, [id]: `${other?.name || 'Another model'} is downloading. Wait for it to finish, or stop it first.` }))
+      haptics.notification('WARNING')
+      return
+    }
     setJobs(j => ({ ...j, [id]: 'downloading' }))
     setFailures(f => { if (!(id in f)) return f; const n = { ...f }; delete n[id]; return n })
     haptics.impact('MEDIUM')
@@ -199,7 +230,7 @@ export function useLocalModels () {
       setFailures(f => ({ ...f, [id]: e?.message || 'The download did not start.' }))
       haptics.notification('ERROR')
     }
-  }, [jobs])
+  }, [jobs, models])
 
   // Stop a running download. The optimistic clear matters: cancelling a 2.3 GB
   // transfer is the one moment the user is already annoyed, and waiting for the

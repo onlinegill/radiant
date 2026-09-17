@@ -272,6 +272,17 @@ ok('and the app does not drag you back down', held && held.after < 80)
   ok(`the search box starts behind the keyboard (${kb.before} > ${kb.keyboardTop})`, kb.before > kb.keyboardTop)
   ok(`and is lifted clear of it (${kb.before} → ${kb.fieldBottom})`, kb.fieldBottom <= kb.keyboardTop && kb.fieldTop >= 0)
   ok(`and so is the Search button (${kb.buttonBottom})`, kb.buttonBottom <= kb.keyboardTop)
+  // ⚠️ NO NUMBER A PERSON CAN SEE MAY BE NaN. The Hugging Face row rendered
+  // "Downloading… NaN%" because it read the progress OBJECT as a number.
+  // Drive a real progress event and assert the screen never says it.
+  await page.evaluate(() => {
+    const m = (window.Capacitor?.Plugins?.LocalModels)
+    window.__rxEmit?.('downloadStarted', { id: 'hf-mlx-community-tiny-test-4bit' })
+  })
+  await page.waitForTimeout(300)
+  const bodyText = await page.locator('body').innerText()
+  ok('no NaN reaches the screen during a download', !/NaN/.test(bodyText))
+
   await page.evaluate(() => window.__rxKeyboard(0))
   await page.waitForTimeout(300)
   await box.fill('tiny'); await page.keyboard.press('Enter'); await page.waitForTimeout(1500)

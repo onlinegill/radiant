@@ -15,6 +15,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import usePress from './usePress.js'
 import { deviceWord } from './device.js'
 import { searchModels, inspectRepo, qualify, customRow } from './hf.js'
+import BrandSpinner from './BrandSpinner.jsx'
+import { progressText } from './progress.js'
 import { fitOf } from './fit.js'
 
 export default function HuggingFaceSearch ({ local = {}, models = [], ramAvailable = null, onOpenChat }) {
@@ -93,7 +95,13 @@ export default function HuggingFaceSearch ({ local = {}, models = [], ramAvailab
 
 function HFRow ({ r, info, verdict, existing, local, onOpenChat }) {
   const state = existing ? (local.jobs?.[existing.id] || (existing.downloaded ? 'ready' : 'idle')) : 'idle'
-  const pct = existing && local.progress?.[existing.id] != null ? Math.round(local.progress[existing.id] * 100) : null
+  // ⚠️ progress[id] IS AN OBJECT — { pct, done, total } — NOT A NUMBER. This
+  // read it as a number and multiplied it, so `object * 100` gave NaN and the
+  // row said "Downloading… NaN%". Tony: "i got Downloadin: NaN or something
+  // like that." progressText is the formatter the catalogue rows already use;
+  // it takes the object, prefers a percent, falls back to megabytes, and
+  // returns null rather than inventing a number.
+  const shown = existing ? progressText(local.progress?.[existing.id]) : null
   const act = async () => {
     if (!verdict?.ok && !existing) return
     if (existing?.downloaded) { onOpenChat?.(existing.id); return }
@@ -107,13 +115,19 @@ function HFRow ({ r, info, verdict, existing, local, onOpenChat }) {
   const tone = verdict ? verdict.tone : null
   return (
     <div className="rx-row rx-hf-row">
+      {/* The same turning swirl the catalogue rows use while a download runs —
+          Tony: "not the spinning swirl like it should". One download UI, not
+          two that drift apart. */}
+      {(state === 'downloading' || state === 'preparing') && (
+        <span className="rx-row-lead"><BrandSpinner size={29} /></span>
+      )}
       <div className="rx-row-text">
         <div className="rx-headline">{r.name}</div>
         <div className="rx-row-blurb">{r.owner} · {fmtCount(r.downloads)} downloads{info && !info.error && info.gb ? ` · ${info.gb.toFixed(1)} GB` : ''}</div>
         {!info && <div className="rx-row-blurb rx-l3">Checking…</div>}
         {info?.error && <div className="rx-row-blurb rx-destructive">{info.error}</div>}
         {verdict && <div className={'rx-row-blurb rx-hf-verdict is-' + tone}><span className={'rx-fit ' + (tone === 'positive' ? 'is-well' : tone === 'caution' ? 'is-tight' : 'is-no')}>{verdict.label}</span> {verdict.why}</div>}
-        {state === 'downloading' && <div className="rx-row-blurb">Downloading… {pct != null ? pct + '%' : ''}</div>}
+        {state === 'downloading' && <div className="rx-row-blurb rx-tabular">{shown ? `Downloading… ${shown}` : 'Downloading…'}</div>}
         {state === 'preparing' && <div className="rx-row-blurb">Preparing…</div>}
         {existing && local.failures?.[existing.id] && <div className="rx-row-blurb rx-destructive">{local.failures[existing.id]}</div>}
       </div>

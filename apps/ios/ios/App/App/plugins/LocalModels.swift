@@ -88,6 +88,7 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "list", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "downloaded", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "diagnose", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "download", returnType: CAPPluginReturnPromise),
         // ⚠️ A method missing from THIS list compiles, links, and has a live
         // ObjC selector — and Capacitor still refuses the call at runtime. It
@@ -524,6 +525,35 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
 
     @objc func downloaded(_ call: CAPPluginCall) {
         call.resolve(["ids": effectiveCatalog.filter { isOnDisk($0) }.map(\.id)])
+    }
+
+    /// Why a model is, or is not, considered installed.
+    ///
+    /// ⚠️ BECAUSE GUESSING COST A DAY. A model downloaded from Hugging Face
+    /// reported success and then did not appear as installed, and the three
+    /// things that decide it — the receipt, the bytes actually in the cache,
+    /// and the folder they are expected in — are all invisible from the JS
+    /// side, so the only way to tell which one was wrong was to reason about
+    /// it. This returns the three numbers instead.
+    @objc func diagnose(_ call: CAPPluginCall) {
+        guard let id = call.getString("id"),
+              let entry = effectiveCatalog.first(where: { $0.id == id }) else {
+            return call.reject("Unknown model id")
+        }
+        let repo = entry.config.name
+        let expected = Int64(entry.gb * 1_000_000_000)
+        let bytes = bytesInCache(for: repo)
+        call.resolve([
+            "id": id,
+            "repo": repo,
+            "folder": DownloadMath.cacheFolderName(for: repo),
+            "cacheDir": cacheDir(for: repo)?.path ?? "",
+            "hasReceipt": downloadedIds().contains(id),
+            "bytesOnDisk": bytes,
+            "expectedBytes": expected,
+            "onDisk": isOnDisk(entry),
+            "custom": custom.contains(where: { $0.id == id })
+        ])
     }
 
     /// Which models are on the device.

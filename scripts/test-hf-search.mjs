@@ -42,5 +42,43 @@ ok(qualify(unc, 'tight').ok && qualify(unc, 'tight').label === 'Runs tight',
    'an abliterated model is judged on its architecture and size like any other')
 ok(customRow(unc).id === 'hf-osxest-huihui-ornith-1-5-9b-abliterated-mlx-4bit', 'and installs under an ordinary custom-row id')
 
+// ⚠️ A REFUSAL MUST SPEAK. download() returned silently when another model was
+// in flight, so the button did nothing at all — no message, no haptic. Tony:
+// "just tried downloading Bonsai and nothing happens."
+const hook = fs.readFileSync('src/mobile/useLocalModels.js', 'utf8')
+ok(!/includes\('downloading'\)\) return/.test(hook), 'the one-at-a-time guard no longer returns in silence')
+ok(/is downloading\. Wait for it to finish, or stop it first/.test(hook), 'it names the model that is busy instead')
+ok(/const busy = Object\.entries\(jobs\)/.test(hook), 'and finds which one it is')
+
+// ⚠️ AND A FINISHED DOWNLOAD THE APP CANNOT FIND MUST SAY WHY, rather than
+// reverting the row to "Download" on the next refresh.
+ok(/lm\.diagnose\(\{ id \}\)/.test(hook), 'a completed download is checked against the native side')
+ok(/found only .*of the .*expected in/.test(hook), 'and a mismatch reports the real numbers and the folder')
+const swift2 = fs.readFileSync('apps/ios/ios/App/App/plugins/LocalModels.swift', 'utf8')
+ok(/CAPPluginMethod\(name: "diagnose"/.test(swift2), 'diagnose is registered, or Capacitor refuses the call at runtime')
+ok(/"bytesOnDisk": bytes/.test(swift2) && /"hasReceipt": downloadedIds\(\)\.contains\(id\)/.test(swift2),
+   'and it returns the three things that decide "installed"')
+
+// ⚠️ progress[id] IS AN OBJECT, AND READING IT AS A NUMBER PUTS NaN ON SCREEN.
+// The Hugging Face row did `Math.round(progress[id] * 100)` where the hook
+// stores { pct, done, total }, so it rendered "Downloading… NaN%". Tony: "i
+// got Downloadin: NaN or something like that." The catalogue rows already had
+// a correct shared formatter; the fix was to use it.
+const { progressText } = await import('../src/mobile/progress.js')
+{
+  ok(progressText({ pct: 0.42, done: 1e9, total: 2e9 }) === '42%', 'a known total shows a percent')
+  ok(progressText({ pct: null, done: 5e8, total: 0 }) === '500 MB', 'an unknown total falls back to megabytes')
+  ok(progressText({ pct: null, done: 2.5e9, total: 0 }) === '2.5 GB', 'and to gigabytes once it is past one')
+  ok(progressText({ pct: null, done: 0, total: 0 }) === null, 'nothing yet is null, not "0%"')
+  ok(progressText(null) === null, 'and no progress at all is null')
+  for (const shape of [{ pct: 0.5 }, { pct: null, done: 1e9 }, null, {}]) {
+    ok(!String(progressText(shape)).includes('NaN'), `never NaN for ${JSON.stringify(shape)}`)
+  }
+}
+const hfRow = fs.readFileSync('src/mobile/HuggingFaceSearch.jsx', 'utf8')
+ok(/progressText\(local\.progress/.test(hfRow), 'the Hugging Face row uses the shared formatter')
+ok(!/progress\[[^\]]*\] \* 100/.test(hfRow), 'and does no arithmetic of its own on the progress object')
+ok(/<BrandSpinner size=\{29\} \/>/.test(hfRow), 'and shows the same turning swirl as a catalogue row')
+
 console.log(`\n${pass}/${pass + fail} passed  ·  a Hugging Face model is qualified before a byte is downloaded`)
 process.exit(fail ? 1 : 0)
