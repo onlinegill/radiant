@@ -60,6 +60,13 @@ const sections = () => [
     ]
   },
   {
+    title: 'Keeping a conversation',
+    body: [
+      'Swipe a row left in Recent Sessions and you get two things: Archive and Delete. Archive puts a conversation under an Archived heading at the foot of the list, folded away until you tap it.',
+      'That is worth knowing because the phone keeps the last forty conversations and quietly drops the oldest to make room. An archived one is never dropped, so archiving is how you keep something rather than just tidy it away.'
+    ]
+  },
+  {
     title: 'Stopping a download',
     body: [
       'Tap the turning logo to stop. Whatever has already downloaded stays on the phone, so starting again picks up from there rather than beginning again.',

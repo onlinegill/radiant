@@ -16,7 +16,7 @@ import usePress from './usePress.js'
 import SwipeRow from './SwipeRow.jsx'
 import { BrandMark } from './BrandSpinner.jsx'
 import wordUrl from '../assets/brand/radiant-wordmark.png'
-import { listChats, deleteChat, whenLabel, onChatsChanged } from './chats.js'
+import { listChats, deleteChat, setArchived, whenLabel, onChatsChanged } from './chats.js'
 
 /** Time of day, because a greeting that never changes stops being one. */
 function greeting () {
@@ -27,7 +27,7 @@ function greeting () {
   return 'Good evening'
 }
 
-function ChatRow ({ chat, onOpen, onRemove, isOpen, onOpenChange }) {
+function ChatRow ({ chat, onOpen, onRemove, onArchive, isOpen, onOpenChange }) {
   const row = usePress(() => { if (isOpen) onOpenChange(false); else onOpen(chat.id) }, {
     label: `${chat.title}, ${whenLabel(chat.updatedAt)}${chat.modelName ? `, ${chat.modelName}` : ''}`
   })
@@ -39,6 +39,9 @@ function ChatRow ({ chat, onOpen, onRemove, isOpen, onOpenChange }) {
     <SwipeRow
       onDelete={() => onRemove(chat)}
       deleteLabel={`Delete ${chat.title}`}
+      onArchive={onArchive ? () => onArchive(chat) : undefined}
+      archiveLabel={`${chat.archived ? 'Unarchive' : 'Archive'} ${chat.title}`}
+      archiveText={chat.archived ? 'Unarchive' : 'Archive'}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       className={'rx-row rx-row-2line rx-row-compact' + row.className}
@@ -59,10 +62,16 @@ export default function HomeScreen ({
   activeModel, models = [], isTop, onStartChat, onOpenChat, onChooseModel
 }) {
   const [chats, setChats] = useState(() => listChats())
+  const [archived, setArchivedList] = useState(() => listChats({ archived: true }))
+  // Folded by default: the point of putting something away is not seeing it.
+  const [showArchived, setShowArchived] = useState(false)
   // ⚠️ ONE ROW OPEN AT A TIME. Two revealed Delete buttons is a list nobody
   // trusts, and it is how you delete the wrong conversation.
   const [openRow, setOpenRow] = useState(null)
-  const refresh = useCallback(() => setChats(listChats()), [])
+  const refresh = useCallback(() => {
+    setChats(listChats())
+    setArchivedList(listChats({ archived: true }))
+  }, [])
 
   // The store tells us the moment a conversation is written, so this does not
   // depend on a pop animation finishing or on this screen remounting — neither
@@ -86,6 +95,12 @@ export default function HomeScreen ({
   // the least native thing on the screen. The gesture IS the confirmation.
   const remove = useCallback((chat) => {
     deleteChat(chat.id)
+    setOpenRow(null)
+    refresh()
+  }, [refresh])
+
+  const archiveOne = useCallback((chat) => {
+    setArchived(chat.id, !chat.archived)
     setOpenRow(null)
     refresh()
   }, [refresh])
@@ -156,11 +171,45 @@ export default function HomeScreen ({
                 chat={c}
                 onOpen={onOpenChat}
                 onRemove={remove}
+                onArchive={archiveOne}
                 isOpen={openRow === c.id}
                 onOpenChange={(open) => setOpenRow(open ? c.id : null)}
               />
             ))}
           </div>
+        </>
+      )}
+
+      {/* ⚠️ ARCHIVING IS THE ONLY WAY TO KEEP A CONVERSATION HERE. The list is
+          capped at 40 and the oldest is dropped without a word; an archived
+          chat is exempt. So this section is not tidiness, it is the difference
+          between keeping something and losing it. Folded by default — the
+          point of putting something away is not seeing it. */}
+      {archived.length > 0 && (
+        <>
+          <button
+            type="button"
+            className="rx-archive-toggle"
+            onClick={() => setShowArchived(v => !v)}
+            aria-expanded={showArchived}
+          >
+            {showArchived ? '▾' : '▸'} Archived ({archived.length})
+          </button>
+          {showArchived && (
+            <div className="rx-group">
+              {archived.map(c => (
+                <ChatRow
+                  key={c.id}
+                  chat={c}
+                  onOpen={onOpenChat}
+                  onRemove={remove}
+                  onArchive={archiveOne}
+                  isOpen={openRow === c.id}
+                  onOpenChange={(open) => setOpenRow(open ? c.id : null)}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
 

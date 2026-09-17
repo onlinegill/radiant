@@ -285,7 +285,16 @@ ok('and the app does not drag you back down', held && held.after < 80)
 
   await page.evaluate(() => window.__rxKeyboard(0))
   await page.waitForTimeout(300)
-  await box.fill('tiny'); await page.keyboard.press('Enter'); await page.waitForTimeout(1500)
+  // ⚠️ THE KEYBOARD MUST GET OUT OF THE WAY WHEN THE SEARCH RUNS, or the
+  // results land underneath it and you scroll past your own keyboard to read
+  // what you found. Focus leaving the field is what dismisses it on a device.
+  await box.click()
+  await box.fill('tiny')
+  const focusedBefore = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'))
+  ok('the field has focus while you type', focusedBefore === 'Search Hugging Face for models')
+  await page.keyboard.press('Enter'); await page.waitForTimeout(1500)
+  const focusedAfter = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'))
+  ok(`searching gives up focus so the keyboard goes away (was ${focusedAfter})`, focusedAfter !== 'Search Hugging Face for models')
   const rows = page.locator('.rx-hf-row')
   is('two results', await rows.count(), 2)
   const t = await page.locator('.rx-section:has(.rx-hf-search)').innerText()
@@ -300,6 +309,26 @@ ok('and the app does not drag you back down', held && held.after < 80)
   ok('and the row now offers Chat', await rows.nth(0).locator('button', { hasText: 'Chat' }).count() > 0)
 
   await page.unroute('https://huggingface.co/**')
+}
+
+// ── a pressed row must not show the Delete underneath it ──────────────────
+// ⚠️ `.rx-row.is-pressed` sets background-color to --rx-fill-1, which is 20%
+// alpha — so tapping a row replaced the face's opaque cell with a see-through
+// fill and the red Delete flashed through. Tony: "when i click on a chat, the
+// delete button flashes. it should only come up on left swipe."
+{
+  const css = readFileSync('src/mobile/mobile.css', 'utf8')
+  const rule = /\.is-native \.rx-swipe-face\.is-pressed \{([^}]*)\}/.exec(css)
+  ok('the pressed face has its own rule', Boolean(rule))
+  ok('it keeps an opaque background-color', /background-color: var\(--rx-cell\)/.test(rule?.[1] || ''))
+  ok('and paints the press tint over it rather than replacing it', /background-image: linear-gradient/.test(rule?.[1] || ''))
+  // and the archive action travels far enough to be tappable
+  const swipe = readFileSync('src/mobile/SwipeRow.jsx', 'utf8')
+  ok('the swipe opens by one width per action', /const openW = ACTION_W \* actions/.test(swipe))
+  ok('and never assumes a single action', !/set\(open \? -ACTION_W : 0\)/.test(swipe))
+  const store = readFileSync('src/mobile/chats.js', 'utf8')
+  ok('an archived chat is exempt from the 40-chat cap', /rows\.filter\(c => c\.archived\)/.test(store))
+  ok('and using one does not quietly un-archive it', /archived: Boolean\(prev\?\.archived\)/.test(store))
 }
 
 // ── flow: Models — installed models are reachable and shelves open ────────

@@ -967,8 +967,10 @@
    same height at any scale factor. */
 .is-native .rx-swipe { display: grid; overflow: hidden; }
 .is-native .rx-swipe > * { grid-area: 1 / 1; }
+.is-native .rx-swipe-actions { justify-self: end; display: flex; height: 100%; }
+.is-native .rx-swipe-action.is-archive { background: var(--rx-fill-2, #8E8E93); }
 .is-native .rx-swipe-action {
-  justify-self: end; width: 88px;
+  width: 88px;
   border: 0; margin: 0; padding: 0;
   background: var(--rx-red-fill); color: #fff;
   font: -apple-system-body; font-weight: 500;
@@ -978,6 +980,17 @@
 /* ⚠️ THE FACE MUST BE OPAQUE. It slides across the red action; leave it
    transparent and Delete bleeds through every row in the list. */
 .is-native .rx-swipe-face { position: relative; background: var(--rx-cell); }
+/* ⚠️ AND IT MUST STAY OPAQUE WHILE PRESSED. `.rx-row.is-pressed` sets
+   background-color to --rx-fill-1, which is rgba(120,120,128,0.20) — so
+   tapping a row REPLACED the opaque cell with an 80%-transparent fill and the
+   red Delete underneath flashed through. Tony: "when i click on a chat, the
+   delete button flashes. it should only come up on left swipe."
+   Painting the fill as a background-IMAGE over an opaque background-color
+   composites the same tint without ever making the face see-through. */
+.is-native .rx-swipe-face.is-pressed {
+  background-color: var(--rx-cell);
+  background-image: linear-gradient(var(--rx-fill-1), var(--rx-fill-1));
+}
 /* ⚠️ SEPARATORS FOLLOW THE ROWS, WHICH ARE NOW WRAPPED. The group draws them on
    `.rx-row + .rx-row`, and a .rx-swipe wrapper between the two breaks that
    selector — every hairline vanished. Drawn on the face instead, so it also
@@ -2628,3 +2641,15 @@
 .is-native .rx-hf-btn:disabled { background: var(--rx-fill); color: var(--rx-label-3); }
 .is-native .rx-hf-btn.is-quiet { background: var(--rx-fill); color: var(--rx-label); }
 .is-native .rx-hf-btn.is-pressed { opacity: .7; }
+
+/* The Archived fold on the home screen. A header that is also a control, so it
+   reads as part of the list rather than a button bolted above it. */
+.is-native .rx-archive-toggle {
+  display: block; width: 100%; text-align: left;
+  background: none; border: 0;
+  font: -apple-system-footnote; font-weight: 600;
+  color: var(--rx-label-2);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 18px var(--rx-sp-16) 6px;
+}
+.is-native .rx-archive-toggle:active { opacity: 0.6; }

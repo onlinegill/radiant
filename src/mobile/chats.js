@@ -33,7 +33,14 @@ const read = () => {
  * tells its readers instead, the moment the data actually changes.
  */
 const write = (rows) => {
-  try { localStorage.setItem(KEY, JSON.stringify(rows.slice(0, MAX))) } catch { /* private mode */ }
+  // ⚠️ THE CAP MUST NOT EAT WHAT YOU DELIBERATELY KEPT. Trimming to MAX
+  // blindly meant the 41st conversation silently deleted the oldest — which is
+  // fine for chatter and wrong for anything you archived on purpose. Archived
+  // rows are exempt; the cap applies to the rest.
+  const keep = rows.filter(c => c.archived)
+  const rest = rows.filter(c => !c.archived).slice(0, MAX)
+  const trimmed = rows.filter(c => keep.includes(c) || rest.includes(c))
+  try { localStorage.setItem(KEY, JSON.stringify(trimmed)) } catch { /* private mode */ }
   try { window.dispatchEvent(new CustomEvent('rx:chats-changed')) } catch { /* SSR */ }
 }
 
@@ -44,17 +51,34 @@ export function onChatsChanged (fn) {
 }
 
 /** Newest first. Metadata only — enough to draw a list without parsing every turn. */
-export function listChats () {
+export function listChats ({ archived = false } = {}) {
   return read()
+    .filter(c => Boolean(c.archived) === Boolean(archived))
     .map(c => ({
       id: c.id,
       title: c.title || 'New chat',
       modelId: c.modelId || null,
       modelName: c.modelName || null,
       updatedAt: c.updatedAt || 0,
+      archived: Boolean(c.archived),
       turns: Array.isArray(c.messages) ? c.messages.length : 0
     }))
     .sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+/**
+ * Put a conversation away, or bring it back.
+ *
+ * ⚠️ ARCHIVING IS NOT DELETING, AND IT IS NOT A TIDIER DELETE EITHER. It is the
+ * only way to tell this store that a conversation matters: an archived row is
+ * exempt from the 40-chat cap that otherwise drops the oldest without a word.
+ */
+export function setArchived (id, archived) {
+  const rows = read()
+  const row = rows.find(c => c.id === id)
+  if (!row) return
+  row.archived = Boolean(archived)
+  write(rows)
 }
 
 export function loadChat (id) {
@@ -75,9 +99,12 @@ function titleFrom (messages) {
 
 export function saveChat ({ id, messages, modelId, modelName, skillId }) {
   if (!id || !Array.isArray(messages) || !messages.length) return
+  const prev = read().find(c => c.id === id)
   const rows = read().filter(c => c.id !== id)
   rows.unshift({
     id,
+    // carried, or using an archived chat would quietly un-archive it
+    archived: Boolean(prev?.archived),
     title: titleFrom(messages),
     modelId: modelId || null,
     modelName: modelName || null,

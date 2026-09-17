@@ -27,10 +27,19 @@ export default function HuggingFaceSearch ({ local = {}, models = [], ramAvailab
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState('')   // the query the results belong to
   const abort = useRef(null)
+  const inputRef = useRef(null)
 
   const run = async () => {
     const query = q.trim()
     if (!query) return
+    // ⚠️ PUT THE KEYBOARD AWAY BEFORE THE RESULTS ARRIVE. It covers half the
+    // screen, so searching and then having to scroll past your own keyboard to
+    // see what you found is the whole interaction. Tony: "when i type in a
+    // search and hit the search button the keyboard stays up... very clunky."
+    // blur() is what dismisses it in a web view; the plugin call is the belt
+    // and braces for the cases where focus has already moved elsewhere.
+    inputRef.current?.blur()
+    try { window.Capacitor?.Plugins?.Keyboard?.hide?.() } catch {}
     abort.current?.abort(); abort.current = new AbortController()
     setBusy(true); setError(null); setResults([]); setInfo({}); setSearched(query)
     try {
@@ -60,6 +69,7 @@ export default function HuggingFaceSearch ({ local = {}, models = [], ramAvailab
       <div className="rx-group">
         <div className="rx-hf-search">
           <input
+            ref={inputRef}
             className="rx-field"
             type="search"
             placeholder="Search models — try “qwen 4bit” or “llama 3.2”"

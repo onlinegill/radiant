@@ -22,7 +22,11 @@ const ACTION_W = 88
 const LOCK_SLOP = 6      // movement before we decide the gesture's direction
 const OPEN_AT = ACTION_W / 2
 
-export default function SwipeRow ({ children, onDelete, deleteLabel, isOpen, onOpenChange, className = '', rowProps = {} }) {
+export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, archiveLabel, archiveText = 'Archive', isOpen, onOpenChange, className = '', rowProps = {} }) {
+  // ⚠️ THE TRAVEL FOLLOWS THE NUMBER OF ACTIONS. Two buttons behind an 88pt
+  // opening leaves the second one half off-screen and untappable.
+  const actions = onArchive ? 2 : 1
+  const openW = ACTION_W * actions
   const ref = useRef(null)
   const [dx, setDx] = useState(0)
   const dxRef = useRef(0)
@@ -30,7 +34,7 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, isOpen, onO
 
   // Another row opening closes this one.
   useEffect(() => { if (!isOpen && dxRef.current !== 0) set(0) }, [isOpen])
-  useEffect(() => { if (isOpen && dxRef.current === 0) set(-ACTION_W) }, [isOpen])
+  useEffect(() => { if (isOpen && dxRef.current === 0) set(-openW) }, [isOpen, openW])
 
   useEffect(() => {
     const el = ref.current
@@ -56,16 +60,16 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, isOpen, onO
       e.preventDefault()
       // Rubber-band past the stop rather than letting it slide off.
       let next = s.base + mx
-      if (next < -ACTION_W) next = -ACTION_W - ((-ACTION_W - next) * 0.35)
-      set(Math.min(0, Math.max(-ACTION_W - 24, next)))
+      if (next < -openW) next = -openW - ((-openW - next) * 0.35)
+      set(Math.min(0, Math.max(-openW - 24, next)))
     }
     const onEnd = () => {
       if (!s) return
       const wasX = s.axis === 'x'
       s = null
       if (!wasX) return
-      const open = dxRef.current < -OPEN_AT
-      set(open ? -ACTION_W : 0)
+      const open = dxRef.current < -(openW / 2)
+      set(open ? -openW : 0)
       if (open !== isOpen) {
         haptics.selection?.()
         onOpenChange?.(open)
@@ -86,13 +90,24 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, isOpen, onO
 
   return (
     <div className="rx-swipe" ref={ref}>
-      <button
-        className="rx-swipe-action"
-        aria-label={deleteLabel}
-        onClick={(e) => { e.stopPropagation(); haptics.impact?.('MEDIUM'); onDelete() }}
-      >
-        Delete
-      </button>
+      <div className="rx-swipe-actions">
+        {onArchive && (
+          <button
+            className="rx-swipe-action is-archive"
+            aria-label={archiveLabel}
+            onClick={(e) => { e.stopPropagation(); haptics.impact?.('MEDIUM'); onArchive() }}
+          >
+            {archiveText}
+          </button>
+        )}
+        <button
+          className="rx-swipe-action"
+          aria-label={deleteLabel}
+          onClick={(e) => { e.stopPropagation(); haptics.impact?.('MEDIUM'); onDelete() }}
+        >
+          Delete
+        </button>
+      </div>
       <div
         className={'rx-swipe-face ' + className}
         /* ⚠️ NO TRANSFORM AT REST. translate3d(0,0,0) plus will-change promotes
@@ -103,7 +118,7 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, isOpen, onO
         style={{
           transform: dx === 0 ? undefined : `translate3d(${dx}px,0,0)`,
           willChange: dx === 0 ? undefined : 'transform',
-          transition: dx === 0 || dx === -ACTION_W ? 'transform 220ms cubic-bezier(.32,.72,0,1)' : 'none'
+          transition: dx === 0 || dx === -openW ? 'transform 220ms cubic-bezier(.32,.72,0,1)' : 'none'
         }}
         {...rowProps}
       >
