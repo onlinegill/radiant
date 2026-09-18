@@ -153,10 +153,15 @@ async function radiantServer () {
   proc.stderr.on('data', d => { log += d })
   const t0 = Date.now()
   while (Date.now() - t0 < 30000) {
-    const m = /listening on (http:\/\/127\.0\.0\.1:\d+)/.exec(log)
-    if (m) { radiant = { base: m[1], proc }; return m[1] }
+    // ⚠️ THE HOST IN THAT LINE IS NOT ALWAYS 127.0.0.1. With sharing switched
+    // on the server binds 0.0.0.0 and says so; matching the loopback address
+    // literally made every attempt wait 30s, give up, and leave the server it
+    // had just spawned running — seven strays after one pass.
+    const m = /listening on http:\/\/[^:\s]+:(\d+)/.exec(log)
+    if (m) { radiant = { base: `http://127.0.0.1:${m[1]}`, proc }; return radiant.base }
     await new Promise(r => setTimeout(r, 200))
   }
+  proc.kill()
   throw new Error('Radiant server never started:\n' + log.slice(-800))
 }
 // ⚠️ RETRY THE CONNECTION, NOT THE TURN. Four harness runs and their graders
@@ -335,7 +340,8 @@ async function run () {
       // is redone on the next pass; one that ran and failed the task is kept
       if (fs.existsSync(out)) {
         const prev = JSON.parse(fs.readFileSync(out, 'utf8'))
-        if (!(prev.error && !prev.patch && !(prev.rounds > 0))) continue
+        const capped = /session limit|rate limit|429|usage limit|overloaded/i.test(String(prev.error || '')) && !prev.patch
+        if (!capped && !(prev.error && !prev.patch && !(prev.rounds > 0))) continue
       }
       const inst = BY_ID[id]
       const work = path.join(BENCH, 'work', tag, `${id}-r${k}`)
@@ -354,10 +360,22 @@ async function run () {
         }
       }
       try {
-        const res = harness === 'radiant' ? await runRadiant(inst, work, model, provider, mcp)
-          : harness === 'claude' ? runClaude(inst, work, model)
-          : harness === 'codex' ? runCodex(inst, work, model)
-          : (() => { throw new Error('unknown harness ' + harness) })()
+        // ⚠️ A SUBSCRIPTION CAP IS NOT A RESULT EITHER. Two harnesses on one
+        // Claude subscription at once hit "session limit" / 429 on half their
+        // attempts and were recorded as failures. Wait it out and try again;
+        // a cap never says how long, so ten minutes, then again.
+        let res
+        for (let tryNo = 1; ; tryNo++) {
+          res = harness === 'radiant' ? await runRadiant(inst, work, model, provider, mcp)
+            : harness === 'claude' ? runClaude(inst, work, model)
+            : harness === 'codex' ? runCodex(inst, work, model)
+            : (() => { throw new Error('unknown harness ' + harness) })()
+          const capped = /session limit|rate limit|429|usage limit|overloaded/i.test(String(res.error || '')) && !(res.rounds > 3)
+          if (!capped || tryNo >= 12) break
+          process.stdout.write(`(capped: ${String(res.error).slice(0, 50)} — waiting 10 min) `)
+          fs.rmSync(work, { recursive: true, force: true }); prepare(id, work)
+          await new Promise(r => setTimeout(r, 10 * 60 * 1000))
+        }
         const patch = patchOf(work)
         rec = { instance_id: id, run: k, harness, model, ...res, patchBytes: patch.length, patch, costUsd: cost(res.usage, model), at: new Date().toISOString() }
         if (rec.usage.byModel) rec.costUsd = rec.usage.byModel.reduce((a, m) => a + (cost(m, m.model) || 0), 0)

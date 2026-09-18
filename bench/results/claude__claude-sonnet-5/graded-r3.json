@@ -1,0 +1,344 @@
+{
+ "django__django-11133": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-11019": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-11620": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-11797": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-11815": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-11964": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-12286": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-12983": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-13033": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-13401": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-13964": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-14997": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-15388": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-15851": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-16400": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.claude__claude-sonnet-5-r3.log"
+ },
+ "psf__requests-2317": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.claude__claude-sonnet-5-r3.log"
+ },
+ "pytest-dev__pytest-5495": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.claude__claude-sonnet-5-r3.log"
+ },
+ "pytest-dev__pytest-5692": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.claude__claude-sonnet-5-r3.log"
+ },
+ "django__django-16527": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.claude__claude-sonnet-5-r3.log"
+ },
+ "pytest-dev__pytest-7168": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-12419": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-14308": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.claude__claude-sonnet-5-r3.log"
+ },
+ "sphinx-doc__sphinx-8435": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": false,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [],
+    "failure": [
+     "tests/test_ext_autodoc_configs.py::test_autodoc_type_aliases"
+    ]
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_class",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_init",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_both",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_inherit_docstrings",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_docstring_signature",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_class",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_init",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_both",
+     "tests/test_ext_autodoc_configs.py::test_mocked_module_imports",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_signature",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none_for_overload",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_for_invalid_node",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_default_options",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_default_options_with_values"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.claude__claude-sonnet-5-r3.log"
+ },
+ "sphinx-doc__sphinx-8506": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": false,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [],
+    "failure": [
+     "tests/test_domain_std.py::test_cmd_option_starting_with_bracket"
+    ]
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "tests/test_domain_std.py::test_process_doc_handle_figure_caption",
+     "tests/test_domain_std.py::test_process_doc_handle_table_title",
+     "tests/test_domain_std.py::test_get_full_qualified_name",
+     "tests/test_domain_std.py::test_cmd_option_with_optional_value",
+     "tests/test_domain_std.py::test_glossary",
+     "tests/test_domain_std.py::test_glossary_warning",
+     "tests/test_domain_std.py::test_glossary_comment",
+     "tests/test_domain_std.py::test_glossary_comment2",
+     "tests/test_domain_std.py::test_glossary_sorted",
+     "tests/test_domain_std.py::test_glossary_alphanumeric",
+     "tests/test_domain_std.py::test_glossary_conflicted_labels",
+     "tests/test_domain_std.py::test_cmdoption",
+     "tests/test_domain_std.py::test_multiple_cmdoptions",
+     "tests/test_domain_std.py::test_disabled_docref"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-17022": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-18621": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-18698": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-21171": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-23262": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.claude__claude-sonnet-5-r3.log"
+ },
+ "sympy__sympy-24213": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.claude__claude-sonnet-5-r3.log"
+ }
+}

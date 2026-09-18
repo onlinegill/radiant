@@ -1,0 +1,1098 @@
+{
+ "django__django-11019": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-11133": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_memoryview_content (httpwrappers.tests.HttpResponseTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_streaming_response (httpwrappers.tests.StreamingHttpResponseTests)",
+     "test_cookie_edgecases (httpwrappers.tests.CookieTests)",
+     "Semicolons and commas are decoded.",
+     "Semicolons and commas are encoded.",
+     "test_httponly_after_load (httpwrappers.tests.CookieTests)",
+     "test_invalid_cookies (httpwrappers.tests.CookieTests)",
+     "test_load_dict (httpwrappers.tests.CookieTests)",
+     "test_nonstandard_keys (httpwrappers.tests.CookieTests)",
+     "test_pickle (httpwrappers.tests.CookieTests)",
+     "test_python_cookies (httpwrappers.tests.CookieTests)",
+     "test_repeated_nonstandard_keys (httpwrappers.tests.CookieTests)",
+     "test_samesite (httpwrappers.tests.CookieTests)",
+     "test_response (httpwrappers.tests.FileCloseTests)",
+     "test_streaming_response (httpwrappers.tests.FileCloseTests)",
+     "test_json_response_custom_encoder (httpwrappers.tests.JsonResponseTests)",
+     "test_json_response_list (httpwrappers.tests.JsonResponseTests)",
+     "test_json_response_non_ascii (httpwrappers.tests.JsonResponseTests)",
+     "test_json_response_passing_arguments_to_json_dumps (httpwrappers.tests.JsonResponseTests)",
+     "test_json_response_raises_type_error_with_default_setting (httpwrappers.tests.JsonResponseTests)",
+     "test_json_response_text (httpwrappers.tests.JsonResponseTests)",
+     "test_json_response_uuid (httpwrappers.tests.JsonResponseTests)",
+     "test_invalid_redirect_repr (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "test_not_allowed (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "test_not_allowed_repr (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "test_not_allowed_repr_no_content_type (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "test_not_modified (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "test_not_modified_repr (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "test_redirect (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "Make sure HttpResponseRedirect works with lazy strings.",
+     "test_redirect_repr (httpwrappers.tests.HttpResponseSubclassesTests)",
+     "test_dict_behavior (httpwrappers.tests.HttpResponseTests)",
+     "test_file_interface (httpwrappers.tests.HttpResponseTests)",
+     "test_headers_type (httpwrappers.tests.HttpResponseTests)",
+     "test_iter_content (httpwrappers.tests.HttpResponseTests)",
+     "test_iterator_isnt_rewound (httpwrappers.tests.HttpResponseTests)",
+     "test_lazy_content (httpwrappers.tests.HttpResponseTests)",
+     "test_long_line (httpwrappers.tests.HttpResponseTests)",
+     "test_newlines_in_headers (httpwrappers.tests.HttpResponseTests)",
+     "test_non_string_content (httpwrappers.tests.HttpResponseTests)",
+     "test_stream_interface (httpwrappers.tests.HttpResponseTests)",
+     "test_unsafe_redirect (httpwrappers.tests.HttpResponseTests)",
+     "test_basic_mutable_operations (httpwrappers.tests.QueryDictTests)",
+     "test_create_with_no_args (httpwrappers.tests.QueryDictTests)",
+     "test_duplicates_in_fromkeys_iterable (httpwrappers.tests.QueryDictTests)",
+     "test_fromkeys_empty_iterable (httpwrappers.tests.QueryDictTests)",
+     "test_fromkeys_is_immutable_by_default (httpwrappers.tests.QueryDictTests)",
+     "test_fromkeys_mutable_override (httpwrappers.tests.QueryDictTests)",
+     "test_fromkeys_noniterable (httpwrappers.tests.QueryDictTests)",
+     "test_fromkeys_with_nondefault_encoding (httpwrappers.tests.QueryDictTests)",
+     "test_fromkeys_with_nonempty_value (httpwrappers.tests.QueryDictTests)",
+     "test_immutability (httpwrappers.tests.QueryDictTests)",
+     "test_immutable_basic_operations (httpwrappers.tests.QueryDictTests)",
+     "test_immutable_get_with_default (httpwrappers.tests.QueryDictTests)",
+     "test_missing_key (httpwrappers.tests.QueryDictTests)",
+     "Test QueryDict with two key/value pairs with same keys.",
+     "A copy of a QueryDict is mutable.",
+     "test_mutable_delete (httpwrappers.tests.QueryDictTests)",
+     "#13572 - QueryDict with a non-default encoding",
+     "test_pickle (httpwrappers.tests.QueryDictTests)",
+     "test_querydict_fromkeys (httpwrappers.tests.QueryDictTests)",
+     "Test QueryDict with one key/value pair",
+     "Regression test for #8278: QueryDict.update(QueryDict)",
+     "test_urlencode (httpwrappers.tests.QueryDictTests)",
+     "test_urlencode_int (httpwrappers.tests.QueryDictTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 5.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-11797": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-11620": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_technical_404_converter_raise_404 (view_tests.tests.test_debug.DebugViewTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_repr (view_tests.tests.test_debug.CallableSettingWrapperTests)",
+     "test_cleanse_setting_basic (view_tests.tests.test_debug.HelperFunctionTests)",
+     "test_cleanse_setting_ignore_case (view_tests.tests.test_debug.HelperFunctionTests)",
+     "test_cleanse_setting_recurses_in_dictionary (view_tests.tests.test_debug.HelperFunctionTests)",
+     "test_handle_db_exception (view_tests.tests.test_debug.DebugViewQueriesAllowedTests)",
+     "test_400 (view_tests.tests.test_debug.NonDjangoTemplatesDebugViewTests)",
+     "test_403 (view_tests.tests.test_debug.NonDjangoTemplatesDebugViewTests)",
+     "test_404 (view_tests.tests.test_debug.NonDjangoTemplatesDebugViewTests)",
+     "test_template_not_found_error (view_tests.tests.test_debug.NonDjangoTemplatesDebugViewTests)",
+     "An exception report can be generated even for a disallowed host.",
+     "test_message_only (view_tests.tests.test_debug.PlainTextReportTests)",
+     "An exception report can be generated for just a request",
+     "An exception report can be generated without request",
+     "A simple exception report can be generated",
+     "A message can be provided in addition to a request",
+     "test_request_with_items_key (view_tests.tests.test_debug.PlainTextReportTests)",
+     "test_template_exception (view_tests.tests.test_debug.PlainTextReportTests)",
+     "test_ajax_response_encoding (view_tests.tests.test_debug.AjaxResponseExceptionReporterFilter)",
+     "test_custom_exception_reporter_filter (view_tests.tests.test_debug.AjaxResponseExceptionReporterFilter)",
+     "test_non_sensitive_request (view_tests.tests.test_debug.AjaxResponseExceptionReporterFilter)",
+     "test_paranoid_request (view_tests.tests.test_debug.AjaxResponseExceptionReporterFilter)",
+     "test_sensitive_request (view_tests.tests.test_debug.AjaxResponseExceptionReporterFilter)",
+     "test_400 (view_tests.tests.test_debug.DebugViewTests)",
+     "test_403 (view_tests.tests.test_debug.DebugViewTests)",
+     "test_403_template (view_tests.tests.test_debug.DebugViewTests)",
+     "test_404 (view_tests.tests.test_debug.DebugViewTests)",
+     "test_404_empty_path_not_in_urls (view_tests.tests.test_debug.DebugViewTests)",
+     "test_404_not_in_urls (view_tests.tests.test_debug.DebugViewTests)",
+     "test_classbased_technical_404 (view_tests.tests.test_debug.DebugViewTests)",
+     "test_default_urlconf_template (view_tests.tests.test_debug.DebugViewTests)",
+     "test_files (view_tests.tests.test_debug.DebugViewTests)",
+     "test_no_template_source_loaders (view_tests.tests.test_debug.DebugViewTests)",
+     "test_non_l10ned_numeric_ids (view_tests.tests.test_debug.DebugViewTests)",
+     "test_regression_21530 (view_tests.tests.test_debug.DebugViewTests)",
+     "test_technical_404 (view_tests.tests.test_debug.DebugViewTests)",
+     "test_template_encoding (view_tests.tests.test_debug.DebugViewTests)",
+     "test_template_exceptions (view_tests.tests.test_debug.DebugViewTests)",
+     "Tests for not existing file",
+     "test_encoding_error (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "The ExceptionReporter supports Unix, Windows and Macintosh EOL markers",
+     "test_exception_fetching_user (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "test_ignore_traceback_evaluation_exceptions (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "Safe strings in local variables are escaped.",
+     "test_message_only (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "Non-UTF-8 exceptions/values should not make the output generation choke.",
+     "test_reporting_frames_for_cyclic_reference (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "test_reporting_frames_without_source (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "test_reporting_of_nested_exceptions (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "test_request_with_items_key (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "test_template_encoding (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "Large values should not create a large HTML.",
+     "test_unfrozen_importlib (view_tests.tests.test_debug.ExceptionReporterTests)",
+     "Unprintable values should not make the output generation choke.",
+     "test_callable_settings (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_callable_settings_forbidding_to_set_attributes (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_custom_exception_reporter_filter (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_dict_setting_with_non_str_key (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_multivalue_dict_key_error (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_non_sensitive_request (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_paranoid_request (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_sensitive_function_arguments (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_sensitive_function_keyword_arguments (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_sensitive_method (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_sensitive_request (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_sensitive_settings (view_tests.tests.test_debug.ExceptionReporterFilterTests)",
+     "test_settings_with_sensitive_keys (view_tests.tests.test_debug.ExceptionReporterFilterTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 6.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-11815": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_serialize_class_based_validators (migrations.test_writer.WriterTests)",
+     "test_serialize_enums (migrations.test_writer.WriterTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_args_kwargs_signature (migrations.test_writer.OperationWriterTests)",
+     "test_args_signature (migrations.test_writer.OperationWriterTests)",
+     "test_empty_signature (migrations.test_writer.OperationWriterTests)",
+     "test_expand_args_signature (migrations.test_writer.OperationWriterTests)",
+     "test_kwargs_signature (migrations.test_writer.OperationWriterTests)",
+     "test_multiline_args_signature (migrations.test_writer.OperationWriterTests)",
+     "test_nested_args_signature (migrations.test_writer.OperationWriterTests)",
+     "test_nested_operation_expand_args_signature (migrations.test_writer.OperationWriterTests)",
+     "test_custom_operation (migrations.test_writer.WriterTests)",
+     "test_deconstruct_class_arguments (migrations.test_writer.WriterTests)",
+     "test_migration_file_header_comments (migrations.test_writer.WriterTests)",
+     "test_migration_path (migrations.test_writer.WriterTests)",
+     "test_models_import_omitted (migrations.test_writer.WriterTests)",
+     "test_register_non_serializer (migrations.test_writer.WriterTests)",
+     "test_register_serializer (migrations.test_writer.WriterTests)",
+     "test_serialize_builtin_types (migrations.test_writer.WriterTests)",
+     "test_serialize_builtins (migrations.test_writer.WriterTests)",
+     "test_serialize_choices (migrations.test_writer.WriterTests)",
+     "test_serialize_collections (migrations.test_writer.WriterTests)",
+     "test_serialize_compiled_regex (migrations.test_writer.WriterTests)",
+     "test_serialize_constants (migrations.test_writer.WriterTests)",
+     "test_serialize_datetime (migrations.test_writer.WriterTests)",
+     "test_serialize_empty_nonempty_tuple (migrations.test_writer.WriterTests)",
+     "test_serialize_fields (migrations.test_writer.WriterTests)",
+     "test_serialize_frozensets (migrations.test_writer.WriterTests)",
+     "test_serialize_functions (migrations.test_writer.WriterTests)",
+     "test_serialize_functools_partial (migrations.test_writer.WriterTests)",
+     "test_serialize_functools_partialmethod (migrations.test_writer.WriterTests)",
+     "test_serialize_iterators (migrations.test_writer.WriterTests)",
+     "test_serialize_lazy_objects (migrations.test_writer.WriterTests)",
+     "A reference in a local scope can't be serialized.",
+     "test_serialize_managers (migrations.test_writer.WriterTests)",
+     "test_serialize_multiline_strings (migrations.test_writer.WriterTests)",
+     "test_serialize_numbers (migrations.test_writer.WriterTests)",
+     "test_serialize_range (migrations.test_writer.WriterTests)",
+     "test_serialize_set (migrations.test_writer.WriterTests)",
+     "test_serialize_settings (migrations.test_writer.WriterTests)",
+     "test_serialize_strings (migrations.test_writer.WriterTests)",
+     "test_serialize_timedelta (migrations.test_writer.WriterTests)",
+     "test_serialize_type_none (migrations.test_writer.WriterTests)",
+     "An unbound method used within a class body can be serialized.",
+     "test_serialize_uuid (migrations.test_writer.WriterTests)",
+     "test_simple_migration (migrations.test_writer.WriterTests)",
+     "test_sorted_imports (migrations.test_writer.WriterTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-11964": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_str (model_enums.tests.ChoicesTests)",
+     "test_textchoices (model_enums.tests.ChoicesTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_integerchoices (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_auto_label (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_containment (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_empty_label (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_functional_api (model_enums.tests.ChoicesTests)",
+     "test_invalid_definition (model_enums.tests.ChoicesTests)",
+     "test_textchoices_auto_label (model_enums.tests.ChoicesTests)",
+     "test_textchoices_blank_value (model_enums.tests.ChoicesTests)",
+     "test_textchoices_containment (model_enums.tests.ChoicesTests)",
+     "test_textchoices_empty_label (model_enums.tests.ChoicesTests)",
+     "test_textchoices_functional_api (model_enums.tests.ChoicesTests)",
+     "test_bool_unsupported (model_enums.tests.CustomChoicesTests)",
+     "test_labels_valid (model_enums.tests.CustomChoicesTests)",
+     "test_timezone_unsupported (model_enums.tests.CustomChoicesTests)",
+     "test_uuid_unsupported (model_enums.tests.CustomChoicesTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-12286": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_valid_variant_consistent_language_settings (check_framework.test_translation.TranslationCheckTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_inconsistent_language_settings (check_framework.test_translation.TranslationCheckTests)",
+     "test_invalid_language_code (check_framework.test_translation.TranslationCheckTests)",
+     "test_invalid_languages (check_framework.test_translation.TranslationCheckTests)",
+     "test_invalid_languages_bidi (check_framework.test_translation.TranslationCheckTests)",
+     "test_valid_language_code (check_framework.test_translation.TranslationCheckTests)",
+     "test_valid_languages (check_framework.test_translation.TranslationCheckTests)",
+     "test_valid_languages_bidi (check_framework.test_translation.TranslationCheckTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-12983": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-13033": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-13401": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "Field instances from abstract models are not equal."
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_blank_in_choices (model_fields.tests.GetChoicesTests)",
+     "test_blank_in_grouped_choices (model_fields.tests.GetChoicesTests)",
+     "test_empty_choices (model_fields.tests.GetChoicesTests)",
+     "test_lazy_strings_not_evaluated (model_fields.tests.GetChoicesTests)",
+     "test_get_choices (model_fields.tests.GetChoicesLimitChoicesToTests)",
+     "test_get_choices_reverse_related_field (model_fields.tests.GetChoicesLimitChoicesToTests)",
+     "test_choices_and_field_display (model_fields.tests.GetFieldDisplayTests)",
+     "test_empty_iterator_choices (model_fields.tests.GetFieldDisplayTests)",
+     "A translated display value is coerced to str.",
+     "test_iterator_choices (model_fields.tests.GetFieldDisplayTests)",
+     "test_overriding_FIELD_display (model_fields.tests.GetFieldDisplayTests)",
+     "test_overriding_inherited_FIELD_display (model_fields.tests.GetFieldDisplayTests)",
+     "Can supply a custom choices form class to Field.formfield()",
+     "deconstruct() uses __qualname__ for nested class support.",
+     "Field instances can be pickled.",
+     "test_field_name (model_fields.tests.BasicFieldTests)",
+     "Fields are ordered based on their creation.",
+     "test_field_repr (model_fields.tests.BasicFieldTests)",
+     "__repr__() uses __qualname__ for nested class support.",
+     "test_field_str (model_fields.tests.BasicFieldTests)",
+     "test_field_verbose_name (model_fields.tests.BasicFieldTests)",
+     "Field.formfield() sets disabled for fields with choices.",
+     "test_show_hidden_initial (model_fields.tests.BasicFieldTests)",
+     "test_get_choices (model_fields.tests.GetChoicesOrderingTests)",
+     "test_get_choices_default_ordering (model_fields.tests.GetChoicesOrderingTests)",
+     "test_get_choices_reverse_related_field (model_fields.tests.GetChoicesOrderingTests)",
+     "test_get_choices_reverse_related_field_default_ordering (model_fields.tests.GetChoicesOrderingTests)",
+     "test_check (model_fields.tests.ChoicesTests)",
+     "test_choices (model_fields.tests.ChoicesTests)",
+     "test_flatchoices (model_fields.tests.ChoicesTests)",
+     "test_formfield (model_fields.tests.ChoicesTests)",
+     "test_invalid_choice (model_fields.tests.ChoicesTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 5.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-13964": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_save_fk_after_parent_with_non_numeric_pk_set_on_child (many_to_one.tests.ManyToOneTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_add (many_to_one.tests.ManyToOneTests)",
+     "test_add_after_prefetch (many_to_one.tests.ManyToOneTests)",
+     "test_add_remove_set_by_pk_raises (many_to_one.tests.ManyToOneTests)",
+     "test_add_then_remove_after_prefetch (many_to_one.tests.ManyToOneTests)",
+     "test_assign (many_to_one.tests.ManyToOneTests)",
+     "test_assign_fk_id_none (many_to_one.tests.ManyToOneTests)",
+     "test_assign_fk_id_value (many_to_one.tests.ManyToOneTests)",
+     "test_cached_foreign_key_with_to_field_not_cleared_by_save (many_to_one.tests.ManyToOneTests)",
+     "Model.save() invalidates stale ForeignKey relations after a primary key",
+     "test_clear_after_prefetch (many_to_one.tests.ManyToOneTests)",
+     "test_create (many_to_one.tests.ManyToOneTests)",
+     "test_create_relation_with_gettext_lazy (many_to_one.tests.ManyToOneTests)",
+     "test_deepcopy_and_circular_references (many_to_one.tests.ManyToOneTests)",
+     "test_delete (many_to_one.tests.ManyToOneTests)",
+     "test_explicit_fk (many_to_one.tests.ManyToOneTests)",
+     "test_fk_assignment_and_related_object_cache (many_to_one.tests.ManyToOneTests)",
+     "test_fk_instantiation_outside_model (many_to_one.tests.ManyToOneTests)",
+     "test_fk_to_bigautofield (many_to_one.tests.ManyToOneTests)",
+     "test_fk_to_smallautofield (many_to_one.tests.ManyToOneTests)",
+     "test_get (many_to_one.tests.ManyToOneTests)",
+     "test_hasattr_related_object (many_to_one.tests.ManyToOneTests)",
+     "test_manager_class_caching (many_to_one.tests.ManyToOneTests)",
+     "test_multiple_foreignkeys (many_to_one.tests.ManyToOneTests)",
+     "test_related_object (many_to_one.tests.ManyToOneTests)",
+     "test_relation_unsaved (many_to_one.tests.ManyToOneTests)",
+     "test_remove_after_prefetch (many_to_one.tests.ManyToOneTests)",
+     "test_reverse_assignment_deprecation (many_to_one.tests.ManyToOneTests)",
+     "test_reverse_foreign_key_instance_to_field_caching (many_to_one.tests.ManyToOneTests)",
+     "test_reverse_selects (many_to_one.tests.ManyToOneTests)",
+     "test_save_nullable_fk_after_parent (many_to_one.tests.ManyToOneTests)",
+     "test_save_nullable_fk_after_parent_with_to_field (many_to_one.tests.ManyToOneTests)",
+     "test_select_related (many_to_one.tests.ManyToOneTests)",
+     "test_selects (many_to_one.tests.ManyToOneTests)",
+     "test_set (many_to_one.tests.ManyToOneTests)",
+     "test_set_after_prefetch (many_to_one.tests.ManyToOneTests)",
+     "test_values_list_exception (many_to_one.tests.ManyToOneTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-14997": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 4.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-16400": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 3.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-15388": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_non_template_changed_in_template_directory (template_tests.test_autoreloader.TemplateReloadTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_get_template_directories (template_tests.test_autoreloader.Jinja2TemplateReloadTests)",
+     "test_reset_all_loaders (template_tests.test_autoreloader.Jinja2TemplateReloadTests)",
+     "test_watch_for_template_changes (template_tests.test_autoreloader.Jinja2TemplateReloadTests)",
+     "test_get_template_directories (template_tests.test_autoreloader.TemplateReloadTests)",
+     "test_non_template_changed (template_tests.test_autoreloader.TemplateReloadTests)",
+     "test_reset_all_loaders (template_tests.test_autoreloader.TemplateReloadTests)",
+     "test_template_changed (template_tests.test_autoreloader.TemplateReloadTests)",
+     "test_template_dirs_normalized_to_paths (template_tests.test_autoreloader.TemplateReloadTests)",
+     "test_watch_for_template_changes (template_tests.test_autoreloader.TemplateReloadTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-15851": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_parameters (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)",
+     "test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)",
+     "test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)",
+     "test_crash_password_does_not_leak (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)",
+     "test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)",
+     "test_passfile (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)",
+     "test_service (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)",
+     "test_ssl_certificate (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.claude__claude-sonnet-5-r2.log"
+ },
+ "psf__requests-2317": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.claude__claude-sonnet-5-r2.log"
+ },
+ "pytest-dev__pytest-5495": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.claude__claude-sonnet-5-r2.log"
+ },
+ "pytest-dev__pytest-5692": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.claude__claude-sonnet-5-r2.log"
+ },
+ "django__django-16527": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_submit_row_save_as_new_add_permission_required (admin_views.test_templatetags.AdminTemplateTagsTest.test_submit_row_save_as_new_add_permission_required)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_choice_links (admin_views.test_templatetags.DateHierarchyTests.test_choice_links)",
+     "test_choice_links_datetime (admin_views.test_templatetags.DateHierarchyTests.test_choice_links_datetime)",
+     "admin_modify template tags follow the standard search pattern",
+     "admin_list template tags follow the standard search pattern",
+     "test_override_show_save_and_add_another (admin_views.test_templatetags.AdminTemplateTagsTest.test_override_show_save_and_add_another)",
+     "submit_row template tag should pass whole context."
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.claude__claude-sonnet-5-r2.log"
+ },
+ "pytest-dev__pytest-7168": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-12419": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_Identity"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_shape",
+     "test_matexpr",
+     "test_subs",
+     "test_ZeroMatrix",
+     "test_ZeroMatrix_doit",
+     "test_Identity_doit",
+     "test_addition",
+     "test_multiplication",
+     "test_MatPow",
+     "test_MatrixSymbol",
+     "test_dense_conversion",
+     "test_free_symbols",
+     "test_zero_matmul",
+     "test_matadd_simplify",
+     "test_matmul_simplify",
+     "test_invariants",
+     "test_indexing",
+     "test_single_indexing",
+     "test_MatrixElement_commutative",
+     "test_MatrixSymbol_determinant",
+     "test_MatrixElement_diff",
+     "test_MatrixElement_doit",
+     "test_identity_powers",
+     "test_Zero_power",
+     "test_matrixelement_diff"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.claude__claude-sonnet-5-r2.log"
+ },
+ "sphinx-doc__sphinx-8435": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "tests/test_ext_autodoc_configs.py::test_autodoc_type_aliases"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_class",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_init",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_both",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_inherit_docstrings",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_docstring_signature",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_class",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_init",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_both",
+     "tests/test_ext_autodoc_configs.py::test_mocked_module_imports",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_signature",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none_for_overload",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_for_invalid_node",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_default_options",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_default_options_with_values"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-14308": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.claude__claude-sonnet-5-r2.log"
+ },
+ "sphinx-doc__sphinx-8506": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": false,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [],
+    "failure": [
+     "tests/test_domain_std.py::test_cmd_option_starting_with_bracket"
+    ]
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "tests/test_domain_std.py::test_process_doc_handle_figure_caption",
+     "tests/test_domain_std.py::test_process_doc_handle_table_title",
+     "tests/test_domain_std.py::test_get_full_qualified_name",
+     "tests/test_domain_std.py::test_cmd_option_with_optional_value",
+     "tests/test_domain_std.py::test_glossary",
+     "tests/test_domain_std.py::test_glossary_warning",
+     "tests/test_domain_std.py::test_glossary_comment",
+     "tests/test_domain_std.py::test_glossary_comment2",
+     "tests/test_domain_std.py::test_glossary_sorted",
+     "tests/test_domain_std.py::test_glossary_alphanumeric",
+     "tests/test_domain_std.py::test_glossary_conflicted_labels",
+     "tests/test_domain_std.py::test_cmdoption",
+     "tests/test_domain_std.py::test_multiple_cmdoptions",
+     "tests/test_domain_std.py::test_disabled_docref"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-17022": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-18698": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 1.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-18621": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_issue_18618"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_bc_matmul",
+     "test_bc_matadd",
+     "test_bc_transpose",
+     "test_bc_dist_diag",
+     "test_block_plus_ident",
+     "test_BlockMatrix",
+     "test_block_collapse_explicit_matrices",
+     "test_issue_17624",
+     "test_BlockMatrix_trace",
+     "test_BlockMatrix_Determinant",
+     "test_squareBlockMatrix",
+     "test_BlockDiagMatrix",
+     "test_blockcut",
+     "test_reblock_2x2",
+     "test_deblock"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-23262": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-24213": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": false,
+  "resolved": false,
+  "infra_failure": false,
+  "seconds": 2.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.claude__claude-sonnet-5-r2.log"
+ },
+ "sympy__sympy-21171": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_latex_SingularityFunction"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_printmethod",
+     "test_latex_basic",
+     "test_latex_builtins",
+     "test_latex_cycle",
+     "test_latex_permutation",
+     "test_latex_Float",
+     "test_latex_vector_expressions",
+     "test_latex_symbols",
+     "test_latex_functions",
+     "test_function_subclass_different_name",
+     "test_hyper_printing",
+     "test_latex_bessel",
+     "test_latex_fresnel",
+     "test_latex_brackets",
+     "test_latex_indexed",
+     "test_latex_derivatives",
+     "test_latex_subs",
+     "test_latex_integrals",
+     "test_latex_sets",
+     "test_latex_SetExpr",
+     "test_latex_Range",
+     "test_latex_sequences",
+     "test_latex_FourierSeries",
+     "test_latex_FormalPowerSeries",
+     "test_latex_intervals",
+     "test_latex_AccumuBounds",
+     "test_latex_emptyset",
+     "test_latex_universalset",
+     "test_latex_commutator",
+     "test_latex_union",
+     "test_latex_intersection",
+     "test_latex_symmetric_difference",
+     "test_latex_Complement",
+     "test_latex_productset",
+     "test_set_operators_parenthesis",
+     "test_latex_Complexes",
+     "test_latex_Naturals",
+     "test_latex_Naturals0",
+     "test_latex_Integers",
+     "test_latex_ImageSet",
+     "test_latex_ConditionSet",
+     "test_latex_ComplexRegion",
+     "test_latex_Contains",
+     "test_latex_sum",
+     "test_latex_product",
+     "test_latex_limits",
+     "test_latex_log",
+     "test_issue_3568",
+     "test_latex",
+     "test_latex_dict",
+     "test_latex_list",
+     "test_latex_rational",
+     "test_latex_inverse",
+     "test_latex_DiracDelta",
+     "test_latex_Heaviside",
+     "test_latex_KroneckerDelta",
+     "test_latex_LeviCivita",
+     "test_mode",
+     "test_latex_mathieu",
+     "test_latex_Piecewise",
+     "test_latex_Matrix",
+     "test_latex_matrix_with_functions",
+     "test_latex_NDimArray",
+     "test_latex_mul_symbol",
+     "test_latex_issue_4381",
+     "test_latex_issue_4576",
+     "test_latex_pow_fraction",
+     "test_noncommutative",
+     "test_latex_order",
+     "test_latex_Lambda",
+     "test_latex_PolyElement",
+     "test_latex_FracElement",
+     "test_latex_Poly",
+     "test_latex_Poly_order",
+     "test_latex_ComplexRootOf",
+     "test_latex_RootSum",
+     "test_settings",
+     "test_latex_numbers",
+     "test_latex_euler",
+     "test_lamda",
+     "test_custom_symbol_names",
+     "test_matAdd",
+     "test_matMul",
+     "test_latex_MatrixSlice",
+     "test_latex_RandomDomain",
+     "test_PrettyPoly",
+     "test_integral_transforms",
+     "test_PolynomialRingBase",
+     "test_categories",
+     "test_Modules",
+     "test_QuotientRing",
+     "test_Tr",
+     "test_Adjoint",
+     "test_Transpose",
+     "test_Hadamard",
+     "test_ElementwiseApplyFunction",
+     "test_ZeroMatrix",
+     "test_OneMatrix",
+     "test_Identity",
+     "test_boolean_args_order",
+     "test_imaginary",
+     "test_builtins_without_args",
+     "test_latex_greek_functions",
+     "test_translate",
+     "test_other_symbols",
+     "test_modifiers",
+     "test_greek_symbols",
+     "test_fancyset_symbols",
+     "test_builtin_no_args",
+     "test_issue_6853",
+     "test_Mul",
+     "test_Pow",
+     "test_issue_7180",
+     "test_issue_8409",
+     "test_issue_8470",
+     "test_issue_15439",
+     "test_issue_2934",
+     "test_issue_10489",
+     "test_issue_12886",
+     "test_issue_13559",
+     "test_issue_13651",
+     "test_latex_UnevaluatedExpr",
+     "test_MatrixElement_printing",
+     "test_MatrixSymbol_printing",
+     "test_KroneckerProduct_printing",
+     "test_Series_printing",
+     "test_TransferFunction_printing",
+     "test_Parallel_printing",
+     "test_Feedback_printing",
+     "test_Quaternion_latex_printing",
+     "test_TensorProduct_printing",
+     "test_WedgeProduct_printing",
+     "test_issue_9216",
+     "test_latex_printer_tensor",
+     "test_multiline_latex",
+     "test_issue_15353",
+     "test_trace",
+     "test_print_basic",
+     "test_MatrixSymbol_bold",
+     "test_AppliedPermutation",
+     "test_PermutationMatrix",
+     "test_imaginary_unit",
+     "test_text_re_im",
+     "test_latex_diffgeom",
+     "test_unit_printing",
+     "test_issue_17092",
+     "test_latex_decimal_separator",
+     "test_Str",
+     "test_latex_escape",
+     "test_emptyPrinter",
+     "test_global_settings",
+     "test_pickleable"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 6.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.claude__claude-sonnet-5-r2.log"
+ }
+}

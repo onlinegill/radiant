@@ -132,6 +132,11 @@ Then in `~/Projects/templeton-group-dev-website`: set
 fetch cannot show a stale number. Push to `main` (auto-deploys in ~10s) and
 verify the live URL.
 
+Then prune: `scripts/prune-releases.sh`. It deletes every local artifact
+except the version just shipped (GitHub Releases is the copy that matters)
+and all but the two newest iOS archives. `release/` reached 70 GB — 1,025
+files — before anyone looked.
+
 ⚠️ The DMG is gitignored — 124 MB, past GitHub's file limit — so it never
 travels through git. The page links to
 `releases/latest/download/radiant.dmg`, which is why that stable-named asset
