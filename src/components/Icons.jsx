@@ -1,4 +1,28 @@
 import React from 'react'
+import { SF_SYMBOLS } from '../sf-symbols-mac.js'
+
+// ⚠️ PREVIEW SWITCH, NOT A DECISION. Tony bought Apple's SF Symbols and asked
+// to see the Mac app with them before deciding. `localStorage.sfIcons = '1'`
+// (then reload) swaps every icon below for the matching SF Symbol, rendered by
+// macOS as a mask (scripts/sf-symbols.sh mac) and tinted with currentColor;
+// unset, the app is exactly as it was. Apple's licence allows the symbols in
+// apps for Apple platforms only — this file is never imported by the website
+// or the Chrome extension.
+const SF_ON = (() => { try { return localStorage.getItem('sfIcons') === '1' } catch { return false } })()
+const SF_NAME = {
+  download: 'arrow.down.to.line', panel: 'sidebar.left', settings: 'gearshape', sun: 'sun.max', moon: 'moon',
+  contrast: 'circle.lefthalf.filled', plus: 'plus', arrowUp: 'arrow.up', sparkle: 'sparkles', stop: 'stop.fill',
+  close: 'xmark', monitor: 'desktopcomputer', clipboard: 'list.clipboard', unlock: 'lock.open', zap: 'bolt',
+  bulb: 'lightbulb', hand: 'hand.raised', wrench: 'wrench', users: 'person.2', file: 'doc.text',
+  branch: 'arrow.triangle.branch', folder: 'folder', archive: 'archivebox', unarchive: 'tray.and.arrow.up',
+  trash: 'trash', mic: 'mic', target: 'scope', waves: 'waveform'
+}
+function Sf ({ name, size = 16 }) {
+  const s = SF_SYMBOLS[name]
+  // the symbol's layout box is wider than tall; fit it in the same square the line icon used
+  const h = size, w = Math.round((size * s.w / s.h) * 100) / 100
+  return <span aria-hidden style={{ display: 'inline-block', width: w, height: h, flex: 'none', verticalAlign: 'middle', backgroundColor: 'currentColor', WebkitMaskImage: `url(${s.src})`, maskImage: `url(${s.src})`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
+}
 
 // Minimal line icons (Lucide-style): 24×24, currentColor stroke, round caps.
 function Svg ({ children, size = 16, fill = 'none' }) {
@@ -76,4 +100,8 @@ export const Icon = {
   target: p => <Svg {...p}><circle cx='12' cy='12' r='7' /><path d='M12 2v3M12 19v3M2 12h3M19 12h3' /><circle cx='12' cy='12' r='1.5' /></Svg>,
   // a sound wave: the voice conversation, as distinct from the dictation mic
   waves: p => <Svg {...p}><path d='M3 12h2M7 8v8M11 5v14M15 8v8M19 10v4M21 12h0' /></Svg>
+}
+
+if (SF_ON) {
+  for (const k of Object.keys(SF_NAME)) if (SF_SYMBOLS[SF_NAME[k]]) Icon[k] = p => <Sf name={SF_NAME[k]} size={p?.size} />
 }
