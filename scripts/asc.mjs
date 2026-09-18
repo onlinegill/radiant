@@ -27,6 +27,8 @@
  *                                an empty size is a rejection, and the web UI
  *                                is the only place it is otherwise visible
  *   subs <appId>                 the review submissions and what is on them
+ *   set-shots <appId> <ver> <type> <png...>  replace one device size's
+ *                                screenshots on an editable version
  *   submit <appId> <version>     put that version in Apple's review queue and
  *                                read the state back
  *
@@ -296,6 +298,55 @@ try {
         console.log(`  ${set.attributes.screenshotDisplayType.padEnd(28)} ${shots.data.length} shot(s)${bad ? `  ⚠️ ${bad} not COMPLETE` : ''}`)
       }
     }
+  } else if (cmd === 'set-shots') {
+    // set-shots <appId> <version> <displayType> <png...>
+    // ⚠️ SCREENSHOTS BELONG TO A VERSION, AND A LIVE VERSION IS LOCKED. So
+    // they go on the next, editable version; they reach the store with it.
+    // Replaces the whole set for that device size: existing shots are deleted,
+    // then each file is reserved, uploaded in the chunks Apple hands back,
+    // committed with its MD5, and polled until Apple says COMPLETE — and the
+    // count is read back at the end, because "uploaded" is not "there".
+    const version = value
+    const displayType = process.argv[5]
+    const files = process.argv.slice(6)
+    if (!version || !displayType || !files.length) throw new Error('node scripts/asc.mjs set-shots <appId> <version> <APP_IPHONE_67|APP_IPAD_PRO_3GEN_129> <png...>')
+    const vs = await versions(appId)
+    const target = vs.find(v => v.version === version)
+    if (!target) throw new Error(`No version ${version}`)
+    if (!EDITABLE.has(target.state)) throw new Error(`${version} is ${target.state}: screenshots cannot change on it. Create the next version first.`)
+    const loc = await localization(target.id)
+    const sets = await call('GET', `/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=50`)
+    let set = sets.data.find(x => x.attributes.screenshotDisplayType === displayType)
+    if (!set) {
+      set = (await call('POST', '/appScreenshotSets', { data: { type: 'appScreenshotSets', attributes: { screenshotDisplayType: displayType }, relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: loc.id } } } } })).data
+      console.log(`created ${displayType} set`)
+    }
+    const existing = await call('GET', `/appScreenshotSets/${set.id}/appScreenshots?limit=20`)
+    for (const shot of existing.data) await call('DELETE', `/appScreenshots/${shot.id}`)
+    if (existing.data.length) console.log(`removed ${existing.data.length} old screenshot(s)`)
+    for (const file of files) {
+      const bytes = fs.readFileSync(file)
+      const md5 = crypto.createHash('md5').update(bytes).digest('hex')
+      const reserved = (await call('POST', '/appScreenshots', { data: { type: 'appScreenshots', attributes: { fileName: path.basename(file), fileSize: bytes.length }, relationships: { appScreenshotSet: { data: { type: 'appScreenshotSets', id: set.id } } } } })).data
+      for (const op of reserved.attributes.uploadOperations || []) {
+        const chunk = bytes.subarray(op.offset, op.offset + op.length)
+        const headers = Object.fromEntries((op.requestHeaders || []).map(h => [h.name, h.value]))
+        const r = await fetch(op.url, { method: op.method, headers, body: chunk })
+        if (!r.ok) throw new Error(`upload chunk of ${file} → ${r.status}`)
+      }
+      await call('PATCH', `/appScreenshots/${reserved.id}`, { data: { type: 'appScreenshots', id: reserved.id, attributes: { uploaded: true, sourceFileChecksum: md5 } } })
+      let state = 'UPLOAD_COMPLETE'
+      for (let i = 0; i < 40 && state !== 'COMPLETE' && state !== 'FAILED'; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        const back = await call('GET', `/appScreenshots/${reserved.id}?fields[appScreenshots]=assetDeliveryState,fileName`)
+        state = back.data.attributes.assetDeliveryState?.state
+        if (state === 'FAILED') throw new Error(`${file}: ${JSON.stringify(back.data.attributes.assetDeliveryState?.errors)}`)
+      }
+      console.log(`  ${path.basename(file)}  ${(bytes.length / 1e6).toFixed(1)} MB  ${state}`)
+    }
+    const after = await call('GET', `/appScreenshotSets/${set.id}/appScreenshots?limit=20&fields[appScreenshots]=fileName`)
+    console.log(`${displayType} on ${version}: ${after.data.length} screenshot(s) — ${after.data.map(x => x.attributes.fileName).join(', ')}`)
+    if (after.data.length !== files.length) throw new Error('Apple holds a different number of screenshots than were sent.')
   } else if (cmd === 'subs') {
     const r = await call('GET', `/apps/${appId}/reviewSubmissions?limit=10`)
     if (!r.data.length) console.log('no review submissions')

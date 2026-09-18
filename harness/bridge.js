@@ -43,6 +43,8 @@ const CATALOG = [...swift.matchAll(
   // catalogue the app does not have.
   vision: /vision: true/.test(m[6]),
   video: /video: true/.test(m[6]),
+  // the real plugin sends every row's repo; the search matches results on it
+  repo: (/rxRepo\("([^"]+)"\)/.exec(m[6]) || [])[1] || null,
   // Two resident models so both the "On this iPhone" group and the catalog
   // below it render, plus one that can see so the picture button has something
   // to appear beside.

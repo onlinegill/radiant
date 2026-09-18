@@ -2,11 +2,106 @@
  "django__django-11019": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 3.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_combine_media (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_construction (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_form_media (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_deduplication (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_inheritance (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_inheritance_extends (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_property_parent_references (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_merge (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_merge_css_three_way (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_merge_js_three_way (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_merge_js_three_way2 (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_merge_warning (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_multi_widget (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media (admin_widgets.test_autocomplete_widget.AutocompleteMixinTests)",
+     "test_render_options (admin_widgets.test_autocomplete_widget.AutocompleteMixinTests)",
+     "test_inline_media_only_inline (admin_inlines.tests.TestInlineMedia)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "Regression for #9362",
+     "test_html_safe (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_dsl (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_inheritance_from_property (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_inheritance_single_type (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_media_property (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_multi_media (forms_tests.tests.test_media.FormsMediaTestCase)",
+     "test_build_attrs (admin_widgets.test_autocomplete_widget.AutocompleteMixinTests)",
+     "test_build_attrs_no_custom_class (admin_widgets.test_autocomplete_widget.AutocompleteMixinTests)",
+     "test_build_attrs_not_required_field (admin_widgets.test_autocomplete_widget.AutocompleteMixinTests)",
+     "test_build_attrs_required_field (admin_widgets.test_autocomplete_widget.AutocompleteMixinTests)",
+     "test_get_url (admin_widgets.test_autocomplete_widget.AutocompleteMixinTests)",
+     "Empty option isn't present if the field isn't required.",
+     "Empty option is present if the field isn't required.",
+     "test_deleting_inline_with_protected_delete_does_not_validate (admin_inlines.tests.TestInlineProtectedOnDelete)",
+     "test_all_inline_media (admin_inlines.tests.TestInlineMedia)",
+     "test_inline_media_only_base (admin_inlines.tests.TestInlineMedia)",
+     "test_inline_add_fk_add_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_add_fk_noperm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_add_m2m_add_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_add_m2m_noperm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_fk_add_change_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_fk_add_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_fk_all_perms (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_fk_change_del_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_fk_change_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_fk_noperm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_m2m_add_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_m2m_change_perm (admin_inlines.tests.TestInlinePermissions)",
+     "test_inline_change_m2m_noperm (admin_inlines.tests.TestInlinePermissions)",
+     "Admin inline should invoke local callable when its name is listed in readonly_fields",
+     "test_can_delete (admin_inlines.tests.TestInline)",
+     "test_create_inlines_on_inherited_model (admin_inlines.tests.TestInline)",
+     "test_custom_form_tabular_inline_label (admin_inlines.tests.TestInline)",
+     "test_custom_form_tabular_inline_overridden_label (admin_inlines.tests.TestInline)",
+     "test_custom_get_extra_form (admin_inlines.tests.TestInline)",
+     "test_custom_min_num (admin_inlines.tests.TestInline)",
+     "test_custom_pk_shortcut (admin_inlines.tests.TestInline)",
+     "test_help_text (admin_inlines.tests.TestInline)",
+     "test_inline_editable_pk (admin_inlines.tests.TestInline)",
+     "#18263 -- Make sure hidden fields don't get a column in tabular inlines",
+     "test_inline_nonauto_noneditable_inherited_pk (admin_inlines.tests.TestInline)",
+     "test_inline_nonauto_noneditable_pk (admin_inlines.tests.TestInline)",
+     "test_inline_primary (admin_inlines.tests.TestInline)",
+     "Inlines `show_change_link` for registered models when enabled.",
+     "Inlines `show_change_link` disabled for unregistered models.",
+     "test_localize_pk_shortcut (admin_inlines.tests.TestInline)",
+     "Autogenerated many-to-many inlines are displayed correctly (#13407)",
+     "test_min_num (admin_inlines.tests.TestInline)",
+     "Admin inline `readonly_field` shouldn't invoke parent ModelAdmin callable",
+     "test_non_related_name_inline (admin_inlines.tests.TestInline)",
+     "Inlines without change permission shows field inputs on add form.",
+     "Bug #13174.",
+     "test_stacked_inline_edit_form_contains_has_original_class (admin_inlines.tests.TestInline)",
+     "test_tabular_inline_column_css_class (admin_inlines.tests.TestInline)",
+     "Inlines `show_change_link` disabled by default.",
+     "test_tabular_model_form_meta_readonly_field (admin_inlines.tests.TestInline)",
+     "test_tabular_non_field_errors (admin_inlines.tests.TestInline)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 12.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "d27ff1ff4597"
  },
  "django__django-11133": {
   "patch_is_None": false,
@@ -99,17 +194,78 @@
     "failure": []
    }
   },
-  "seconds": 5.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.claude__claude-sonnet-5-r2.log"
+  "seconds": 11.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "8fc2b941326c"
  },
  "django__django-11797": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_exact_query_rhs_with_selected_columns (lookup.tests.LookupTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_chain_date_time_lookups (lookup.tests.LookupTests)",
+     "test_count (lookup.tests.LookupTests)",
+     "test_custom_field_none_rhs (lookup.tests.LookupTests)",
+     "Lookup.can_use_none_as_rhs=True allows None as a lookup value.",
+     "test_error_messages (lookup.tests.LookupTests)",
+     "test_escaping (lookup.tests.LookupTests)",
+     "test_exact_exists (lookup.tests.LookupTests)",
+     "Transforms are used for __exact=None.",
+     "test_exact_sliced_queryset_limit_one (lookup.tests.LookupTests)",
+     "test_exact_sliced_queryset_limit_one_offset (lookup.tests.LookupTests)",
+     "test_exact_sliced_queryset_not_limited_to_one (lookup.tests.LookupTests)",
+     "test_exclude (lookup.tests.LookupTests)",
+     "test_exists (lookup.tests.LookupTests)",
+     "test_get_next_previous_by (lookup.tests.LookupTests)",
+     "test_in (lookup.tests.LookupTests)",
+     "test_in_bulk (lookup.tests.LookupTests)",
+     "test_in_bulk_lots_of_ids (lookup.tests.LookupTests)",
+     "test_in_bulk_non_unique_field (lookup.tests.LookupTests)",
+     "test_in_bulk_with_field (lookup.tests.LookupTests)",
+     "test_in_different_database (lookup.tests.LookupTests)",
+     "test_in_keeps_value_ordering (lookup.tests.LookupTests)",
+     "test_iterator (lookup.tests.LookupTests)",
+     "test_lookup_collision (lookup.tests.LookupTests)",
+     "test_lookup_date_as_str (lookup.tests.LookupTests)",
+     "test_lookup_int_as_str (lookup.tests.LookupTests)",
+     "test_nested_outerref_lhs (lookup.tests.LookupTests)",
+     "test_none (lookup.tests.LookupTests)",
+     "test_nonfield_lookups (lookup.tests.LookupTests)",
+     "test_pattern_lookups_with_substr (lookup.tests.LookupTests)",
+     "test_regex (lookup.tests.LookupTests)",
+     "test_regex_backreferencing (lookup.tests.LookupTests)",
+     "test_regex_non_ascii (lookup.tests.LookupTests)",
+     "test_regex_non_string (lookup.tests.LookupTests)",
+     "test_regex_null (lookup.tests.LookupTests)",
+     "test_relation_nested_lookup_error (lookup.tests.LookupTests)",
+     "test_unsupported_lookups (lookup.tests.LookupTests)",
+     "test_values (lookup.tests.LookupTests)",
+     "test_values_list (lookup.tests.LookupTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 9.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "6cf5a74e39ba"
  },
  "django__django-11620": {
   "patch_is_None": false,
@@ -204,8 +360,9 @@
     "failure": []
    }
   },
-  "seconds": 6.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.claude__claude-sonnet-5-r2.log"
+  "seconds": 12.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "b7d7c070de70"
  },
  "django__django-11815": {
   "patch_is_None": false,
@@ -279,8 +436,9 @@
     "failure": []
    }
   },
-  "seconds": 4.2,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.claude__claude-sonnet-5-r2.log"
+  "seconds": 8.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "37479379e204"
  },
  "django__django-11964": {
   "patch_is_None": false,
@@ -325,8 +483,9 @@
     "failure": []
    }
   },
-  "seconds": 4.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.claude__claude-sonnet-5-r2.log"
+  "seconds": 8.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "01cecb9a7122"
  },
  "django__django-12286": {
   "patch_is_None": false,
@@ -362,26 +521,112 @@
     "failure": []
    }
   },
-  "seconds": 4.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.claude__claude-sonnet-5-r2.log"
+  "seconds": 9.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "5574daa303b7"
  },
  "django__django-12983": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.6,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_slugify (utils_tests.test_text.TestUtilsText)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_compress_sequence (utils_tests.test_text.TestUtilsText)",
+     "test_format_lazy (utils_tests.test_text.TestUtilsText)",
+     "test_get_text_list (utils_tests.test_text.TestUtilsText)",
+     "test_get_valid_filename (utils_tests.test_text.TestUtilsText)",
+     "test_normalize_newlines (utils_tests.test_text.TestUtilsText)",
+     "test_phone2numeric (utils_tests.test_text.TestUtilsText)",
+     "test_smart_split (utils_tests.test_text.TestUtilsText)",
+     "test_truncate_chars (utils_tests.test_text.TestUtilsText)",
+     "test_truncate_chars_html (utils_tests.test_text.TestUtilsText)",
+     "test_truncate_html_words (utils_tests.test_text.TestUtilsText)",
+     "test_truncate_words (utils_tests.test_text.TestUtilsText)",
+     "test_unescape_entities (utils_tests.test_text.TestUtilsText)",
+     "test_unescape_entities_deprecated (utils_tests.test_text.TestUtilsText)",
+     "test_unescape_string_literal (utils_tests.test_text.TestUtilsText)",
+     "test_wrap (utils_tests.test_text.TestUtilsText)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 10.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "f43d01be89d7"
  },
  "django__django-13033": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.5,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_order_by_self_referential_fk (ordering.tests.OrderingTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_default_ordering (ordering.tests.OrderingTests)",
+     "F expressions can be used in Meta.ordering.",
+     "test_default_ordering_override (ordering.tests.OrderingTests)",
+     "test_extra_ordering (ordering.tests.OrderingTests)",
+     "test_extra_ordering_quoting (ordering.tests.OrderingTests)",
+     "test_extra_ordering_with_table_name (ordering.tests.OrderingTests)",
+     "test_no_reordering_after_slicing (ordering.tests.OrderingTests)",
+     "test_order_by_constant_value (ordering.tests.OrderingTests)",
+     "test_order_by_constant_value_without_output_field (ordering.tests.OrderingTests)",
+     "test_order_by_f_expression (ordering.tests.OrderingTests)",
+     "test_order_by_f_expression_duplicates (ordering.tests.OrderingTests)",
+     "test_order_by_fk_attname (ordering.tests.OrderingTests)",
+     "test_order_by_nulls_first (ordering.tests.OrderingTests)",
+     "test_order_by_nulls_first_and_last (ordering.tests.OrderingTests)",
+     "test_order_by_nulls_last (ordering.tests.OrderingTests)",
+     "test_order_by_override (ordering.tests.OrderingTests)",
+     "test_order_by_pk (ordering.tests.OrderingTests)",
+     "test_order_by_ptr_field_with_default_ordering_by_expression (ordering.tests.OrderingTests)",
+     "test_orders_nulls_first_on_filtered_subquery (ordering.tests.OrderingTests)",
+     "test_random_ordering (ordering.tests.OrderingTests)",
+     "test_related_ordering_duplicate_table_reference (ordering.tests.OrderingTests)",
+     "test_reverse_meta_ordering_pure (ordering.tests.OrderingTests)",
+     "test_reverse_ordering_pure (ordering.tests.OrderingTests)",
+     "test_reversed_ordering (ordering.tests.OrderingTests)",
+     "test_stop_slicing (ordering.tests.OrderingTests)",
+     "test_stop_start_slicing (ordering.tests.OrderingTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 10.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "b4ffaf619164"
  },
  "django__django-13401": {
   "patch_is_None": false,
@@ -442,8 +687,9 @@
     "failure": []
    }
   },
-  "seconds": 5.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.claude__claude-sonnet-5-r2.log"
+  "seconds": 12.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "2402a7065210"
  },
  "django__django-13964": {
   "patch_is_None": false,
@@ -508,26 +754,280 @@
     "failure": []
    }
   },
-  "seconds": 4.6,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.claude__claude-sonnet-5-r2.log"
+  "seconds": 10.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "64da55e43549"
  },
  "django__django-14997": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 4.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_rename_table_references_without_alias (backends.test_ddl_references.ExpressionsTests)",
+     "test_alter_field_with_func_index (migrations.test_operations.OperationTests)",
+     "test_alter_field_with_func_unique_constraint (migrations.test_operations.OperationTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_references_column (backends.test_ddl_references.ColumnsTests)",
+     "test_references_table (backends.test_ddl_references.ColumnsTests)",
+     "test_rename_column_references (backends.test_ddl_references.ColumnsTests)",
+     "test_rename_table_references (backends.test_ddl_references.ColumnsTests)",
+     "test_repr (backends.test_ddl_references.ColumnsTests)",
+     "test_str (backends.test_ddl_references.ColumnsTests)",
+     "test_references_model_mixin (migrations.test_operations.TestCreateModel)",
+     "test_references_column (backends.test_ddl_references.ForeignKeyNameTests)",
+     "test_references_table (backends.test_ddl_references.ForeignKeyNameTests)",
+     "test_rename_column_references (backends.test_ddl_references.ForeignKeyNameTests)",
+     "test_rename_table_references (backends.test_ddl_references.ForeignKeyNameTests)",
+     "test_repr (backends.test_ddl_references.ForeignKeyNameTests)",
+     "test_str (backends.test_ddl_references.ForeignKeyNameTests)",
+     "test_references_table (backends.test_ddl_references.TableTests)",
+     "test_rename_table_references (backends.test_ddl_references.TableTests)",
+     "test_repr (backends.test_ddl_references.TableTests)",
+     "test_str (backends.test_ddl_references.TableTests)",
+     "test_references_column (backends.test_ddl_references.IndexNameTests)",
+     "test_references_table (backends.test_ddl_references.IndexNameTests)",
+     "test_rename_column_references (backends.test_ddl_references.IndexNameTests)",
+     "test_rename_table_references (backends.test_ddl_references.IndexNameTests)",
+     "test_repr (backends.test_ddl_references.IndexNameTests)",
+     "test_str (backends.test_ddl_references.IndexNameTests)",
+     "test_references_column (backends.test_ddl_references.StatementTests)",
+     "test_references_table (backends.test_ddl_references.StatementTests)",
+     "test_rename_column_references (backends.test_ddl_references.StatementTests)",
+     "test_rename_table_references (backends.test_ddl_references.StatementTests)",
+     "test_repr (backends.test_ddl_references.StatementTests)",
+     "test_str (backends.test_ddl_references.StatementTests)",
+     "test_reference_field_by_through_fields (migrations.test_operations.FieldOperationTests)",
+     "test_references_field_by_from_fields (migrations.test_operations.FieldOperationTests)",
+     "test_references_field_by_name (migrations.test_operations.FieldOperationTests)",
+     "test_references_field_by_remote_field_model (migrations.test_operations.FieldOperationTests)",
+     "test_references_field_by_through (migrations.test_operations.FieldOperationTests)",
+     "test_references_field_by_to_fields (migrations.test_operations.FieldOperationTests)",
+     "test_references_model (migrations.test_operations.FieldOperationTests)",
+     "test_references_column (backends.test_ddl_references.ExpressionsTests)",
+     "test_references_table (backends.test_ddl_references.ExpressionsTests)",
+     "test_rename_column_references (backends.test_ddl_references.ExpressionsTests)",
+     "test_rename_table_references (backends.test_ddl_references.ExpressionsTests)",
+     "test_str (backends.test_ddl_references.ExpressionsTests)",
+     "Tests the AddField operation.",
+     "The CreateTable operation ignores swapped models.",
+     "Tests the DeleteModel operation ignores swapped models.",
+     "Add/RemoveIndex operations ignore swapped models.",
+     "Tests the AddField operation on TextField/BinaryField.",
+     "Tests the AddField operation on TextField.",
+     "test_add_constraint (migrations.test_operations.OperationTests)",
+     "test_add_constraint_combinable (migrations.test_operations.OperationTests)",
+     "test_add_constraint_percent_escaping (migrations.test_operations.OperationTests)",
+     "test_add_covering_unique_constraint (migrations.test_operations.OperationTests)",
+     "test_add_deferred_unique_constraint (migrations.test_operations.OperationTests)",
+     "Tests the AddField operation with a ManyToManyField.",
+     "Tests the AddField operation's state alteration",
+     "test_add_func_index (migrations.test_operations.OperationTests)",
+     "test_add_func_unique_constraint (migrations.test_operations.OperationTests)",
+     "Test the AddIndex operation.",
+     "test_add_index_state_forwards (migrations.test_operations.OperationTests)",
+     "test_add_or_constraint (migrations.test_operations.OperationTests)",
+     "test_add_partial_unique_constraint (migrations.test_operations.OperationTests)",
+     "Tests the AlterField operation.",
+     "AlterField operation is a noop when adding only a db_column and the",
+     "test_alter_field_m2m (migrations.test_operations.OperationTests)",
+     "Tests the AlterField operation on primary keys (for things like PostgreSQL's SERIAL weirdness)",
+     "Tests the AlterField operation on primary keys changes any FKs pointing to it.",
+     "test_alter_field_pk_mti_fk (migrations.test_operations.OperationTests)",
+     "If AlterField doesn't reload state appropriately, the second AlterField",
+     "test_alter_field_reloads_state_on_fk_with_to_field_related_name_target_type_change (migrations.test_operations.OperationTests)",
+     "test_alter_field_reloads_state_on_fk_with_to_field_target_type_change (migrations.test_operations.OperationTests)",
+     "Test AlterField operation with an index to ensure indexes created via",
+     "Creating and then altering an FK works correctly",
+     "Altering an FK to a non-FK works (#23244)",
+     "Tests the AlterIndexTogether operation.",
+     "test_alter_index_together_remove (migrations.test_operations.OperationTests)",
+     "test_alter_index_together_remove_with_unique_together (migrations.test_operations.OperationTests)",
+     "The managers on a model are set.",
+     "Tests the AlterModelOptions operation.",
+     "The AlterModelOptions operation removes keys from the dict (#23121)",
+     "Tests the AlterModelTable operation.",
+     "AlterModelTable should rename auto-generated M2M tables.",
+     "Tests the AlterModelTable operation if the table name is set to None.",
+     "Tests the AlterModelTable operation if the table name is not changed.",
+     "Tests the AlterOrderWithRespectTo operation.",
+     "Tests the AlterUniqueTogether operation.",
+     "test_alter_unique_together_remove (migrations.test_operations.OperationTests)",
+     "A field may be migrated from AutoField to BigAutoField.",
+     "Column names that are SQL keywords shouldn't cause problems when used",
+     "Tests the CreateModel operation.",
+     "Tests the CreateModel operation on a multi-table inheritance setup.",
+     "Test the creation of a model with a ManyToMany field and the",
+     "test_create_model_with_constraint (migrations.test_operations.OperationTests)",
+     "test_create_model_with_deferred_unique_constraint (migrations.test_operations.OperationTests)",
+     "test_create_model_with_duplicate_base (migrations.test_operations.OperationTests)",
+     "test_create_model_with_duplicate_field_name (migrations.test_operations.OperationTests)",
+     "test_create_model_with_duplicate_manager_name (migrations.test_operations.OperationTests)",
+     "test_create_model_with_partial_unique_constraint (migrations.test_operations.OperationTests)",
+     "Tests the CreateModel operation directly followed by an",
+     "CreateModel ignores proxy models.",
+     "CreateModel ignores unmanaged models.",
+     "Tests the DeleteModel operation.",
+     "test_delete_mti_model (migrations.test_operations.OperationTests)",
+     "Tests the DeleteModel operation ignores proxy models.",
+     "A model with BigAutoField can be created.",
+     "test_remove_constraint (migrations.test_operations.OperationTests)",
+     "test_remove_covering_unique_constraint (migrations.test_operations.OperationTests)",
+     "test_remove_deferred_unique_constraint (migrations.test_operations.OperationTests)",
+     "Tests the RemoveField operation.",
+     "test_remove_field_m2m (migrations.test_operations.OperationTests)",
+     "test_remove_field_m2m_with_through (migrations.test_operations.OperationTests)",
+     "Tests the RemoveField operation on a foreign key.",
+     "test_remove_func_index (migrations.test_operations.OperationTests)",
+     "test_remove_func_unique_constraint (migrations.test_operations.OperationTests)",
+     "Test the RemoveIndex operation.",
+     "test_remove_index_state_forwards (migrations.test_operations.OperationTests)",
+     "test_remove_partial_unique_constraint (migrations.test_operations.OperationTests)",
+     "Tests the RenameField operation.",
+     "test_rename_field_case (migrations.test_operations.OperationTests)",
+     "If RenameField doesn't reload state appropriately, the AlterField",
+     "test_rename_field_with_db_column (migrations.test_operations.OperationTests)",
+     "RenameModel renames a many-to-many column after a RenameField.",
+     "test_rename_m2m_target_model (migrations.test_operations.OperationTests)",
+     "test_rename_m2m_through_model (migrations.test_operations.OperationTests)",
+     "test_rename_missing_field (migrations.test_operations.OperationTests)",
+     "Tests the RenameModel operation.",
+     "RenameModel operations shouldn't trigger the caching of rendered apps",
+     "test_rename_model_with_m2m (migrations.test_operations.OperationTests)",
+     "Tests the RenameModel operation on model with self referential FK.",
+     "test_rename_model_with_self_referential_m2m (migrations.test_operations.OperationTests)",
+     "Tests the RenameModel operation on a model which has a superclass that",
+     "test_rename_referenced_field_state_forward (migrations.test_operations.OperationTests)",
+     "test_repoint_field_m2m (migrations.test_operations.OperationTests)",
+     "Tests the RunPython operation",
+     "Tests the RunPython operation correctly handles the \"atomic\" keyword",
+     "#24098 - Tests no-op RunPython operations.",
+     "#24282 - Model changes to a FK reverse side update the model",
+     "Tests the RunSQL operation.",
+     "test_run_sql_add_missing_semicolon_on_collect_sql (migrations.test_operations.OperationTests)",
+     "#24098 - Tests no-op RunSQL operations.",
+     "#23426 - RunSQL should accept parameters.",
+     "#23426 - RunSQL should fail when a list of statements with an incorrect",
+     "Tests the SeparateDatabaseAndState operation.",
+     "A complex SeparateDatabaseAndState operation: Multiple operations both",
+     "A field may be migrated from SmallAutoField to AutoField.",
+     "A field may be migrated from SmallAutoField to BigAutoField."
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 18.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "de5c90c01647"
  },
  "django__django-16400": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 3.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_set_permissions_fk_to_using_parameter (auth_tests.test_management.CreatePermissionsMultipleDatabasesTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_actual_implementation (auth_tests.test_management.GetDefaultUsernameTestCase)",
+     "test_existing (auth_tests.test_management.GetDefaultUsernameTestCase)",
+     "test_i18n (auth_tests.test_management.GetDefaultUsernameTestCase)",
+     "test_simple (auth_tests.test_management.GetDefaultUsernameTestCase)",
+     "test_with_database (auth_tests.test_management.GetDefaultUsernameTestCase)",
+     "test_input_not_found (auth_tests.test_management.MockInputTests)",
+     "changepassword --database should operate on the specified DB.",
+     "`post_migrate` handler ordering isn't guaranteed. Simulate a case",
+     "test_default_permissions (auth_tests.test_management.CreatePermissionsTests)",
+     "A proxy model's permissions use its own content type rather than the",
+     "#24075 - Permissions shouldn't be created or deleted if the ContentType",
+     "test_createsuperuser_command_suggested_username_with_database_option (auth_tests.test_management.MultiDBCreatesuperuserTestCase)",
+     "createsuperuser --database should operate on the specified DB.",
+     "test_get_pass (auth_tests.test_management.ChangepasswordManagementCommandTestCase)",
+     "test_get_pass_no_input (auth_tests.test_management.ChangepasswordManagementCommandTestCase)",
+     "test_nonexistent_username (auth_tests.test_management.ChangepasswordManagementCommandTestCase)",
+     "A CommandError should be raised if the user enters in passwords which",
+     "The system username is used if --username isn't provided.",
+     "Executing the changepassword management command should change joe's password",
+     "#21627 -- Executing the changepassword management command should allow",
+     "A CommandError should be thrown by handle() if the user enters in",
+     "Check the operation of the createsuperuser management command",
+     "Creation fails if --username is blank.",
+     "test_blank_username_non_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "createsuperuser uses a default username when one isn't provided.",
+     "test_email_in_username (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_environment_variable_m2m_non_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_environment_variable_non_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "Creation fails if the username already exists.",
+     "Creation fails if the username already exists and a custom user model",
+     "call_command() gets username='janet' and interactive=True.",
+     "test_fields_with_fk (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_fields_with_fk_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_fields_with_fk_via_option_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_fields_with_m2m (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_fields_with_m2m_and_through (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_fields_with_m2m_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_fields_with_m2m_interactive_blank (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_ignore_environment_variable_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_ignore_environment_variable_non_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "Creation fails if the username fails validation.",
+     "test_keyboard_interrupt (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_no_email_argument (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_non_ascii_verbose_name (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "You can pass a stdin object as an option and it should be",
+     "Creation should fail if the password fails validation.",
+     "Password validation can be bypassed by entering 'y' at the prompt.",
+     "If the command is not called from a TTY, it should be skipped and a",
+     "A superuser can be created when a custom user model is in use",
+     "A Custom superuser won't be created when a required field isn't provided",
+     "test_swappable_user_username_non_unique (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_usermodel_without_password (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_usermodel_without_password_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_validate_fk (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_validate_fk_environment_variable (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_validate_fk_via_option_interactive (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_validate_password_against_required_fields (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_validate_password_against_required_fields_via_option (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_validate_password_against_username (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "test_validate_username (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)",
+     "Creation should fail if the user enters blank passwords.",
+     "Creation should fail if the user enters mismatched passwords.",
+     "test_verbosity_zero (auth_tests.test_management.CreatesuperuserManagementCommandTestCase)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 10.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "446ae778c1c3"
  },
  "django__django-15388": {
   "patch_is_None": false,
@@ -565,8 +1065,9 @@
     "failure": []
    }
   },
-  "seconds": 7.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.claude__claude-sonnet-5-r2.log"
+  "seconds": 14.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "15f731a9090b"
  },
  "django__django-15851": {
   "patch_is_None": false,
@@ -603,35 +1104,399 @@
     "failure": []
    }
   },
-  "seconds": 7.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.claude__claude-sonnet-5-r2.log"
+  "seconds": 13.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "c85b8049bff0"
  },
  "psf__requests-2317": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
+  "patch_successfully_applied": true,
   "resolved": false,
   "infra_failure": false,
-  "seconds": 1.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_requests.py::RequestsTestCase::test_HTTP_302_ALLOW_REDIRECT_GET",
+     "test_requests.py::RequestsTestCase::test_POSTBIN_GET_POST_FILES",
+     "test_requests.py::RequestsTestCase::test_POSTBIN_GET_POST_FILES_WITH_DATA",
+     "test_requests.py::RequestsTestCase::test_json_param_post_content_type_works",
+     "test_requests.py::RequestsTestCase::test_manual_redirect_with_partial_body_read",
+     "test_requests.py::RequestsTestCase::test_requests_history_is_saved",
+     "test_requests.py::TestTimeout::test_encoded_methods"
+    ],
+    "failure": [
+     "test_requests.py::RequestsTestCase::test_basicauth_with_netrc"
+    ]
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_requests.py::RequestsTestCase::test_BASICAUTH_TUPLE_HTTP_200_OK_GET",
+     "test_requests.py::RequestsTestCase::test_DIGESTAUTH_QUOTES_QOP_VALUE",
+     "test_requests.py::RequestsTestCase::test_DIGESTAUTH_WRONG_HTTP_401_GET",
+     "test_requests.py::RequestsTestCase::test_DIGEST_AUTH_RETURNS_COOKIE",
+     "test_requests.py::RequestsTestCase::test_DIGEST_AUTH_SETS_SESSION_COOKIES",
+     "test_requests.py::RequestsTestCase::test_DIGEST_HTTP_200_OK_GET",
+     "test_requests.py::RequestsTestCase::test_DIGEST_STREAM",
+     "test_requests.py::RequestsTestCase::test_HTTP_200_OK_GET_ALTERNATIVE",
+     "test_requests.py::RequestsTestCase::test_HTTP_200_OK_GET_WITH_MIXED_PARAMS",
+     "test_requests.py::RequestsTestCase::test_HTTP_200_OK_GET_WITH_PARAMS",
+     "test_requests.py::RequestsTestCase::test_HTTP_200_OK_HEAD",
+     "test_requests.py::RequestsTestCase::test_HTTP_200_OK_PUT",
+     "test_requests.py::RequestsTestCase::test_auth_is_retained_for_redirect_on_host",
+     "test_requests.py::RequestsTestCase::test_auth_is_stripped_on_redirect_off_host",
+     "test_requests.py::RequestsTestCase::test_autoset_header_values_are_native",
+     "test_requests.py::RequestsTestCase::test_basic_auth_str_is_always_native",
+     "test_requests.py::RequestsTestCase::test_basic_building",
+     "test_requests.py::RequestsTestCase::test_can_send_nonstring_objects_with_files",
+     "test_requests.py::RequestsTestCase::test_cannot_send_unprepared_requests",
+     "test_requests.py::RequestsTestCase::test_connection_error",
+     "test_requests.py::RequestsTestCase::test_cookie_as_dict_items",
+     "test_requests.py::RequestsTestCase::test_cookie_as_dict_keeps_items",
+     "test_requests.py::RequestsTestCase::test_cookie_as_dict_keeps_len",
+     "test_requests.py::RequestsTestCase::test_cookie_as_dict_keys",
+     "test_requests.py::RequestsTestCase::test_cookie_as_dict_values",
+     "test_requests.py::RequestsTestCase::test_cookie_parameters",
+     "test_requests.py::RequestsTestCase::test_cookie_persists_via_api",
+     "test_requests.py::RequestsTestCase::test_cookie_quote_wrapped",
+     "test_requests.py::RequestsTestCase::test_cookie_removed_on_expire",
+     "test_requests.py::RequestsTestCase::test_cookie_sent_on_redirect",
+     "test_requests.py::RequestsTestCase::test_custom_content_type",
+     "test_requests.py::RequestsTestCase::test_decompress_gzip",
+     "test_requests.py::RequestsTestCase::test_different_encodings_dont_break_post",
+     "test_requests.py::RequestsTestCase::test_entry_points",
+     "test_requests.py::RequestsTestCase::test_fixes_1329",
+     "test_requests.py::RequestsTestCase::test_generic_cookiejar_works",
+     "test_requests.py::RequestsTestCase::test_get_auth_from_url",
+     "test_requests.py::RequestsTestCase::test_get_auth_from_url_encoded_hashes",
+     "test_requests.py::RequestsTestCase::test_get_auth_from_url_encoded_spaces",
+     "test_requests.py::RequestsTestCase::test_get_auth_from_url_not_encoded_spaces",
+     "test_requests.py::RequestsTestCase::test_get_auth_from_url_percent_chars",
+     "test_requests.py::RequestsTestCase::test_header_keys_are_native",
+     "test_requests.py::RequestsTestCase::test_header_remove_is_case_insensitive",
+     "test_requests.py::RequestsTestCase::test_headers_on_session_with_None_are_not_sent",
+     "test_requests.py::RequestsTestCase::test_history_is_always_a_list",
+     "test_requests.py::RequestsTestCase::test_hook_receives_request_arguments",
+     "test_requests.py::RequestsTestCase::test_http_error",
+     "test_requests.py::RequestsTestCase::test_invalid_url",
+     "test_requests.py::RequestsTestCase::test_links",
+     "test_requests.py::RequestsTestCase::test_long_authinfo_in_url",
+     "test_requests.py::RequestsTestCase::test_mixed_case_scheme_acceptable",
+     "test_requests.py::RequestsTestCase::test_no_content_length",
+     "test_requests.py::RequestsTestCase::test_nonhttp_schemes_dont_check_URLs",
+     "test_requests.py::RequestsTestCase::test_param_cookiejar_works",
+     "test_requests.py::RequestsTestCase::test_params_are_added_before_fragment",
+     "test_requests.py::RequestsTestCase::test_params_are_merged_case_sensitive",
+     "test_requests.py::RequestsTestCase::test_path_is_not_double_encoded",
+     "test_requests.py::RequestsTestCase::test_prepare_request_with_bytestring_url",
+     "test_requests.py::RequestsTestCase::test_prepared_from_session",
+     "test_requests.py::RequestsTestCase::test_prepared_request_hook",
+     "test_requests.py::RequestsTestCase::test_pyopenssl_redirect",
+     "test_requests.py::RequestsTestCase::test_redirect_with_wrong_gzipped_header",
+     "test_requests.py::RequestsTestCase::test_request_and_response_are_pickleable",
+     "test_requests.py::RequestsTestCase::test_request_cookie_overrides_session_cookie",
+     "test_requests.py::RequestsTestCase::test_request_cookies_not_persisted",
+     "test_requests.py::RequestsTestCase::test_request_ok_set",
+     "test_requests.py::RequestsTestCase::test_requests_in_history_are_not_overridden",
+     "test_requests.py::RequestsTestCase::test_response_decode_unicode",
+     "test_requests.py::RequestsTestCase::test_response_is_iterable",
+     "test_requests.py::RequestsTestCase::test_session_hooks_are_overriden_by_request_hooks",
+     "test_requests.py::RequestsTestCase::test_session_hooks_are_used_with_no_request_hooks",
+     "test_requests.py::RequestsTestCase::test_session_pickling",
+     "test_requests.py::RequestsTestCase::test_set_cookie_on_301",
+     "test_requests.py::RequestsTestCase::test_status_raising",
+     "test_requests.py::RequestsTestCase::test_time_elapsed_blank",
+     "test_requests.py::RequestsTestCase::test_transport_adapter_ordering",
+     "test_requests.py::RequestsTestCase::test_unicode_get",
+     "test_requests.py::RequestsTestCase::test_unicode_header_name",
+     "test_requests.py::RequestsTestCase::test_unicode_method_name",
+     "test_requests.py::RequestsTestCase::test_unicode_multipart_post_fieldnames",
+     "test_requests.py::RequestsTestCase::test_uppercase_scheme_redirect",
+     "test_requests.py::RequestsTestCase::test_urlencoded_get_query_multivalued_param",
+     "test_requests.py::RequestsTestCase::test_user_agent_transfers",
+     "test_requests.py::TestContentEncodingDetection::test_html4_pragma",
+     "test_requests.py::TestContentEncodingDetection::test_html_charset",
+     "test_requests.py::TestContentEncodingDetection::test_none",
+     "test_requests.py::TestContentEncodingDetection::test_precedence",
+     "test_requests.py::TestContentEncodingDetection::test_xhtml_pragma",
+     "test_requests.py::TestContentEncodingDetection::test_xml",
+     "test_requests.py::TestCaseInsensitiveDict::test_contains",
+     "test_requests.py::TestCaseInsensitiveDict::test_delitem",
+     "test_requests.py::TestCaseInsensitiveDict::test_docstring_example",
+     "test_requests.py::TestCaseInsensitiveDict::test_equality",
+     "test_requests.py::TestCaseInsensitiveDict::test_fixes_649",
+     "test_requests.py::TestCaseInsensitiveDict::test_get",
+     "test_requests.py::TestCaseInsensitiveDict::test_getitem",
+     "test_requests.py::TestCaseInsensitiveDict::test_iter",
+     "test_requests.py::TestCaseInsensitiveDict::test_iterable_init",
+     "test_requests.py::TestCaseInsensitiveDict::test_kwargs_init",
+     "test_requests.py::TestCaseInsensitiveDict::test_len",
+     "test_requests.py::TestCaseInsensitiveDict::test_lower_items",
+     "test_requests.py::TestCaseInsensitiveDict::test_mapping_init",
+     "test_requests.py::TestCaseInsensitiveDict::test_preserve_key_case",
+     "test_requests.py::TestCaseInsensitiveDict::test_preserve_last_key_case",
+     "test_requests.py::TestCaseInsensitiveDict::test_setdefault",
+     "test_requests.py::TestCaseInsensitiveDict::test_update",
+     "test_requests.py::TestCaseInsensitiveDict::test_update_retains_unchanged",
+     "test_requests.py::UtilsTestCase::test_address_in_network",
+     "test_requests.py::UtilsTestCase::test_dotted_netmask",
+     "test_requests.py::UtilsTestCase::test_get_auth_from_url",
+     "test_requests.py::UtilsTestCase::test_get_environ_proxies",
+     "test_requests.py::UtilsTestCase::test_get_environ_proxies_ip_ranges",
+     "test_requests.py::UtilsTestCase::test_is_ipv4_address",
+     "test_requests.py::UtilsTestCase::test_is_valid_cidr",
+     "test_requests.py::UtilsTestCase::test_super_len_io_streams",
+     "test_requests.py::TestMorselToCookieExpires::test_expires_invalid_int",
+     "test_requests.py::TestMorselToCookieExpires::test_expires_invalid_str",
+     "test_requests.py::TestMorselToCookieExpires::test_expires_none",
+     "test_requests.py::TestMorselToCookieExpires::test_expires_valid_str",
+     "test_requests.py::TestMorselToCookieMaxAge::test_max_age_invalid_str",
+     "test_requests.py::TestMorselToCookieMaxAge::test_max_age_valid_int",
+     "test_requests.py::TestTimeout::test_stream_timeout",
+     "test_requests.py::TestTimeout::test_invalid_timeout",
+     "test_requests.py::TestTimeout::test_none_timeout",
+     "test_requests.py::TestTimeout::test_read_timeout",
+     "test_requests.py::TestTimeout::test_connect_timeout",
+     "test_requests.py::TestTimeout::test_total_timeout_connect",
+     "test_requests.py::TestRedirects::test_requests_are_updated_each_time",
+     "test_requests.py::test_data_argument_accepts_tuples",
+     "test_requests.py::test_prepared_request_empty_copy",
+     "test_requests.py::test_prepared_request_no_cookies_copy",
+     "test_requests.py::test_prepared_request_complete_copy",
+     "test_requests.py::test_prepare_unicode_url"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 666.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "75ee5b797a3c"
  },
  "pytest-dev__pytest-5495": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "testing/test_assertion.py::TestAssert_reprcompare::test_bytes_diff_normal",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_bytes_diff_verbose"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "testing/test_assertion.py::TestImportHookInstallation::test_register_assert_rewrite_checks_types",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_different_types",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_summary",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_text_diff",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_text_skipping",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_text_skipping_verbose",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_multiline_text_diff",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_list",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_iterable_full_diff[left0-right0-\\n",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_iterable_full_diff[left1-right1-\\n",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_iterable_full_diff[left2-right2-\\n",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_list_different_lengths",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_dict",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_dict_omitting",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_dict_omitting_with_verbosity_1",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_dict_omitting_with_verbosity_2",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_dict_different_items",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_sequence_different_items",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_set",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_frozenzet",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_Sequence",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_list_tuples",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_repr_verbose",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_list_bad_repr",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_one_repr_empty",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_repr_no_exc",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_unicode",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_nonascii_text",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_format_nonascii_explanation",
+     "testing/test_assertion.py::TestAssert_reprcompare::test_mojibake",
+     "testing/test_assertion.py::TestAssert_reprcompare_attrsclass::test_comparing_two_different_attrs_classes",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_simple",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_where",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_and",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_where_nested",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_newline",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_newline_escaped",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_newline_before_where",
+     "testing/test_assertion.py::TestFormatExplanation::test_fmt_multi_newline_before_where",
+     "testing/test_assertion.py::TestTruncateExplanation::test_doesnt_truncate_when_input_is_empty_list",
+     "testing/test_assertion.py::TestTruncateExplanation::test_doesnt_truncate_at_when_input_is_5_lines_and_LT_max_chars",
+     "testing/test_assertion.py::TestTruncateExplanation::test_truncates_at_8_lines_when_given_list_of_empty_strings",
+     "testing/test_assertion.py::TestTruncateExplanation::test_truncates_at_8_lines_when_first_8_lines_are_LT_max_chars",
+     "testing/test_assertion.py::TestTruncateExplanation::test_truncates_at_8_lines_when_first_8_lines_are_EQ_max_chars",
+     "testing/test_assertion.py::TestTruncateExplanation::test_truncates_at_4_lines_when_first_4_lines_are_GT_max_chars",
+     "testing/test_assertion.py::TestTruncateExplanation::test_truncates_at_1_line_when_first_line_is_GT_max_chars",
+     "testing/test_assertion.py::test_reprcompare_notin",
+     "testing/test_assertion.py::test_reprcompare_whitespaces",
+     "testing/test_assertion.py::test_exit_from_assertrepr_compare",
+     "testing/test_assertion.py::TestImportHookInstallation::test_conftest_assertion_rewrite[plain-True]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_conftest_assertion_rewrite[plain-False]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_conftest_assertion_rewrite[rewrite-True]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_conftest_assertion_rewrite[rewrite-False]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_rewrite_assertions_pytester_plugin",
+     "testing/test_assertion.py::TestImportHookInstallation::test_pytest_plugins_rewrite[plain]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_pytest_plugins_rewrite[rewrite]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_pytest_plugins_rewrite_module_names[str]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_pytest_plugins_rewrite_module_names[list]",
+     "testing/test_assertion.py::TestImportHookInstallation::test_pytest_plugins_rewrite_module_names_correctly",
+     "testing/test_assertion.py::TestImportHookInstallation::test_rewrite_ast",
+     "testing/test_assertion.py::TestBinReprIntegration::test_pytest_assertrepr_compare_called",
+     "testing/test_assertion.py::TestAssert_reprcompare_dataclass::test_dataclasses",
+     "testing/test_assertion.py::TestAssert_reprcompare_dataclass::test_dataclasses_verbose",
+     "testing/test_assertion.py::TestAssert_reprcompare_dataclass::test_dataclasses_with_attribute_comparison_off",
+     "testing/test_assertion.py::TestAssert_reprcompare_dataclass::test_comparing_two_different_data_classes",
+     "testing/test_assertion.py::TestFormatExplanation::test_special_chars_full",
+     "testing/test_assertion.py::TestTruncateExplanation::test_full_output_truncated",
+     "testing/test_assertion.py::test_python25_compile_issue257",
+     "testing/test_assertion.py::test_rewritten",
+     "testing/test_assertion.py::test_pytest_assertrepr_compare_integration",
+     "testing/test_assertion.py::test_sequence_comparison_uses_repr",
+     "testing/test_assertion.py::test_assertrepr_loaded_per_dir",
+     "testing/test_assertion.py::test_assertion_options",
+     "testing/test_assertion.py::test_triple_quoted_string_issue113",
+     "testing/test_assertion.py::test_traceback_failure",
+     "testing/test_assertion.py::test_exception_handling_no_traceback",
+     "testing/test_assertion.py::test_warn_missing",
+     "testing/test_assertion.py::test_recursion_source_decode",
+     "testing/test_assertion.py::test_AssertionError_message",
+     "testing/test_assertion.py::test_diff_newline_at_end",
+     "testing/test_assertion.py::test_assert_tuple_warning",
+     "testing/test_assertion.py::test_assert_indirect_tuple_no_warning",
+     "testing/test_assertion.py::test_assert_with_unicode",
+     "testing/test_assertion.py::test_raise_unprintable_assertion_error",
+     "testing/test_assertion.py::test_raise_assertion_error_raisin_repr",
+     "testing/test_assertion.py::test_issue_1944"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 8.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "39d62ec6d838"
  },
  "pytest-dev__pytest-5692": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.2,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "testing/test_junitxml.py::TestPython::test_hostname_in_xml",
+     "testing/test_junitxml.py::TestPython::test_timestamp_in_xml"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "testing/test_junitxml.py::test_mangle_test_address",
+     "testing/test_junitxml.py::test_dont_configure_on_slaves",
+     "testing/test_junitxml.py::test_invalid_xml_escape",
+     "testing/test_junitxml.py::test_logxml_path_expansion",
+     "testing/test_junitxml.py::TestPython::test_summing_simple",
+     "testing/test_junitxml.py::TestPython::test_summing_simple_with_errors",
+     "testing/test_junitxml.py::TestPython::test_timing_function",
+     "testing/test_junitxml.py::TestPython::test_junit_duration_report[call]",
+     "testing/test_junitxml.py::TestPython::test_junit_duration_report[total]",
+     "testing/test_junitxml.py::TestPython::test_setup_error",
+     "testing/test_junitxml.py::TestPython::test_teardown_error",
+     "testing/test_junitxml.py::TestPython::test_call_failure_teardown_error",
+     "testing/test_junitxml.py::TestPython::test_skip_contains_name_reason",
+     "testing/test_junitxml.py::TestPython::test_mark_skip_contains_name_reason",
+     "testing/test_junitxml.py::TestPython::test_mark_skipif_contains_name_reason",
+     "testing/test_junitxml.py::TestPython::test_mark_skip_doesnt_capture_output",
+     "testing/test_junitxml.py::TestPython::test_classname_instance",
+     "testing/test_junitxml.py::TestPython::test_classname_nested_dir",
+     "testing/test_junitxml.py::TestPython::test_internal_error",
+     "testing/test_junitxml.py::TestPython::test_failure_function[no]",
+     "testing/test_junitxml.py::TestPython::test_failure_function[system-out]",
+     "testing/test_junitxml.py::TestPython::test_failure_function[system-err]",
+     "testing/test_junitxml.py::TestPython::test_failure_verbose_message",
+     "testing/test_junitxml.py::TestPython::test_failure_escape",
+     "testing/test_junitxml.py::TestPython::test_junit_prefixing",
+     "testing/test_junitxml.py::TestPython::test_xfailure_function",
+     "testing/test_junitxml.py::TestPython::test_xfailure_marker",
+     "testing/test_junitxml.py::TestPython::test_xfail_captures_output_once",
+     "testing/test_junitxml.py::TestPython::test_xfailure_xpass",
+     "testing/test_junitxml.py::TestPython::test_xfailure_xpass_strict",
+     "testing/test_junitxml.py::TestPython::test_collect_error",
+     "testing/test_junitxml.py::TestPython::test_unicode",
+     "testing/test_junitxml.py::TestPython::test_assertion_binchars",
+     "testing/test_junitxml.py::TestPython::test_pass_captures_stdout",
+     "testing/test_junitxml.py::TestPython::test_pass_captures_stderr",
+     "testing/test_junitxml.py::TestPython::test_setup_error_captures_stdout",
+     "testing/test_junitxml.py::TestPython::test_setup_error_captures_stderr",
+     "testing/test_junitxml.py::TestPython::test_avoid_double_stdout",
+     "testing/test_junitxml.py::TestNonPython::test_summing_simple",
+     "testing/test_junitxml.py::test_nullbyte",
+     "testing/test_junitxml.py::test_nullbyte_replace",
+     "testing/test_junitxml.py::test_logxml_changingdir",
+     "testing/test_junitxml.py::test_logxml_makedir",
+     "testing/test_junitxml.py::test_logxml_check_isdir",
+     "testing/test_junitxml.py::test_escaped_parametrized_names_xml",
+     "testing/test_junitxml.py::test_double_colon_split_function_issue469",
+     "testing/test_junitxml.py::test_double_colon_split_method_issue469",
+     "testing/test_junitxml.py::test_unicode_issue368",
+     "testing/test_junitxml.py::test_record_property",
+     "testing/test_junitxml.py::test_record_property_same_name",
+     "testing/test_junitxml.py::test_record_fixtures_without_junitxml[record_property]",
+     "testing/test_junitxml.py::test_record_fixtures_without_junitxml[record_xml_attribute]",
+     "testing/test_junitxml.py::test_record_attribute",
+     "testing/test_junitxml.py::test_record_fixtures_xunit2[record_xml_attribute]",
+     "testing/test_junitxml.py::test_record_fixtures_xunit2[record_property]",
+     "testing/test_junitxml.py::test_root_testsuites_tag",
+     "testing/test_junitxml.py::test_runs_twice",
+     "testing/test_junitxml.py::test_fancy_items_regression",
+     "testing/test_junitxml.py::test_global_properties",
+     "testing/test_junitxml.py::test_url_property",
+     "testing/test_junitxml.py::test_record_testsuite_property",
+     "testing/test_junitxml.py::test_record_testsuite_property_junit_disabled",
+     "testing/test_junitxml.py::test_record_testsuite_property_type_checking[True]",
+     "testing/test_junitxml.py::test_record_testsuite_property_type_checking[False]",
+     "testing/test_junitxml.py::test_set_suite_name[my_suite]",
+     "testing/test_junitxml.py::test_set_suite_name[]",
+     "testing/test_junitxml.py::test_escaped_skipreason_issue3533",
+     "testing/test_junitxml.py::test_logging_passing_tests_disabled_does_not_log_test_output"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 6.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "b9e795f7aaa7"
  },
  "django__django-16527": {
   "patch_is_None": false,
@@ -666,17 +1531,49 @@
     "failure": []
    }
   },
-  "seconds": 7.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.claude__claude-sonnet-5-r2.log"
+  "seconds": 8.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "db000a61e2e8"
  },
  "pytest-dev__pytest-7168": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "testing/io/test_saferepr.py::test_simple_repr",
+     "testing/io/test_saferepr.py::test_maxsize",
+     "testing/io/test_saferepr.py::test_maxsize_error_on_instance",
+     "testing/io/test_saferepr.py::test_exceptions",
+     "testing/io/test_saferepr.py::test_baseexception",
+     "testing/io/test_saferepr.py::test_buggy_builtin_repr",
+     "testing/io/test_saferepr.py::test_big_repr",
+     "testing/io/test_saferepr.py::test_repr_on_newstyle",
+     "testing/io/test_saferepr.py::test_unicode",
+     "testing/io/test_saferepr.py::test_pformat_dispatch",
+     "testing/io/test_saferepr.py::test_broken_getattribute"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 5.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "9c29880f4639"
  },
  "sympy__sympy-12419": {
   "patch_is_None": false,
@@ -730,8 +1627,9 @@
     "failure": []
    }
   },
-  "seconds": 4.6,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.claude__claude-sonnet-5-r2.log"
+  "seconds": 9.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "a255f4f3a0d9"
  },
  "sphinx-doc__sphinx-8435": {
   "patch_is_None": false,
@@ -776,17 +1674,154 @@
     "failure": []
    }
   },
-  "seconds": 7.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.claude__claude-sonnet-5-r2.log"
+  "seconds": 9.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "bed9ce54b787"
  },
  "sympy__sympy-14308": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
+  "patch_successfully_applied": true,
   "resolved": false,
   "infra_failure": false,
-  "seconds": 1.9,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [],
+    "failure": [
+     "test_issue_12675",
+     "test_pretty_print_unicode"
+    ]
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_pretty_ascii_str",
+     "test_pretty_unicode_str",
+     "test_upretty_greek",
+     "test_upretty_multiindex",
+     "test_upretty_sub_super",
+     "test_upretty_subs_missing_in_24",
+     "test_upretty_modifiers",
+     "test_pretty_Cycle",
+     "test_pretty_basic",
+     "test_negative_fractions",
+     "test_issue_5524",
+     "test_pretty_ordering",
+     "test_EulerGamma",
+     "test_GoldenRatio",
+     "test_pretty_relational",
+     "test_Assignment",
+     "test_AugmentedAssignment",
+     "test_issue_7117",
+     "test_pretty_rational",
+     "test_pretty_functions",
+     "test_pretty_sqrt",
+     "test_pretty_sqrt_char_knob",
+     "test_pretty_sqrt_longsymbol_no_sqrt_char",
+     "test_pretty_KroneckerDelta",
+     "test_pretty_product",
+     "test_pretty_lambda",
+     "test_pretty_order",
+     "test_pretty_derivatives",
+     "test_pretty_integrals",
+     "test_pretty_matrix",
+     "test_pretty_ndim_arrays",
+     "test_tensor_TensorProduct",
+     "test_diffgeom_print_WedgeProduct",
+     "test_Adjoint",
+     "test_pretty_Trace_issue_9044",
+     "test_MatrixExpressions",
+     "test_pretty_dotproduct",
+     "test_pretty_piecewise",
+     "test_pretty_ITE",
+     "test_pretty_seq",
+     "test_any_object_in_sequence",
+     "test_print_builtin_set",
+     "test_pretty_sets",
+     "test_pretty_SetExpr",
+     "test_pretty_ImageSet",
+     "test_pretty_ConditionSet",
+     "test_pretty_ComplexRegion",
+     "test_pretty_Union_issue_10414",
+     "test_pretty_Intersection_issue_10414",
+     "test_ProductSet_paranthesis",
+     "test_ProductSet_prod_char_issue_10413",
+     "test_pretty_sequences",
+     "test_pretty_FourierSeries",
+     "test_pretty_FormalPowerSeries",
+     "test_pretty_limits",
+     "test_pretty_ComplexRootOf",
+     "test_pretty_RootSum",
+     "test_GroebnerBasis",
+     "test_pretty_Boolean",
+     "test_pretty_Domain",
+     "test_pretty_prec",
+     "test_pprint",
+     "test_pretty_class",
+     "test_pretty_no_wrap_line",
+     "test_settings",
+     "test_pretty_sum",
+     "test_units",
+     "test_pretty_Subs",
+     "test_gammas",
+     "test_beta",
+     "test_function_subclass_different_name",
+     "test_SingularityFunction",
+     "test_deltas",
+     "test_hyper",
+     "test_meijerg",
+     "test_noncommutative",
+     "test_pretty_special_functions",
+     "test_expint",
+     "test_elliptic_functions",
+     "test_RandomDomain",
+     "test_PrettyPoly",
+     "test_issue_6285",
+     "test_issue_6359",
+     "test_issue_6739",
+     "test_complicated_symbol_unchanged",
+     "test_categories",
+     "test_PrettyModules",
+     "test_QuotientRing",
+     "test_Homomorphism",
+     "test_Tr",
+     "test_pretty_Add",
+     "test_issue_7179",
+     "test_issue_7180",
+     "test_pretty_Complement",
+     "test_pretty_SymmetricDifference",
+     "test_pretty_Contains",
+     "test_issue_4335",
+     "test_issue_6324",
+     "test_issue_7927",
+     "test_issue_6134",
+     "test_issue_9877",
+     "test_issue_13651",
+     "test_pretty_primenu",
+     "test_pretty_primeomega",
+     "test_pretty_Mod",
+     "test_issue_11801",
+     "test_pretty_UnevaluatedExpr",
+     "test_issue_10472",
+     "test_MatrixElement_printing",
+     "test_MatrixSymbol_printing",
+     "test_degree_printing",
+     "test_str_printing",
+     "test_latex_printing"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 9.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "20fe0accbd11"
  },
  "sphinx-doc__sphinx-8506": {
   "patch_is_None": false,
@@ -829,26 +1864,226 @@
     "failure": []
    }
   },
-  "seconds": 7.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.claude__claude-sonnet-5-r2.log"
+  "seconds": 10.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "a7675763dcab"
  },
  "sympy__sympy-17022": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 1.9,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_NumPyPrinter"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_numpy_piecewise_regression",
+     "test_PythonCodePrinter",
+     "test_MpmathPrinter",
+     "test_SciPyPrinter",
+     "test_pycode_reserved_words",
+     "test_printmethod",
+     "test_codegen_ast_nodes",
+     "test_issue_14283"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 6.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "2f6c09285e65"
  },
  "sympy__sympy-18698": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
+  "patch_successfully_applied": true,
   "resolved": false,
   "infra_failure": false,
-  "seconds": 1.9,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [],
+    "failure": [
+     "test_factor_terms"
+    ]
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_Poly_mixed_operations",
+     "test_Poly_from_dict",
+     "test_Poly_from_list",
+     "test_Poly_from_poly",
+     "test_Poly_from_expr",
+     "test_Poly__new__",
+     "test_Poly__args",
+     "test_Poly__gens",
+     "test_Poly_zero",
+     "test_Poly_one",
+     "test_Poly__unify",
+     "test_Poly_free_symbols",
+     "test_PurePoly_free_symbols",
+     "test_Poly__eq__",
+     "test_PurePoly__eq__",
+     "test_PurePoly_Poly",
+     "test_Poly_get_domain",
+     "test_Poly_set_domain",
+     "test_Poly_get_modulus",
+     "test_Poly_set_modulus",
+     "test_Poly_add_ground",
+     "test_Poly_sub_ground",
+     "test_Poly_mul_ground",
+     "test_Poly_quo_ground",
+     "test_Poly_exquo_ground",
+     "test_Poly_abs",
+     "test_Poly_neg",
+     "test_Poly_add",
+     "test_Poly_sub",
+     "test_Poly_mul",
+     "test_issue_13079",
+     "test_Poly_sqr",
+     "test_Poly_pow",
+     "test_Poly_divmod",
+     "test_Poly_eq_ne",
+     "test_Poly_nonzero",
+     "test_Poly_properties",
+     "test_Poly_is_irreducible",
+     "test_Poly_subs",
+     "test_Poly_replace",
+     "test_Poly_reorder",
+     "test_Poly_ltrim",
+     "test_Poly_has_only_gens",
+     "test_Poly_to_ring",
+     "test_Poly_to_field",
+     "test_Poly_to_exact",
+     "test_Poly_retract",
+     "test_Poly_slice",
+     "test_Poly_coeffs",
+     "test_Poly_monoms",
+     "test_Poly_terms",
+     "test_Poly_all_coeffs",
+     "test_Poly_all_monoms",
+     "test_Poly_all_terms",
+     "test_Poly_termwise",
+     "test_Poly_length",
+     "test_Poly_as_dict",
+     "test_Poly_as_expr",
+     "test_Poly_lift",
+     "test_Poly_deflate",
+     "test_Poly_inject",
+     "test_Poly_eject",
+     "test_Poly_exclude",
+     "test_Poly__gen_to_level",
+     "test_Poly_degree",
+     "test_Poly_degree_list",
+     "test_Poly_total_degree",
+     "test_Poly_homogenize",
+     "test_Poly_homogeneous_order",
+     "test_Poly_LC",
+     "test_Poly_TC",
+     "test_Poly_EC",
+     "test_Poly_coeff",
+     "test_Poly_nth",
+     "test_Poly_LM",
+     "test_Poly_LM_custom_order",
+     "test_Poly_EM",
+     "test_Poly_LT",
+     "test_Poly_ET",
+     "test_Poly_max_norm",
+     "test_Poly_l1_norm",
+     "test_Poly_clear_denoms",
+     "test_Poly_rat_clear_denoms",
+     "test_Poly_integrate",
+     "test_Poly_diff",
+     "test_issue_9585",
+     "test_Poly_eval",
+     "test_Poly___call__",
+     "test_parallel_poly_from_expr",
+     "test_pdiv",
+     "test_div",
+     "test_issue_7864",
+     "test_gcdex",
+     "test_revert",
+     "test_subresultants",
+     "test_resultant",
+     "test_discriminant",
+     "test_dispersion",
+     "test_gcd_list",
+     "test_lcm_list",
+     "test_gcd",
+     "test_gcd_numbers_vs_polys",
+     "test_terms_gcd",
+     "test_trunc",
+     "test_monic",
+     "test_content",
+     "test_primitive",
+     "test_compose",
+     "test_shift",
+     "test_transform",
+     "test_sturm",
+     "test_gff",
+     "test_norm",
+     "test_sqf_norm",
+     "test_sqf",
+     "test_factor",
+     "test_factor_large",
+     "test_factor_noeval",
+     "test_intervals",
+     "test_refine_root",
+     "test_count_roots",
+     "test_Poly_root",
+     "test_real_roots",
+     "test_all_roots",
+     "test_nroots",
+     "test_ground_roots",
+     "test_nth_power_roots_poly",
+     "test_torational_factor_list",
+     "test_cancel",
+     "test_reduced",
+     "test_groebner",
+     "test_fglm",
+     "test_is_zero_dimensional",
+     "test_GroebnerBasis",
+     "test_poly",
+     "test_keep_coeff",
+     "test_poly_matching_consistency",
+     "test_noncommutative",
+     "test_to_rational_coeffs",
+     "test_as_list",
+     "test_issue_11198",
+     "test_Poly_precision",
+     "test_issue_12400",
+     "test_issue_14364",
+     "test_issue_15669",
+     "test_issue_17988",
+     "test_issue_18205"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 10.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "1531188a1f80"
  },
  "sympy__sympy-18621": {
   "patch_is_None": false,
@@ -892,26 +2127,163 @@
     "failure": []
    }
   },
-  "seconds": 4.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.claude__claude-sonnet-5-r2.log"
+  "seconds": 5.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "44bef0a65f08"
  },
  "sympy__sympy-23262": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_issue_14941"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_no_args",
+     "test_single_arg",
+     "test_list_args",
+     "test_nested_args",
+     "test_str_args",
+     "test_own_namespace_1",
+     "test_own_namespace_2",
+     "test_own_module",
+     "test_bad_args",
+     "test_atoms",
+     "test_sympy_lambda",
+     "test_math_lambda",
+     "test_mpmath_lambda",
+     "test_number_precision",
+     "test_mpmath_precision",
+     "test_math_transl",
+     "test_mpmath_transl",
+     "test_empty_modules",
+     "test_exponentiation",
+     "test_sqrt",
+     "test_trig",
+     "test_integral",
+     "test_double_integral",
+     "test_vector_simple",
+     "test_vector_discontinuous",
+     "test_trig_symbolic",
+     "test_trig_float",
+     "test_docs",
+     "test_math",
+     "test_sin",
+     "test_matrix",
+     "test_issue9474",
+     "test_sym_single_arg",
+     "test_sym_list_args",
+     "test_sym_integral",
+     "test_namespace_order",
+     "test_imps",
+     "test_imps_errors",
+     "test_imps_wrong_args",
+     "test_lambdify_imps",
+     "test_dummification",
+     "test_curly_matrix_symbol",
+     "test_python_keywords",
+     "test_lambdify_docstring",
+     "test_special_printers",
+     "test_true_false",
+     "test_issue_2790",
+     "test_issue_12092",
+     "test_issue_14911",
+     "test_ITE",
+     "test_Min_Max",
+     "test_issue_12173",
+     "test_sinc_mpmath",
+     "test_lambdify_dummy_arg",
+     "test_lambdify_mixed_symbol_dummy_args",
+     "test_lambdify_inspect",
+     "test_lambdify_Derivative_arg_issue_16468",
+     "test_imag_real",
+     "test_single_e",
+     "test_beta_math",
+     "test_lambdify_cse"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 5.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "b57c2778b2b7"
  },
  "sympy__sympy-24213": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.claude__claude-sonnet-5-r2.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_issue_24211"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_str_repr",
+     "test_eq",
+     "test_convert_to",
+     "test_Quantity_definition",
+     "test_abbrev",
+     "test_print",
+     "test_Quantity_eq",
+     "test_add_sub",
+     "test_quantity_abs",
+     "test_check_unit_consistency",
+     "test_mul_div",
+     "test_units",
+     "test_issue_quart",
+     "test_issue_5565",
+     "test_find_unit",
+     "test_Quantity_derivative",
+     "test_quantity_postprocessing",
+     "test_factor_and_dimension",
+     "test_dimensional_expr_of_derivative",
+     "test_get_dimensional_expr_with_function",
+     "test_binary_information",
+     "test_conversion_with_2_nonstandard_dimensions",
+     "test_eval_subs",
+     "test_issue_14932",
+     "test_issue_14547",
+     "test_deprecated_quantity_methods",
+     "test_issue_22164",
+     "test_issue_22819",
+     "test_issue_20288",
+     "test_issue_24062",
+     "test_prefixed_property"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 5.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "299c46faaadb"
  },
  "sympy__sympy-21171": {
   "patch_is_None": false,
@@ -1092,7 +2464,8 @@
     "failure": []
    }
   },
-  "seconds": 6.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.claude__claude-sonnet-5-r2.log"
+  "seconds": 6.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.claude__claude-sonnet-5-r2.log",
+  "patch_sha": "82d76441f3b0"
  }
 }

@@ -145,7 +145,14 @@ function HFRow ({ r, info, verdict, existing, local, onOpenChat }) {
         <button type="button" className={'rx-hf-btn rx-pressable' + press.className} {...press.handlers} disabled={!existing && !verdict?.ok}>
           {existing?.downloaded ? 'Chat' : state === 'downloading' ? 'Stop' : state === 'preparing' ? '…' : 'Download'}
         </button>
-        {existing && state !== 'downloading' && (
+        {/* ⚠️ ONLY A ROW THIS SEARCH ADDED CAN BE REMOVED HERE. `existing` also
+            matches the built-in catalogue — Llama 3.2 3B is on the Meta shelf —
+            and those rows showed a Remove button that called removeCustom on
+            an id that was never custom: it did nothing, under a Download button,
+            on a model that was not even downloaded. Tony: "I get a Download
+            button and Remove button right under it." Catalogue models are
+            managed on their own shelf. */}
+        {existing?.custom && state !== 'downloading' && (
           <button type="button" className={'rx-hf-btn is-quiet rx-pressable' + removeIt.className} {...removeIt.handlers}>Remove</button>
         )}
       </div>

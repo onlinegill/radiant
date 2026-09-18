@@ -2465,7 +2465,8 @@
     "failure": []
    }
   },
-  "seconds": 614.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.claude__claude-sonnet-5-r1.log"
+  "seconds": 661.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.claude__claude-sonnet-5-r1.log",
+  "patch_sha": "80e943c00d70"
  }
 }

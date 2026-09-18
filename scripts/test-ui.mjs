@@ -227,7 +227,10 @@ ok('and the app does not drag you back down', held && held.after < 80)
 {
   await page.route('https://huggingface.co/**', route => {
     const u = route.request().url()
-    if (/api\/models\?search=/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'mlx-community/Tiny-Test-4bit', downloads: 12000, tags: ['mlx'] }, { id: 'someone/Weird-Arch-4bit', downloads: 300, tags: ['mlx'] }]) })
+    // the third result is a repo the built-in catalogue already carries
+    if (/api\/models\?search=/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'mlx-community/Tiny-Test-4bit', downloads: 12000, tags: ['mlx'] }, { id: 'someone/Weird-Arch-4bit', downloads: 300, tags: ['mlx'] }, { id: 'mlx-community/Qwen3-4B-Instruct-2507-4bit', downloads: 9000, tags: ['mlx'] }]) })
+    if (/api\/models\/mlx-community\/Qwen3-1\.7B-4bit/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ siblings: [{ rfilename: 'model.safetensors', size: 1.0e9 }], safetensors: { total: 1.7e9 } }) })
+    if (/mlx-community\/Qwen3-1\.7B-4bit\/raw\/main\/config\.json/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ model_type: 'qwen3', quantization: { bits: 4 } }) })
     if (/api\/models\/mlx-community\/Tiny-Test-4bit/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ siblings: [{ rfilename: 'model.safetensors', size: 1.2e9 }], safetensors: { total: 2.1e9 } }) })
     if (/mlx-community\/Tiny-Test-4bit\/raw\/main\/config\.json/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ model_type: 'qwen3', quantization: { bits: 4 } }) })
     if (/api\/models\/someone\/Weird-Arch-4bit/.test(u)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ siblings: [{ rfilename: 'model.safetensors', size: 1.0e9 }], safetensors: { total: 1.8e9 } }) })
@@ -296,7 +299,14 @@ ok('and the app does not drag you back down', held && held.after < 80)
   const focusedAfter = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'))
   ok(`searching gives up focus so the keyboard goes away (was ${focusedAfter})`, focusedAfter !== 'Search Hugging Face for models')
   const rows = page.locator('.rx-hf-row')
-  is('two results', await rows.count(), 2)
+  is('three results', await rows.count(), 3)
+  // ⚠️ REMOVE ONLY WHAT THIS SEARCH ADDED. A result that is already a
+  // catalogue model showed a Remove button under its Download button — one
+  // that called removeCustom on an id that was never custom and did nothing.
+  // Tony: "I get a Download button and Remove button right under it."
+  const hfRows = await page.evaluate(() => [...document.querySelectorAll('.rx-hf-row')].map(r => ({ name: r.querySelector('.rx-headline')?.textContent, buttons: [...r.querySelectorAll('.rx-hf-btn')].map(b => b.textContent.trim()) })))
+  const catalogueRow = hfRows.find(r => /Qwen3-4B-Instruct-2507-4bit/.test(r.name || ''))
+  ok('a result the catalogue already carries has no Remove button', catalogueRow && !catalogueRow.buttons.includes('Remove'), JSON.stringify(catalogueRow))
   const t = await page.locator('.rx-section:has(.rx-hf-search)').innerText()
   ok('the runnable one says Runs well with its size and type', /Runs well/.test(t) && /1\.2 GB/.test(t) && /qwen3/.test(t))
   ok('the unknown architecture says it won’t run, and names the type', /Won’t run/.test(t) && /brand_new_arch/.test(t))
