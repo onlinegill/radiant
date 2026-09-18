@@ -1,50 +1,4 @@
 {
- "django__django-11964": {
-  "patch_is_None": false,
-  "patch_exists": true,
-  "patch_successfully_applied": true,
-  "resolved": true,
-  "infra_failure": false,
-  "tests_status": {
-   "FAIL_TO_PASS": {
-    "success": [
-     "test_str (model_enums.tests.ChoicesTests)",
-     "test_textchoices (model_enums.tests.ChoicesTests)"
-    ],
-    "failure": []
-   },
-   "PASS_TO_PASS": {
-    "success": [
-     "test_integerchoices (model_enums.tests.ChoicesTests)",
-     "test_integerchoices_auto_label (model_enums.tests.ChoicesTests)",
-     "test_integerchoices_containment (model_enums.tests.ChoicesTests)",
-     "test_integerchoices_empty_label (model_enums.tests.ChoicesTests)",
-     "test_integerchoices_functional_api (model_enums.tests.ChoicesTests)",
-     "test_invalid_definition (model_enums.tests.ChoicesTests)",
-     "test_textchoices_auto_label (model_enums.tests.ChoicesTests)",
-     "test_textchoices_blank_value (model_enums.tests.ChoicesTests)",
-     "test_textchoices_containment (model_enums.tests.ChoicesTests)",
-     "test_textchoices_empty_label (model_enums.tests.ChoicesTests)",
-     "test_textchoices_functional_api (model_enums.tests.ChoicesTests)",
-     "test_bool_unsupported (model_enums.tests.CustomChoicesTests)",
-     "test_labels_valid (model_enums.tests.CustomChoicesTests)",
-     "test_timezone_unsupported (model_enums.tests.CustomChoicesTests)",
-     "test_uuid_unsupported (model_enums.tests.CustomChoicesTests)"
-    ],
-    "failure": []
-   },
-   "FAIL_TO_FAIL": {
-    "success": [],
-    "failure": []
-   },
-   "PASS_TO_FAIL": {
-    "success": [],
-    "failure": []
-   }
-  },
-  "seconds": 4.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.radiant__gpt-5.6-sol-r1.log"
- },
  "django__django-11133": {
   "patch_is_None": false,
   "patch_exists": true,
@@ -136,8 +90,8 @@
     "failure": []
    }
   },
-  "seconds": 4.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 4.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-11019": {
   "patch_is_None": false,
@@ -239,8 +193,8 @@
     "failure": []
    }
   },
-  "seconds": 5.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 5.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-11797": {
   "patch_is_None": false,
@@ -307,8 +261,8 @@
     "failure": []
    }
   },
-  "seconds": 4.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 4.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-11620": {
   "patch_is_None": false,
@@ -403,8 +357,8 @@
     "failure": []
    }
   },
-  "seconds": 5.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 5.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-11815": {
   "patch_is_None": false,
@@ -479,7 +433,53 @@
    }
   },
   "seconds": 4.2,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.radiant__gpt-5.6-sol-r1.log"
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.codex__gpt-5.6-sol-r2.log"
+ },
+ "django__django-11964": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_str (model_enums.tests.ChoicesTests)",
+     "test_textchoices (model_enums.tests.ChoicesTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_integerchoices (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_auto_label (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_containment (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_empty_label (model_enums.tests.ChoicesTests)",
+     "test_integerchoices_functional_api (model_enums.tests.ChoicesTests)",
+     "test_invalid_definition (model_enums.tests.ChoicesTests)",
+     "test_textchoices_auto_label (model_enums.tests.ChoicesTests)",
+     "test_textchoices_blank_value (model_enums.tests.ChoicesTests)",
+     "test_textchoices_containment (model_enums.tests.ChoicesTests)",
+     "test_textchoices_empty_label (model_enums.tests.ChoicesTests)",
+     "test_textchoices_functional_api (model_enums.tests.ChoicesTests)",
+     "test_bool_unsupported (model_enums.tests.CustomChoicesTests)",
+     "test_labels_valid (model_enums.tests.CustomChoicesTests)",
+     "test_timezone_unsupported (model_enums.tests.CustomChoicesTests)",
+     "test_uuid_unsupported (model_enums.tests.CustomChoicesTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-12286": {
   "patch_is_None": false,
@@ -516,16 +516,7 @@
    }
   },
   "seconds": 4.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.radiant__gpt-5.6-sol-r1.log"
- },
- "django__django-13033": {
-  "patch_is_None": false,
-  "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
-  "infra_failure": false,
-  "seconds": 2.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.radiant__gpt-5.6-sol-r1.log"
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-12983": {
   "patch_is_None": false,
@@ -570,7 +561,63 @@
    }
   },
   "seconds": 4.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.radiant__gpt-5.6-sol-r1.log"
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.codex__gpt-5.6-sol-r2.log"
+ },
+ "django__django-13033": {
+  "patch_is_None": false,
+  "patch_exists": true,
+  "patch_successfully_applied": true,
+  "resolved": true,
+  "infra_failure": false,
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_order_by_self_referential_fk (ordering.tests.OrderingTests)"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_default_ordering (ordering.tests.OrderingTests)",
+     "F expressions can be used in Meta.ordering.",
+     "test_default_ordering_override (ordering.tests.OrderingTests)",
+     "test_extra_ordering (ordering.tests.OrderingTests)",
+     "test_extra_ordering_quoting (ordering.tests.OrderingTests)",
+     "test_extra_ordering_with_table_name (ordering.tests.OrderingTests)",
+     "test_no_reordering_after_slicing (ordering.tests.OrderingTests)",
+     "test_order_by_constant_value (ordering.tests.OrderingTests)",
+     "test_order_by_constant_value_without_output_field (ordering.tests.OrderingTests)",
+     "test_order_by_f_expression (ordering.tests.OrderingTests)",
+     "test_order_by_f_expression_duplicates (ordering.tests.OrderingTests)",
+     "test_order_by_fk_attname (ordering.tests.OrderingTests)",
+     "test_order_by_nulls_first (ordering.tests.OrderingTests)",
+     "test_order_by_nulls_first_and_last (ordering.tests.OrderingTests)",
+     "test_order_by_nulls_last (ordering.tests.OrderingTests)",
+     "test_order_by_override (ordering.tests.OrderingTests)",
+     "test_order_by_pk (ordering.tests.OrderingTests)",
+     "test_order_by_ptr_field_with_default_ordering_by_expression (ordering.tests.OrderingTests)",
+     "test_orders_nulls_first_on_filtered_subquery (ordering.tests.OrderingTests)",
+     "test_random_ordering (ordering.tests.OrderingTests)",
+     "test_related_ordering_duplicate_table_reference (ordering.tests.OrderingTests)",
+     "test_reverse_meta_ordering_pure (ordering.tests.OrderingTests)",
+     "test_reverse_ordering_pure (ordering.tests.OrderingTests)",
+     "test_reversed_ordering (ordering.tests.OrderingTests)",
+     "test_stop_slicing (ordering.tests.OrderingTests)",
+     "test_stop_start_slicing (ordering.tests.OrderingTests)"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 4.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-13401": {
   "patch_is_None": false,
@@ -631,8 +678,8 @@
     "failure": []
    }
   },
-  "seconds": 5.2,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 5.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-13964": {
   "patch_is_None": false,
@@ -697,8 +744,8 @@
     "failure": []
    }
   },
-  "seconds": 4.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 4.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-14997": {
   "patch_is_None": false,
@@ -873,8 +920,8 @@
     "failure": []
    }
   },
-  "seconds": 7.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 7.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-15388": {
   "patch_is_None": false,
@@ -912,8 +959,8 @@
     "failure": []
    }
   },
-  "seconds": 6.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 6.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-15851": {
   "patch_is_None": false,
@@ -950,8 +997,8 @@
     "failure": []
    }
   },
-  "seconds": 6.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 6.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-16400": {
   "patch_is_None": false,
@@ -1043,8 +1090,8 @@
     "failure": []
    }
   },
-  "seconds": 6.9,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 6.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.codex__gpt-5.6-sol-r2.log"
  },
  "django__django-16527": {
   "patch_is_None": false,
@@ -1079,22 +1126,22 @@
     "failure": []
    }
   },
-  "seconds": 6.2,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 6.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.codex__gpt-5.6-sol-r2.log"
  },
  "pytest-dev__pytest-5495": {
   "patch_is_None": false,
   "patch_exists": true,
   "patch_successfully_applied": true,
-  "resolved": false,
+  "resolved": true,
   "infra_failure": false,
   "tests_status": {
    "FAIL_TO_PASS": {
-    "success": [],
-    "failure": [
+    "success": [
      "testing/test_assertion.py::TestAssert_reprcompare::test_bytes_diff_normal",
      "testing/test_assertion.py::TestAssert_reprcompare::test_bytes_diff_verbose"
-    ]
+    ],
+    "failure": []
    },
    "PASS_TO_PASS": {
     "success": [
@@ -1196,8 +1243,8 @@
     "failure": []
    }
   },
-  "seconds": 7.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 6.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.codex__gpt-5.6-sol-r2.log"
  },
  "pytest-dev__pytest-5692": {
   "patch_is_None": false,
@@ -1295,8 +1342,8 @@
     "failure": []
    }
   },
-  "seconds": 6.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 5.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.codex__gpt-5.6-sol-r2.log"
  },
  "pytest-dev__pytest-7168": {
   "patch_is_None": false,
@@ -1334,17 +1381,54 @@
     "failure": []
    }
   },
-  "seconds": 4.2,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 4.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.codex__gpt-5.6-sol-r2.log"
  },
  "sphinx-doc__sphinx-8435": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 3.9,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.radiant__gpt-5.6-sol-r1.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "tests/test_ext_autodoc_configs.py::test_autodoc_type_aliases"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_class",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_init",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_both",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_inherit_docstrings",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_docstring_signature",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_class",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_init",
+     "tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_both",
+     "tests/test_ext_autodoc_configs.py::test_mocked_module_imports",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_signature",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none_for_overload",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_for_invalid_node",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_default_options",
+     "tests/test_ext_autodoc_configs.py::test_autodoc_default_options_with_values"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 7.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.codex__gpt-5.6-sol-r2.log"
  },
  "sphinx-doc__sphinx-8506": {
   "patch_is_None": false,
@@ -1387,8 +1471,8 @@
     "failure": []
    }
   },
-  "seconds": 7.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 7.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-12419": {
   "patch_is_None": false,
@@ -1442,8 +1526,8 @@
     "failure": []
    }
   },
-  "seconds": 4.5,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 4.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-14308": {
   "patch_is_None": false,
@@ -1586,8 +1670,8 @@
     "failure": []
    }
   },
-  "seconds": 6.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 6.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-17022": {
   "patch_is_None": false,
@@ -1624,8 +1708,8 @@
     "failure": []
    }
   },
-  "seconds": 4.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 4.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-18621": {
   "patch_is_None": false,
@@ -1669,8 +1753,8 @@
     "failure": []
    }
   },
-  "seconds": 4.6,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 4.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-18698": {
   "patch_is_None": false,
@@ -1846,8 +1930,8 @@
     "failure": []
    }
   },
-  "seconds": 9.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 9.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-21171": {
   "patch_is_None": false,
@@ -2028,17 +2112,99 @@
     "failure": []
    }
   },
-  "seconds": 5.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 6.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-23262": {
   "patch_is_None": false,
   "patch_exists": true,
-  "patch_successfully_applied": false,
-  "resolved": false,
+  "patch_successfully_applied": true,
+  "resolved": true,
   "infra_failure": false,
-  "seconds": 2.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.radiant__gpt-5.6-sol-r1.log"
+  "tests_status": {
+   "FAIL_TO_PASS": {
+    "success": [
+     "test_issue_14941"
+    ],
+    "failure": []
+   },
+   "PASS_TO_PASS": {
+    "success": [
+     "test_no_args",
+     "test_single_arg",
+     "test_list_args",
+     "test_nested_args",
+     "test_str_args",
+     "test_own_namespace_1",
+     "test_own_namespace_2",
+     "test_own_module",
+     "test_bad_args",
+     "test_atoms",
+     "test_sympy_lambda",
+     "test_math_lambda",
+     "test_mpmath_lambda",
+     "test_number_precision",
+     "test_mpmath_precision",
+     "test_math_transl",
+     "test_mpmath_transl",
+     "test_empty_modules",
+     "test_exponentiation",
+     "test_sqrt",
+     "test_trig",
+     "test_integral",
+     "test_double_integral",
+     "test_vector_simple",
+     "test_vector_discontinuous",
+     "test_trig_symbolic",
+     "test_trig_float",
+     "test_docs",
+     "test_math",
+     "test_sin",
+     "test_matrix",
+     "test_issue9474",
+     "test_sym_single_arg",
+     "test_sym_list_args",
+     "test_sym_integral",
+     "test_namespace_order",
+     "test_imps",
+     "test_imps_errors",
+     "test_imps_wrong_args",
+     "test_lambdify_imps",
+     "test_dummification",
+     "test_curly_matrix_symbol",
+     "test_python_keywords",
+     "test_lambdify_docstring",
+     "test_special_printers",
+     "test_true_false",
+     "test_issue_2790",
+     "test_issue_12092",
+     "test_issue_14911",
+     "test_ITE",
+     "test_Min_Max",
+     "test_issue_12173",
+     "test_sinc_mpmath",
+     "test_lambdify_dummy_arg",
+     "test_lambdify_mixed_symbol_dummy_args",
+     "test_lambdify_inspect",
+     "test_lambdify_Derivative_arg_issue_16468",
+     "test_imag_real",
+     "test_single_e",
+     "test_beta_math",
+     "test_lambdify_cse"
+    ],
+    "failure": []
+   },
+   "FAIL_TO_FAIL": {
+    "success": [],
+    "failure": []
+   },
+   "PASS_TO_FAIL": {
+    "success": [],
+    "failure": []
+   }
+  },
+  "seconds": 6.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.codex__gpt-5.6-sol-r2.log"
  },
  "sympy__sympy-24213": {
   "patch_is_None": false,
@@ -2098,8 +2264,8 @@
     "failure": []
    }
   },
-  "seconds": 5.5,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 5.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.codex__gpt-5.6-sol-r2.log"
  },
  "psf__requests-2317": {
   "patch_is_None": false,
@@ -2268,7 +2434,7 @@
     "failure": []
    }
   },
-  "seconds": 611.6,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.radiant__gpt-5.6-sol-r1.log"
+  "seconds": 611.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.codex__gpt-5.6-sol-r2.log"
  }
 }

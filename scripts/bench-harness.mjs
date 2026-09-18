@@ -159,10 +159,24 @@ async function radiantServer () {
   }
   throw new Error('Radiant server never started:\n' + log.slice(-800))
 }
+// ⚠️ RETRY THE CONNECTION, NOT THE TURN. Four harness runs and their graders
+// share this Mac, and a request to Radiant's own server occasionally fails to
+// connect at all — recorded as "fetch failed" with no rounds, which reads like
+// the harness attempted the task and produced nothing. Seven of one run's
+// first thirty-five. A connection error before any work is not a result.
 const api = async (base, method, p, body) => {
-  const res = await fetch(base + p, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined })
-  const text = await res.text()
-  try { return { status: res.status, json: JSON.parse(text) } } catch { return { status: res.status, json: null, text } }
+  let last
+  for (let tryNo = 1; tryNo <= 4; tryNo++) {
+    try {
+      const res = await fetch(base + p, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined })
+      const text = await res.text()
+      try { return { status: res.status, json: JSON.parse(text) } } catch { return { status: res.status, json: null, text } }
+    } catch (e) {
+      last = e
+      await new Promise(r => setTimeout(r, 1000 * tryNo))
+    }
+  }
+  throw last
 }
 
 async function runRadiant (inst, workdir, model, provider, mcp) {
@@ -177,10 +191,11 @@ async function runRadiant (inst, workdir, model, provider, mcp) {
   let rounds = 0, halted = null, err = null
   const t0 = Date.now()
   try {
-    const res = await fetch(base + '/api/chat', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ sessionId: sid, content: prompt(inst) }), signal: ctl.signal
-    })
+    let res
+    for (let tryNo = 1; ; tryNo++) {
+      try { res = await fetch(base + '/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: sid, content: prompt(inst) }), signal: ctl.signal }); break }
+      catch (e) { if (tryNo >= 3 || ctl.signal.aborted) throw e; await new Promise(r => setTimeout(r, 1000 * tryNo)) }
+    }
     if (!res.ok) throw new Error('chat: ' + res.status + ' ' + await res.text())
     const reader = res.body.getReader()
     const dec = new TextDecoder()
@@ -237,10 +252,21 @@ async function runRadiant (inst, workdir, model, provider, mcp) {
 // ── Claude Code ───────────────────────────────────────────────────────────
 function runClaude (inst, workdir, model) {
   const t0 = Date.now()
+  // ⚠️ RUN IT IN A CLEAN ENVIRONMENT. This benchmark is itself launched from a
+  // Claude Code session, whose environment carries CLAUDE_CODE_* wiring and an
+  // ANTHROPIC_BASE_URL pointing at the host session — a nested `claude -p`
+  // inherits those and dies with "OAuth session expired and could not be
+  // refreshed" while the same command works in the user's own shell. Keep only
+  // what any shell has.
+  const clean = {}
+  for (const k of ['HOME', 'PATH', 'SHELL', 'USER', 'LOGNAME', 'LANG', 'LC_ALL', 'TMPDIR', 'TERM']) {
+    if (process.env[k]) clean[k] = process.env[k]
+  }
+  clean.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1'
   const r = spawnSyncCapture('claude', [
     '-p', prompt(inst), '--output-format', 'json', '--max-turns', String(MAX_TURNS),
     '--effort', 'high', '--model', model, '--dangerously-skip-permissions'
-  ], { cwd: workdir, env: { ...process.env, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' } })
+  ], { cwd: workdir, env: clean })
   const wallMs = Date.now() - t0
   let j = null
   try { j = JSON.parse(r.stdout.trim().split('\n').filter(Boolean).pop()) } catch {}
@@ -305,13 +331,29 @@ async function run () {
   for (let k = 1; k <= RUNS; k++) {
     for (const id of tasks) {
       const out = path.join(dir, `${id}__r${k}.json`)
-      if (fs.existsSync(out)) { continue }
+      // an attempt that never reached the model (server hiccup, no JSON back)
+      // is redone on the next pass; one that ran and failed the task is kept
+      if (fs.existsSync(out)) {
+        const prev = JSON.parse(fs.readFileSync(out, 'utf8'))
+        if (!(prev.error && !prev.patch && !(prev.rounds > 0))) continue
+      }
       const inst = BY_ID[id]
       const work = path.join(BENCH, 'work', tag, `${id}-r${k}`)
       process.stdout.write(`  r${k} ${id.padEnd(30)} `)
       let rec
+      // ⚠️ SETTING UP THE WORKING COPY CAN FAIL ON THE NETWORK, AND THAT IS NOT
+      // A RESULT. `prepare` clones and pip-installs; a flaky moment there threw
+      // "fetch failed" before a single token was spent, and the attempt was
+      // written as if the harness had tried and produced nothing. Nine of the
+      // first ninety. Retry it twice before recording anything.
+      for (let tryNo = 1; tryNo <= 3; tryNo++) {
+        try { prepare(id, work); break } catch (e) {
+          if (tryNo === 3) throw e
+          fs.rmSync(work, { recursive: true, force: true })
+          await new Promise(r => setTimeout(r, 4000 * tryNo))
+        }
+      }
       try {
-        prepare(id, work)
         const res = harness === 'radiant' ? await runRadiant(inst, work, model, provider, mcp)
           : harness === 'claude' ? runClaude(inst, work, model)
           : harness === 'codex' ? runCodex(inst, work, model)
@@ -371,15 +413,17 @@ function report () {
     }
     const tasks = Object.values(perTask)
     const mean = f => tasks.length ? tasks.reduce((a, t) => a + f(t), 0) / tasks.length : 0
-    const successRate = mean(t => t.graded ? t.resolved / t.graded : 0)
+    // success only over tasks that have been graded — an ungraded task is not a failure
+    const gradedTasks = tasks.filter(t => t.graded)
+    const successRate = gradedTasks.length ? gradedTasks.reduce((a, t) => a + t.resolved / t.graded, 0) / gradedTasks.length : NaN
     const attempts = recs.length
     const cachePct = tasks.reduce((a, t) => a + t.cached, 0) / Math.max(1, tasks.reduce((a, t) => a + t.totalIn, 0)) * 100
-    lines.push({ tag, tasks: tasks.length, attempts, graded: tasks.reduce((a, t) => a + t.graded, 0), success: successRate * 100, cost: mean(t => t.cost / t.n), turns: mean(t => t.turns / t.n), secs: mean(t => t.secs / t.n), cachePct })
+    lines.push({ tag, tasks: tasks.length, attempts, graded: tasks.reduce((a, t) => a + t.graded, 0), gradedTasks: gradedTasks.length, success: successRate * 100, cost: mean(t => t.cost / t.n), turns: mean(t => t.turns / t.n), secs: mean(t => t.secs / t.n), cachePct })
   }
   console.log(`\nSWE-bench Lite (${p.tasks.length} tasks, native grading) · mean over tasks of mean over attempts\n`)
   console.log('harness · model                  tasks  attempts graded  success   $/task  turns   secs  cached-in')
   for (const l of lines) {
-    console.log(`${l.tag.padEnd(32)} ${String(l.tasks).padStart(4)}  ${String(l.attempts).padStart(6)}  ${String(l.graded).padStart(5)}  ${l.success.toFixed(1).padStart(6)}%  ${('$' + l.cost.toFixed(2)).padStart(7)}  ${l.turns.toFixed(1).padStart(5)}  ${Math.round(l.secs).toString().padStart(5)}  ${l.cachePct.toFixed(0).padStart(6)}%`)
+    console.log(`${l.tag.padEnd(32)} ${String(l.tasks).padStart(4)}  ${String(l.attempts).padStart(6)}  ${String(l.graded).padStart(5)}  ${(Number.isNaN(l.success) ? '   —' : l.success.toFixed(1).padStart(6) + '%')}  ${('$' + l.cost.toFixed(2)).padStart(7)}  ${l.turns.toFixed(1).padStart(5)}  ${Math.round(l.secs).toString().padStart(5)}  ${l.cachePct.toFixed(0).padStart(6)}%`)
   }
   fs.writeFileSync(path.join(BENCH, 'report.json'), JSON.stringify({ plan: p, rows: lines, at: new Date().toISOString() }, null, 1))
 }
