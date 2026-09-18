@@ -18,14 +18,10 @@
 import React from 'react'
 import usePress from './usePress.js'
 import { byMaker } from './makers.js'
+import SF from './SF.jsx'
 
 function Chevron () {
-  return (
-    <svg viewBox="0 0 12 12" width="12" height="12" fill="none" aria-hidden="true">
-      <path d="M4.5 2.5 L8 6 L4.5 9.5" stroke="currentColor" strokeWidth="1.8"
-            strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <SF name='chevron.right' size={12} />
 }
 
 export default function MakerSection ({

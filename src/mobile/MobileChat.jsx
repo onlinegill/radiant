@@ -8,6 +8,7 @@ import BrandSpinner, { BrandMark } from './BrandSpinner.jsx'
 import { loadChosen, providerById } from './providers.js'
 import { hasConsent, grantConsent } from './consent.js'
 import ConsentSheet from './ConsentSheet.jsx'
+import SF from './SF.jsx'
 
 // The conversation, running on this phone.
 //
@@ -211,62 +212,19 @@ function usePress (onPress, { haptic = null } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // glyphs — SF Symbols geometry, stroked at the weights iOS uses
 
-const PhotoGlyph = () => (
-  <svg width='22' height='22' viewBox='0 0 22 22' fill='none' aria-hidden='true'>
-    <rect x='2.4' y='4' width='17.2' height='14' rx='3.2' stroke='currentColor' strokeWidth='1.7' />
-    <circle cx='8' cy='9' r='1.6' fill='currentColor' />
-    <path d='M3.2 15.2 L7.6 11.4 L11.6 14.6 L14.6 12.2 L19 15.8' stroke='currentColor' strokeWidth='1.7' strokeLinecap='round' strokeLinejoin='round' />
-  </svg>
-)
-
-const Chevron = () => (
-  <svg width='12' height='20' viewBox='0 0 12 20' fill='none' aria-hidden='true'>
-    <path d='M10 2L2.5 10L10 18' stroke='currentColor' strokeWidth='2.4' strokeLinecap='round' strokeLinejoin='round' />
-  </svg>
-)
-const Ellipsis = () => (
-  <svg width='24' height='24' viewBox='0 0 24 24' fill='none' aria-hidden='true'>
-    <circle cx='12' cy='12' r='10.1' stroke='currentColor' strokeWidth='1.8' />
-    <circle cx='7.4' cy='12' r='1.35' fill='currentColor' />
-    <circle cx='12' cy='12' r='1.35' fill='currentColor' />
-    <circle cx='16.6' cy='12' r='1.35' fill='currentColor' />
-  </svg>
-)
-const ArrowUp = () => (
-  <svg width='16' height='16' viewBox='0 0 16 16' fill='none' aria-hidden='true'>
-    <path d='M8 13.5V3.2M8 2.6L2.9 7.9M8 2.6L13.1 7.9' stroke='currentColor' strokeWidth='2.1' strokeLinecap='round' strokeLinejoin='round' />
-  </svg>
-)
-const StopSquare = () => (
-  <svg width='12' height='12' viewBox='0 0 12 12' aria-hidden='true'>
-    <rect x='0' y='0' width='12' height='12' rx='2.2' fill='currentColor' />
-  </svg>
-)
-const NewChatGlyph = () => (
-  <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
-    <path d='M15.2 8.6V14a1.8 1.8 0 0 1-1.8 1.8H4A1.8 1.8 0 0 1 2.2 14V4.6A1.8 1.8 0 0 1 4 2.8h5.3' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' />
-    <path d='M12.6 2.2l3.2 3.2-5.6 5.6-3.8.6.6-3.8 5.6-5.6z' stroke='currentColor' strokeWidth='1.5' strokeLinejoin='round' />
-  </svg>
-)
-const TickGlyph = () => (
-  <svg viewBox='0 0 16 16' width='16' height='16' aria-hidden='true'>
-    <path d='M3.5 8.5l3 3 6-7' fill='none' stroke='currentColor' strokeWidth='1.8'
-          strokeLinecap='round' strokeLinejoin='round' />
-  </svg>
-)
-
-const InfoGlyph = () => (
-  <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
-    <circle cx='9' cy='9' r='7.4' stroke='currentColor' strokeWidth='1.5' />
-    <path d='M9 8v4.6' stroke='currentColor' strokeWidth='1.7' strokeLinecap='round' />
-    <circle cx='9' cy='5.4' r='1' fill='currentColor' />
-  </svg>
-)
-const TrashGlyph = () => (
-  <svg width='18' height='18' viewBox='0 0 18 18' fill='none' aria-hidden='true'>
-    <path d='M3.4 4.6h11.2M7.4 4.6V3.2h3.2v1.4M4.8 4.6l.7 9.7a1.4 1.4 0 0 0 1.4 1.3h4.2a1.4 1.4 0 0 0 1.4-1.3l.7-9.7' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round' />
-  </svg>
-)
+// ⚠️ THE REAL SYMBOLS, NOT TRACINGS. Nine glyphs used to be drawn here by
+// hand against Apple's; see SF.jsx for why that stopped. Sizes are the point
+// sizes iOS uses for each role: 17 for a nav-bar chevron, 22 for a bar
+// button, 16 for a menu tick.
+const PhotoGlyph = () => <SF name='photo' size={22} />
+const Chevron = () => <SF name='chevron.left' size={20} />
+const Ellipsis = () => <SF name='ellipsis.circle' size={24} />
+const ArrowUp = () => <SF name='arrow.up' size={17} />
+const StopSquare = () => <SF name='stop.fill' size={13} />
+const NewChatGlyph = () => <SF name='square.and.pencil' size={19} />
+const TickGlyph = () => <SF name='checkmark' size={15} />
+const InfoGlyph = () => <SF name='info.circle' size={19} />
+const TrashGlyph = () => <SF name='trash' size={19} />
 
 // ─────────────────────────────────────────────────────────────────────────────
 // pieces

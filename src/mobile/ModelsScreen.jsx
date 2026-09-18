@@ -74,6 +74,7 @@ import { GB } from './useLocalModels.js'
 // pure, and therefore testable — see progress.js for why it moved
 export { progressText } from './progress.js'
 import { progressText } from './progress.js'
+import SF from './SF.jsx'
 
 const fmtGB = (gb) => `${Number(gb || 0).toFixed(1)} GB`
 
@@ -90,27 +91,10 @@ const recommend = (models) =>
 // arrow.down.circle at SF Symbol Regular optical weight. The ring used to be a
 // hairline with a small arrowhead rattling inside it, which reads as a generic
 // web download icon; the stroke is 1.7pt at 22 and the arrow fills the ring.
-const ArrowDownCircle = ({ size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 22 22" fill="none" aria-hidden="true">
-    <circle cx="11" cy="11" r="9.7" stroke="currentColor" strokeWidth="1.7" />
-    <path d="M11 5.9v10.2M6.6 11.7 11 16.1l4.4-4.4" stroke="currentColor" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
-const Checkmark = ({ size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 22 22" fill="none" aria-hidden="true">
-    <path d="M3.6 11.6 8.4 16.4 18.4 5.6" stroke="currentColor" strokeWidth="2.4"
-      strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
-const Chevron = () => (
-  <svg width="8" height="13" viewBox="0 0 8 13" fill="none" aria-hidden="true" className="rx-chevron">
-    <path d="M1.4 1.4 6.6 6.5 1.4 11.6" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
+// the real symbols — see SF.jsx
+const ArrowDownCircle = ({ size = 22 }) => <SF name='arrow.down.circle' size={size} />
+const Checkmark = ({ size = 20 }) => <SF name='checkmark' size={size} />
+const Chevron = () => <SF name='chevron.right' size={13} className='rx-chevron' />
 
 /* ── the hero: the mark, in whichever state is true, on the layout margin ─── */
 

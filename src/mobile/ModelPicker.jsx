@@ -6,6 +6,7 @@ import { fitOf, FIT_LABEL, FITS_NO, ramNeededGB } from './fit.js'
 import MakerSection from './MakerSection.jsx'
 import DeviceSpecs from './DeviceSpecs.jsx'
 import { byMaker } from './makers.js'
+import SF from './SF.jsx'
 
 // Picking a model is the first thing a new user does, so this screen has one
 // job: make the obvious choice obvious. A recommended model gets the hero —
@@ -307,22 +308,9 @@ if (typeof document !== 'undefined' && !document.querySelector('style[data-rx="m
 
 /* ------------------------------------------------------------------- glyphs */
 
-// SF Symbols geometry, drawn rather than imported: Icons.jsx is styled by
-// styles.css, which this build never loads.
-const ArrowDownCircle = () => (
-  <svg viewBox="0 0 28 28" width="28" height="28" fill="none" aria-hidden="true">
-    <circle cx="14" cy="14" r="12.1" stroke="currentColor" strokeWidth="1.7" />
-    <path d="M14 8.2v11.6M9.4 15.3 14 19.9l4.6-4.6" stroke="currentColor" strokeWidth="1.7"
-      strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
-const Checkmark = () => (
-  <svg viewBox="0 0 28 28" width="28" height="28" fill="none" aria-hidden="true">
-    <path d="M5.8 14.6 11.2 20 22.2 8.4" stroke="currentColor" strokeWidth="2.4"
-      strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
+// the real symbols — see SF.jsx
+const ArrowDownCircle = () => <SF name='arrow.down.circle' size={28} />
+const Checkmark = () => <SF name='checkmark' size={26} />
 
 /* -------------------------------------------------------------- dynamic type */
 

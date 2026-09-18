@@ -31,6 +31,12 @@ const sections = () => [
     ]
   },
   {
+    title: 'The icons are the ones iOS uses',
+    body: [
+      'The gear, the back arrow, the ⋯ menu, the download circle, the tick, the send arrow and the rest are now the same symbols iOS itself draws, at the same weights, so they sit next to the system\u2019s own icons without looking a little off. They follow the text color, so they read correctly in light and dark.'
+    ]
+  },
+  {
     title: 'Home',
     body: [
       'Home is where the app opens: the logo, a greeting, and one button to start talking. Under it, Recent lists the conversations you have had, newest first — tap one to pick it up where you left off, or Delete to remove it.',
