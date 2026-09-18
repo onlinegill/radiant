@@ -3426,6 +3426,7 @@ const GUIDE = [
   {
     title: 'Look & feel',
     items: [
+      ['The icons are Apple\u2019s', 'Every icon in the app \u2014 the gear, the sidebar toggle, the microphone, the folder, the composer\u2019s tool switches \u2014 is now the same symbol macOS draws in its own apps, at a weight that sits evenly beside the text. They take the color of whatever they are on, so a switch that is on still reads as on. Nothing moved; it just looks like it belongs on a Mac.'],
       ['Themes', 'Fourteen palettes plus colors you pick yourself, in light / medium / dark (bottom-left toggle). Agents can follow the accent or carry their own color.'],
       ['Motion', 'Ten animated backgrounds in Settings → Appearance, an accent glow that pulses around the composer while an agent is working, and subtle entrance animations throughout (all respect Reduce Motion).'],
       ['Usage meters', 'Every subscription you are signed in to shows at the bottom of the sidebar, along with your OpenRouter balance. Claude and ChatGPT report how much of each window you have left and when it resets; Grok, Nous, Qwen and Copilot do not publish usage, so those read simply “signed in”.'],

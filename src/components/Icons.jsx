@@ -1,107 +1,34 @@
 import React from 'react'
 import { SF_SYMBOLS } from '../sf-symbols-mac.js'
 
-// ⚠️ PREVIEW SWITCH, NOT A DECISION. Tony bought Apple's SF Symbols and asked
-// to see the Mac app with them before deciding. `localStorage.sfIcons = '1'`
-// (then reload) swaps every icon below for the matching SF Symbol, rendered by
-// macOS as a mask (scripts/sf-symbols.sh mac) and tinted with currentColor;
-// unset, the app is exactly as it was. Apple's licence allows the symbols in
-// apps for Apple platforms only — this file is never imported by the website
-// or the Chrome extension.
-const SF_ON = (() => { try { return localStorage.getItem('sfIcons') === '1' } catch { return false } })()
+// ⚠️ THESE ARE APPLE'S SF SYMBOLS, NOT DRAWN HERE. Until 2026-09-18 every icon
+// in the Mac app was a hand-drawn line icon, and this file was a history of the
+// ones that went wrong: a gear that mushed to a blob at 16px, a brain that read
+// as a book, two people that read as a smudge, five emoji that rendered
+// differently per OS. Tony bought the SF Symbols pack, saw the two side by side
+// and chose these. scripts/sf-symbols.sh mac renders each one with macOS
+// itself at medium weight (the old line icons were a 2px stroke on a 24 grid;
+// SF's regular reads thinner beside text at 16px) into a mask that is tinted
+// with currentColor, so an icon on a pill takes the pill's state colour the
+// way text does. To add one: put its name in the script's list, rerun it, add
+// a line to SF_NAME.
+//
+// ⚠️ LICENCE. Apple allows the symbols in apps for Apple platforms only. This
+// module is never imported by the website or the Chrome extension.
 const SF_NAME = {
   download: 'arrow.down.to.line', panel: 'sidebar.left', settings: 'gearshape', sun: 'sun.max', moon: 'moon',
   contrast: 'circle.lefthalf.filled', plus: 'plus', arrowUp: 'arrow.up', sparkle: 'sparkles', stop: 'stop.fill',
   close: 'xmark', monitor: 'desktopcomputer', clipboard: 'list.clipboard', unlock: 'lock.open', zap: 'bolt',
   bulb: 'lightbulb', hand: 'hand.raised', wrench: 'wrench', users: 'person.2', file: 'doc.text',
   branch: 'arrow.triangle.branch', folder: 'folder', archive: 'archivebox', unarchive: 'tray.and.arrow.up',
-  trash: 'trash', mic: 'mic', target: 'scope', waves: 'waveform'
+  trash: 'trash', mic: 'mic', target: 'scope', waves: 'waveform', bot: 'cpu'
 }
 function Sf ({ name, size = 16 }) {
   const s = SF_SYMBOLS[name]
+  if (!s) return null
   // the symbol's layout box is wider than tall; fit it in the same square the line icon used
   const h = size, w = Math.round((size * s.w / s.h) * 100) / 100
   return <span aria-hidden style={{ display: 'inline-block', width: w, height: h, flex: 'none', verticalAlign: 'middle', backgroundColor: 'currentColor', WebkitMaskImage: `url(${s.src})`, maskImage: `url(${s.src})`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
 }
 
-// Minimal line icons (Lucide-style): 24×24, currentColor stroke, round caps.
-function Svg ({ children, size = 16, fill = 'none' }) {
-  return (
-    <svg width={size} height={size} viewBox='0 0 24 24' fill={fill} stroke='currentColor'
-      strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden focusable='false'>
-      {children}
-    </svg>
-  )
-}
-
-export const Icon = {
-  download: p => <Svg {...p}><path d='M12 3v12M7 10l5 5 5-5M5 21h14' /></Svg>,
-  panel: p => <Svg {...p}><rect x='3' y='4' width='18' height='16' rx='2' /><path d='M15 4v16' /></Svg>,
-  // ⚠️ HEROICONS cog-6-tooth, FETCHED FROM SOURCE, NOT DRAWN HERE. This was
-  // Feather's gear: eight thin lobes with tiny gaps, which mush into a blob at the
-  // 16px it is actually rendered at. Two hand-generated replacements were tried on
-  // the phone before this and neither was better. Tony: "why cant you just get a
-  // good svg gear icon. this is ridiculous." Six well-spaced teeth, drawn by people
-  // who do this properly, MIT licensed. Do not redraw it.
-  settings: p => <Svg {...p}><path d='M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z' /><path d='M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z' /></Svg>,
-  sun: p => <Svg {...p}><circle cx='12' cy='12' r='4' /><path d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' /></Svg>,
-  moon: p => <Svg {...p}><path d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z' /></Svg>,
-  contrast: p => <Svg {...p}><circle cx='12' cy='12' r='9' /><path d='M12 3a9 9 0 0 0 0 18z' fill='currentColor' /></Svg>,
-  plus: p => <Svg {...p}><path d='M12 5v14M5 12h14' /></Svg>,
-  arrowUp: p => <Svg {...p}><path d='M12 19V5M5 12l7-7 7 7' /></Svg>,
-  sparkle: p => <Svg {...p}><path d='M12 5.3l1.8 4.9L18.7 12l-4.9 1.8L12 18.7l-1.8-4.9L5.3 12l4.9-1.8z' /></Svg>,
-  stop: p => <Svg {...p}><rect x='6' y='6' width='12' height='12' rx='2' /></Svg>,
-  close: p => <Svg {...p}><path d='M18 6 6 18M6 6l12 12' /></Svg>,
-  // ⚠️ EMOJI ARE NOT AN ICON SET. The composer toggles used 🖥 📋 🔓 ⚡ ✋ and the
-  // transcript used 🔧 👥 📄 — colour glyphs that render differently per OS
-  // version, ignore currentColor, and sit beside the line icons everywhere else
-  // looking like a different app. Tony: "i dont like thee skewmorphic icons for
-  // tools, computer off, plan off etc." These match the rest: 24×24, stroked in
-  // currentColor, so they inherit state colour on a pill the way text does.
-  monitor: p => <Svg {...p}><rect x='2' y='4' width='20' height='13' rx='2' /><path d='M8 21h8M12 17v4' /></Svg>,
-  clipboard: p => <Svg {...p}><rect x='9' y='2' width='6' height='4' rx='1' /><path d='M15 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 12h6M9 16h4' /></Svg>,
-  unlock: p => <Svg {...p}><rect x='4' y='11' width='16' height='10' rx='2' /><path d='M8 11V7a4 4 0 0 1 7.5-2' /></Svg>,
-  zap: p => <Svg {...p}><path d='M13 2 4 14h7l-1 8 9-12h-7z' /></Svg>,
-  // ⚠️ A BRAIN IS MADE OF FOLDS, AND FOLDS DO NOT SURVIVE 13px. The first
-  // version of this was two mirrored lobes and the fissure between them, which
-  // is the least a brain can be reduced to — and rasterised at the only size it
-  // is ever used, it came out as a rounded box with a vertical bar through it.
-  // It read as a book. Checked by rendering it at 13px and magnifying the actual
-  // pixels rather than by looking at the path, because at 40px it was fine and
-  // that is the size nobody sees.
-  //
-  // A bulb is the metaphor that survives the size AND fits the control better:
-  // this is a toggle, and going on and off is what a bulb does. The word
-  // "thinking" sits next to it, so the icon only has to be recognisable, not
-  // carry the meaning by itself.
-  bulb: p => <Svg {...p}><path d='M9 18h6' /><path d='M10 21h4' /><path d='M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6l.1.6h5.2l.1-.6c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z' /></Svg>,
-  hand: p => <Svg {...p}><path d='M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-.5V3.5a1.5 1.5 0 0 1 3 0V11m0-.5V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-1a7 7 0 0 1-7-7v-2a1.5 1.5 0 0 1 3 0' /></Svg>,
-  wrench: p => <Svg {...p}><path d='M14.7 6.3a4 4 0 0 0 5 5l-9 9a2.8 2.8 0 0 1-4-4z' /><path d='M14.7 6.3 18 3l3 3-3.3 3.3' /></Svg>,
-  // ⚠️ TWO WHOLE PEOPLE, NOT ONE AND A HALF. This was the Lucide "users" shape:
-  // a full figure plus a second one drawn as two loose arcs peeking out behind
-  // it. At 13px in a sidebar button the fragments do not resolve into a person —
-  // they read as a smudge, and the whole mark looks stretched. Tony: "not an
-  // anamorphic icon. icon should be like the agent icons. basic, clean, and
-  // simple." Two equal heads over two equal shoulders is symmetric, survives
-  // 13px, and matches the AgentIcons idiom it sits beside.
-  users: p => <Svg {...p}><circle cx='8' cy='8.5' r='2.6' /><circle cx='16' cy='8.5' r='2.6' /><path d='M3 18.5a5 5 0 0 1 10 0' /><path d='M11 18.5a5 5 0 0 1 10 0' /></Svg>,
-  file: p => <Svg {...p}><path d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z' /><path d='M14 3v5h5M9 13h6M9 17h4' /></Svg>,
-  bot: p => <Svg {...p}><rect x='4' y='8' width='16' height='12' rx='3' /><path d='M12 4v4M8.5 13.5h.01M15.5 13.5h.01M9.5 17h5' /></Svg>,
-  branch: p => <Svg {...p}><circle cx='6' cy='6' r='2.5' /><circle cx='6' cy='18' r='2.5' /><circle cx='18' cy='8' r='2.5' /><path d='M6 8.5v7M8.5 6.6c5 .6 6.5 2 7 4.4' /></Svg>,
-  folder: p => <Svg {...p}><path d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' /></Svg>,
-  // Lid, box, arrow in — the shape everyone reads as "archive". Paired with
-  // trash below: ✕ used to do the archiving, and ✕ means delete. Tony: "To me
-  // an X means delete."
-  archive: p => <Svg {...p}><rect x='3' y='4' width='18' height='4' rx='1' /><path d='M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M12 11v6M9 14l3 3 3-3' /></Svg>,
-  // Out of the box again.
-  unarchive: p => <Svg {...p}><rect x='3' y='4' width='18' height='4' rx='1' /><path d='M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M12 18v-6M9 15l3-3 3 3' /></Svg>,
-  trash: p => <Svg {...p}><path d='M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14' /></Svg>,
-  mic: p => <Svg {...p}><rect x='9' y='2' width='6' height='12' rx='3' /><path d='M5 11a7 7 0 0 0 14 0M12 18v4' /></Svg>,
-  target: p => <Svg {...p}><circle cx='12' cy='12' r='7' /><path d='M12 2v3M12 19v3M2 12h3M19 12h3' /><circle cx='12' cy='12' r='1.5' /></Svg>,
-  // a sound wave: the voice conversation, as distinct from the dictation mic
-  waves: p => <Svg {...p}><path d='M3 12h2M7 8v8M11 5v14M15 8v8M19 10v4M21 12h0' /></Svg>
-}
-
-if (SF_ON) {
-  for (const k of Object.keys(SF_NAME)) if (SF_SYMBOLS[SF_NAME[k]]) Icon[k] = p => <Sf name={SF_NAME[k]} size={p?.size} />
-}
+export const Icon = Object.fromEntries(Object.entries(SF_NAME).map(([k, name]) => [k, p => <Sf name={name} size={p?.size} />]))
