@@ -1044,6 +1044,12 @@ code, pre, .mono { font-family: var(--font-mono); }
   padding: 12px 14px; margin: 10px 0;
 }
 .question-card { border-color: var(--accent-dim); }
+/* an answered question, kept in the transcript: the question quietly, the answer as the user's */
+.asked { margin: 8px 0; padding: 8px 12px; border-left: 2px solid var(--accent-dim); border-radius: 4px; }
+.asked-q { font-size: 13px; color: var(--text-muted); white-space: pre-wrap; margin-bottom: 6px; }
+.asked-a { font-size: 13px; white-space: pre-wrap; }
+.asked-you { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); margin-right: 8px; }
+.asked-none { color: var(--text-muted); font-style: italic; }
 .question-card .q { font-weight: 500; font-size: 13px; margin-bottom: 10px; white-space: pre-wrap; }
 .question-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .question-other { display: flex; gap: 8px; }

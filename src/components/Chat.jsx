@@ -161,6 +161,22 @@ function ChoiceRelay ({ options, onPick }) {
   )
 }
 
+// an ask_user exchange that has already happened: the question, and what the
+// user chose, in the transcript where it belongs
+function AskedAndAnswered ({ part }) {
+  const question = part.args?.question || 'Which option?'
+  const m = /^The user answered: ([\s\S]*?)(?:\n\n\[reminder:[\s\S]*)?$/.exec(String(part.result || ''))
+  const answer = m ? m[1].trim() : null
+  return (
+    <div className='asked'>
+      <div className='asked-q'>{question}</div>
+      {answer
+        ? <div className='asked-a'><span className='asked-you'>You</span>{answer}</div>
+        : <div className='asked-a asked-none'>{part.denied ? 'Not answered.' : String(part.result || 'Waiting for an answer…').slice(0, 200)}</div>}
+    </div>
+  )
+}
+
 // the agent paused to ask the user something (ask_user / plan approval)
 function QuestionCard ({ question, onAnswer }) {
   const [other, setOther] = useState('')
@@ -438,12 +454,19 @@ function AssistantMessage ({ parts, thinking, thinkingActive, thinkingSecs, stre
           run = []
         }
         parts.forEach((p, i) => {
-          if (p.type === 'tool' && !p.widget && p.name !== 'show_widget' && p.name !== 'todo_write' && !p.hidden) {
+          if (p.type === 'tool' && !p.widget && p.name !== 'show_widget' && p.name !== 'todo_write' && p.name !== 'ask_user' && !p.hidden) {
             run.push(p)
             return
           }
           flush()
           if (p.type === 'text') out.push(<Markdown key={i} text={p.text} />)
+          // ⚠️ THE USER'S ANSWER IS PART OF THE CONVERSATION. An ask_user
+          // exchange was stored as a tool call — question in the arguments,
+          // "The user answered: …" in the result — and rendered as one more
+          // chip inside a folded "4 tool calls" row. Tony answered a question
+          // and his answer was nowhere on screen while the agent carried on as
+          // if it had been. Show the question, and the answer as his.
+          else if (p.type === 'tool' && p.name === 'ask_user') out.push(<AskedAndAnswered key={p.id || i} part={p} />)
           else if (p.type === 'tool' && (p.widget || p.name === 'show_widget')) out.push(<AgentWidget key={p.id || i} spec={p.widget || p.args} onChoose={onChoose} />)
           else if (p.type === 'notice') out.push(<div key={i} className='notice'>{p.text}</div>)
           // ⚠️ THE ONE THING IN A TRANSCRIPT THAT MUST NOT BE QUIET. This was a

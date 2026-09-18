@@ -295,17 +295,26 @@ def main():
     else:
         preds = [json.loads(l) for l in open(a.preds) if l.strip()]
         if a.ids: preds = [p for p in preds if p['instance_id'] in set(a.ids.split(','))]
+    import hashlib
+    sha = lambda p: hashlib.sha1((p.get('model_patch') or '').encode()).hexdigest()[:12]
+    bysha = {p['instance_id']: sha(p) for p in preds}
     results = {}
     if Path(a.out).exists():
         results = json.loads(Path(a.out).read_text())
-        preds = [p for p in preds if p['instance_id'] not in results]
-        print(f'{len(results)} already graded, {len(preds)} to go')
+        # ⚠️ A GRADE BELONGS TO A PATCH, NOT TO A TASK ID. Attempts get redone
+        # (a subscription cap, a server that never answered) and the redo has a
+        # different patch; a resume keyed on the id alone kept the stale grade
+        # and reported 0/30 for a run that had in fact been rerun. Re-grade
+        # whenever the patch is not the one that was graded.
+        preds = [p for p in preds if results.get(p['instance_id'], {}).get('patch_sha') != sha(p)]
+        print(f'{len(results)} graded before, {len(preds)} new or changed')
     with ThreadPoolExecutor(max_workers=a.workers) as ex:
         futs = {ex.submit(grade_one, ds[p['instance_id']], p, a.keep): p['instance_id'] for p in preds}
         for f in as_completed(futs):
             iid = futs[f]
             try: rep = f.result()
             except Exception as e: rep = {'resolved': False, 'error': str(e)}
+            rep['patch_sha'] = bysha[iid]
             results[iid] = rep
             print(f"  {iid:32} {'RESOLVED' if rep.get('resolved') else 'no':8} {rep.get('seconds','?')}s"
                   + ('' if rep.get('patch_successfully_applied', True) else '  (patch did not apply)')

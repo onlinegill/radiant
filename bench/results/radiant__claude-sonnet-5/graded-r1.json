@@ -90,8 +90,9 @@
     "failure": []
    }
   },
-  "seconds": 4.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11133.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "1d076926a178"
  },
  "django__django-11019": {
   "patch_is_None": false,
@@ -193,8 +194,9 @@
     "failure": []
    }
   },
-  "seconds": 5.5,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.radiant__claude-sonnet-5-r1.log"
+  "seconds": 6.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11019.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "2225ef8156a7"
  },
  "django__django-11620": {
   "patch_is_None": false,
@@ -289,8 +291,9 @@
     "failure": []
    }
   },
-  "seconds": 5.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.radiant__claude-sonnet-5-r1.log"
+  "seconds": 7.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11620.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "945636cea1e1"
  },
  "django__django-11797": {
   "patch_is_None": false,
@@ -357,8 +360,9 @@
     "failure": []
    }
   },
-  "seconds": 4.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11797.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "6cf5a74e39ba"
  },
  "django__django-11815": {
   "patch_is_None": false,
@@ -433,8 +437,9 @@
     "failure": []
    }
   },
-  "seconds": 4.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.radiant__claude-sonnet-5-r1.log"
+  "seconds": 4.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11815.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "e558dd1697a4"
  },
  "django__django-11964": {
   "patch_is_None": false,
@@ -479,8 +484,9 @@
     "failure": []
    }
   },
-  "seconds": 4.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.radiant__claude-sonnet-5-r1.log"
+  "seconds": 4.8,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-11964.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "68be507b8a17"
  },
  "django__django-12286": {
   "patch_is_None": false,
@@ -516,8 +522,9 @@
     "failure": []
    }
   },
-  "seconds": 4.6,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.radiant__claude-sonnet-5-r1.log"
+  "seconds": 4.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12286.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "5574daa303b7"
  },
  "django__django-12983": {
   "patch_is_None": false,
@@ -561,8 +568,9 @@
     "failure": []
    }
   },
-  "seconds": 4.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-12983.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "4f36def7fd3a"
  },
  "django__django-13033": {
   "patch_is_None": false,
@@ -617,8 +625,9 @@
     "failure": []
    }
   },
-  "seconds": 4.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13033.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "79551c08a2c9"
  },
  "django__django-13401": {
   "patch_is_None": false,
@@ -679,8 +688,9 @@
     "failure": []
    }
   },
-  "seconds": 5.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13401.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "2402a7065210"
  },
  "django__django-13964": {
   "patch_is_None": false,
@@ -745,8 +755,9 @@
     "failure": []
    }
   },
-  "seconds": 4.9,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-13964.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "005284c4394a"
  },
  "django__django-14997": {
   "patch_is_None": false,
@@ -921,8 +932,9 @@
     "failure": []
    }
   },
-  "seconds": 8.2,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.radiant__claude-sonnet-5-r1.log"
+  "seconds": 8.5,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-14997.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "de5c90c01647"
  },
  "django__django-15388": {
   "patch_is_None": false,
@@ -960,8 +972,9 @@
     "failure": []
    }
   },
-  "seconds": 6.8,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.radiant__claude-sonnet-5-r1.log"
+  "seconds": 7.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15388.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "15f731a9090b"
  },
  "django__django-15851": {
   "patch_is_None": false,
@@ -998,8 +1011,9 @@
     "failure": []
    }
   },
-  "seconds": 6.9,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.radiant__claude-sonnet-5-r1.log"
+  "seconds": 7.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-15851.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "c85b8049bff0"
  },
  "django__django-16400": {
   "patch_is_None": false,
@@ -1091,8 +1105,9 @@
     "failure": []
    }
   },
-  "seconds": 7.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.radiant__claude-sonnet-5-r1.log"
+  "seconds": 7.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16400.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "141016743577"
  },
  "django__django-16527": {
   "patch_is_None": false,
@@ -1127,8 +1142,9 @@
     "failure": []
    }
   },
-  "seconds": 6.5,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.radiant__claude-sonnet-5-r1.log"
+  "seconds": 7.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/django__django-16527.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "db000a61e2e8"
  },
  "pytest-dev__pytest-5495": {
   "patch_is_None": false,
@@ -1244,8 +1260,9 @@
     "failure": []
    }
   },
-  "seconds": 6.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.radiant__claude-sonnet-5-r1.log"
+  "seconds": 7.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5495.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "c82b3c7c7b96"
  },
  "pytest-dev__pytest-5692": {
   "patch_is_None": false,
@@ -1343,8 +1360,9 @@
     "failure": []
    }
   },
-  "seconds": 5.6,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.radiant__claude-sonnet-5-r1.log"
+  "seconds": 6.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-5692.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "b9e795f7aaa7"
  },
  "pytest-dev__pytest-7168": {
   "patch_is_None": false,
@@ -1382,8 +1400,9 @@
     "failure": []
    }
   },
-  "seconds": 4.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.1,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/pytest-dev__pytest-7168.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "9c29880f4639"
  },
  "sphinx-doc__sphinx-8435": {
   "patch_is_None": false,
@@ -1428,8 +1447,9 @@
     "failure": []
    }
   },
-  "seconds": 7.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.radiant__claude-sonnet-5-r1.log"
+  "seconds": 8.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8435.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "b99d75d0bf27"
  },
  "sphinx-doc__sphinx-8506": {
   "patch_is_None": false,
@@ -1473,8 +1493,9 @@
     "failure": []
    }
   },
-  "seconds": 6.7,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.radiant__claude-sonnet-5-r1.log"
+  "seconds": 7.3,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sphinx-doc__sphinx-8506.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "bb76373f3e09"
  },
  "sympy__sympy-12419": {
   "patch_is_None": false,
@@ -1528,8 +1549,9 @@
     "failure": []
    }
   },
-  "seconds": 4.3,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.radiant__claude-sonnet-5-r1.log"
+  "seconds": 4.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-12419.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "a255f4f3a0d9"
  },
  "sympy__sympy-14308": {
   "patch_is_None": false,
@@ -1672,8 +1694,9 @@
     "failure": []
    }
   },
-  "seconds": 6.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.radiant__claude-sonnet-5-r1.log"
+  "seconds": 6.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-14308.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "40cd68d25fab"
  },
  "sympy__sympy-17022": {
   "patch_is_None": false,
@@ -1710,8 +1733,9 @@
     "failure": []
    }
   },
-  "seconds": 4.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.radiant__claude-sonnet-5-r1.log"
+  "seconds": 4.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-17022.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "2f6c09285e65"
  },
  "sympy__sympy-18621": {
   "patch_is_None": false,
@@ -1755,8 +1779,9 @@
     "failure": []
    }
   },
-  "seconds": 4.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.radiant__claude-sonnet-5-r1.log"
+  "seconds": 4.7,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18621.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "44bef0a65f08"
  },
  "sympy__sympy-21171": {
   "patch_is_None": false,
@@ -1937,8 +1962,9 @@
     "failure": []
    }
   },
-  "seconds": 5.5,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.9,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-21171.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "6bb6d1f4b8ff"
  },
  "sympy__sympy-18698": {
   "patch_is_None": false,
@@ -2114,8 +2140,9 @@
     "failure": []
    }
   },
-  "seconds": 9.4,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.radiant__claude-sonnet-5-r1.log"
+  "seconds": 10.0,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-18698.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "1ee9cf29f739"
  },
  "sympy__sympy-23262": {
   "patch_is_None": false,
@@ -2205,8 +2232,9 @@
     "failure": []
    }
   },
-  "seconds": 5.5,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.radiant__claude-sonnet-5-r1.log"
+  "seconds": 6.2,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-23262.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "c7b44e20e956"
  },
  "sympy__sympy-24213": {
   "patch_is_None": false,
@@ -2266,8 +2294,9 @@
     "failure": []
    }
   },
-  "seconds": 5.0,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.radiant__claude-sonnet-5-r1.log"
+  "seconds": 5.6,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/sympy__sympy-24213.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "299c46faaadb"
  },
  "psf__requests-2317": {
   "patch_is_None": false,
