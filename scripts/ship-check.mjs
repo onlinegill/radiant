@@ -98,6 +98,23 @@ add(
   `npm version <next> --no-git-tag-version && npm run build && git commit && git tag v${pkgVersion}`
 )
 
+// ── judged ───────────────────────────────────────────────────────────────────
+// The four checks above are facts. This one is a judgment — is the commit
+// message a why, is the Read me written for a person using the app — made by
+// Jev in a third of a second (scripts/ship-judge.mjs). It caught two entries
+// on its first run that talked about prompt caches and tool schemas to users.
+// Unreachable, it reports so and passes: a judge that is down must not block.
+{
+  const { spawnSync } = await import('node:child_process')
+  const r = spawnSync(process.execPath, [new URL('./ship-judge.mjs', import.meta.url).pathname, 'HEAD'], { encoding: 'utf8' })
+  const out = (r.stdout || '').trim()
+  const advisory = /cannot judge|nothing to judge/.test(out)
+  const bad = out.split('\n').filter(l => l.trim().startsWith('✗')).map(l => l.trim().slice(2).trim())
+  add('judged', advisory || r.status === 0,
+    advisory ? out.split('\n')[0] : (r.status === 0 ? 'commit message and Read me judged fit for a user' : `${bad.length} judgment(s) below the bar: ${bad.join(' · ')}`),
+    'rewrite the flagged text in plain words, for the person using the app, and commit again')
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 const failed = checks.filter(c => !c.ok)
 if (process.argv.includes('--json')) {

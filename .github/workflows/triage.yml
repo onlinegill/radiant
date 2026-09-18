@@ -1,0 +1,22 @@
+# Every new issue is sorted the moment it lands — see scripts/triage.mjs.
+# Labels only; nothing is posted or closed. Under-confident answers are left
+# for a person. Needs OPENROUTER_API_KEY in the repository's secrets.
+name: triage
+on:
+  issues:
+    types: [opened, reopened]
+  workflow_dispatch:
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/triage.mjs
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GH_TOKEN: ${{ github.token }}

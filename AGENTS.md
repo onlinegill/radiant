@@ -72,7 +72,18 @@ Run the objective half and fix whatever it flags:
 node scripts/ship-check.mjs
 ```
 
-It verifies committed / pushed / Read-me-kept-current / tagged. Or hand the
+It verifies committed / pushed / Read-me-kept-current / tagged — and, fifth,
+**judged**: `scripts/ship-judge.mjs` has Jev (a decision model, see
+`server/decide.js`) read the commit message and any new Read me entries and
+answer whether they say *why* and whether they are written for a person using
+the app. On its first run it failed two entries that talked about prompt
+caches and tool schemas to users. Below 50% fails the check; unreachable, it
+passes and says so. Rewrite in plain words, commit again.
+
+New GitHub issues are sorted the moment they land (`scripts/triage.mjs`, run by
+`.github/workflows/triage.yml`): app, kind, severity, possible duplicate — as
+labels, with the probability, and nothing under 60% (90% for duplicate) is
+applied. `node scripts/triage.mjs --closed --dry-run` shows what it would say. Or hand the
 whole job to the **`ship-sync`** agent (runs on Haiku, cheap) — it loops until
 all three are actually verified rather than merely attempted.
 
