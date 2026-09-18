@@ -321,16 +321,16 @@ Apple accepted 1.0 on build 7, after two rejections:
 What shipped: the consent sheet (`ConsentSheet.jsx` / `consent.js`), the
 rewritten privacy policy, and the subtitle **"Open models, on your phone"**.
 
-⚠️ **Read the live status from App Store Connect before acting on this.**
-Whether 1.0 is Pending Developer Release or Ready for Sale is not recorded here.
-This heading has been wrong twice before.
-
-⚠️ **Build 7 is the ONLY approved build.** `CURRENT_PROJECT_VERSION` is 11;
-builds 8–11 are on TestFlight and carry the Hugging Face search. See the age
-rating section — the questionnaire must be answered again for an open list
-before any of them is submitted, and a shipped 1.0 makes the next one an
-**update** (new version number, own review, own "what's new") rather than a
-build swap.
+⚠️ **Read the live status from App Store Connect before acting on this** —
+`node scripts/asc.mjs get 6804891721`. Checked 2026-09-18 10:00 ET: **1.1
+(build 21) READY_FOR_SALE**, 1.0 READY_FOR_SALE. 1.1 was submitted 2026-09-17
+17:04 ET by `asc.mjs submit` and approved overnight with no questions. It
+carries the Hugging Face search (unfiltered), Archive, the keyboard fix, the
+unsent-message fix, the byline link, and the **17+ age rating** answered for
+an open model list — that answer is on record now and does not need
+re-answering unless the app changes again. `CURRENT_PROJECT_VERSION` is 21.
+Screenshots are still 1.0's (4 iPhone 6.7", 1 iPad 12.9"); replace with the
+next submission.
 
 ---
 

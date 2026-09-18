@@ -2302,7 +2302,7 @@
   "patch_is_None": false,
   "patch_exists": true,
   "patch_successfully_applied": true,
-  "resolved": true,
+  "resolved": false,
   "infra_failure": false,
   "tests_status": {
    "FAIL_TO_PASS": {
@@ -2349,7 +2349,6 @@
      "test_requests.py::RequestsTestCase::test_cookie_persists_via_api",
      "test_requests.py::RequestsTestCase::test_cookie_quote_wrapped",
      "test_requests.py::RequestsTestCase::test_cookie_removed_on_expire",
-     "test_requests.py::RequestsTestCase::test_cookie_sent_on_redirect",
      "test_requests.py::RequestsTestCase::test_custom_content_type",
      "test_requests.py::RequestsTestCase::test_decompress_gzip",
      "test_requests.py::RequestsTestCase::test_different_encodings_dont_break_post",
@@ -2381,7 +2380,6 @@
      "test_requests.py::RequestsTestCase::test_prepared_from_session",
      "test_requests.py::RequestsTestCase::test_prepared_request_hook",
      "test_requests.py::RequestsTestCase::test_pyopenssl_redirect",
-     "test_requests.py::RequestsTestCase::test_redirect_with_wrong_gzipped_header",
      "test_requests.py::RequestsTestCase::test_request_and_response_are_pickleable",
      "test_requests.py::RequestsTestCase::test_request_cookie_overrides_session_cookie",
      "test_requests.py::RequestsTestCase::test_request_cookies_not_persisted",
@@ -2454,7 +2452,10 @@
      "test_requests.py::test_prepared_request_complete_copy",
      "test_requests.py::test_prepare_unicode_url"
     ],
-    "failure": []
+    "failure": [
+     "test_requests.py::RequestsTestCase::test_cookie_sent_on_redirect",
+     "test_requests.py::RequestsTestCase::test_redirect_with_wrong_gzipped_header"
+    ]
    },
    "FAIL_TO_FAIL": {
     "success": [],
@@ -2465,7 +2466,8 @@
     "failure": []
    }
   },
-  "seconds": 618.1,
-  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.radiant__claude-sonnet-5-r1.log"
+  "seconds": 636.4,
+  "log": "/Users/tonyricciardi/Projects/radiant/bench/logs/psf__requests-2317.radiant__claude-sonnet-5-r1.log",
+  "patch_sha": "8577f543e7c9"
  }
 }
