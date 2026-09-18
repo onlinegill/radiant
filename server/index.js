@@ -3197,11 +3197,34 @@ app.post('/api/chat', async (req, res) => {
   // MCP tools from enabled servers, bridged into the tool set
   let mcpTools = []
   let callMcp = null
+  let mcpSkipped = []   // servers left off this turn, named to the model below
   if (session.mcp !== false && (config.mcpServers || []).some(s => s.enabled)) {
     try {
       const mcp = await import('./mcp.js')
       mcpTools = await mcp.mcpToolDefs(config.mcpServers)
       callMcp = (name, args) => mcp.callMcpTool(name, args, config.mcpServers)
+      // ⚠️ ATTACH ONLY WHAT THE MESSAGE NEEDS. One enabled server is 16.6k
+      // tokens of schema on every call of every chat. Jev (server/decide.js)
+      // answers "does this message need Linear?" in ~300 ms for a fraction of
+      // a cent; unreachable or switched off, everything is attached as before.
+      if (config.settings.smartTools !== false && config.keys.openrouter) {
+        const { chooseMcpServers, decide } = await import('./decide.js')
+        const toolsByServer = {}
+        for (const t of mcpTools) {
+          const hit = /^mcp__([^_]+(?:_[^_]+)*)__/.exec(t.name)
+          if (hit) (toolsByServer[hit[1]] ||= []).push(t.name)
+        }
+        const text0 = typeof content === 'string' ? content : (content?.text || '')
+        const pick = await chooseMcpServers({ message: text0, history: session.messages, servers: config.mcpServers, toolsByServer, decideFn: decide, apiKey: config.keys.openrouter, sessionId })
+        if (pick.decided) {
+          mcpTools = mcpTools.filter(t => { const h = /^mcp__([^_]+(?:_[^_]+)*)__/.exec(t.name); return !h || pick.attach.has(h[1]) })
+          mcpSkipped = pick.skipped
+          const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
+          st.decisions = (st.decisions || 0) + 1
+          st.decisionCost = (st.decisionCost || 0) + (pick.usage?.cost || 0)
+          if (mcpSkipped.length) console.log('[mcp] left off this turn:', mcpSkipped.map(s => `${s.name} (${Math.round(s.p * 100)}%)`).join(', '))
+        }
+      }
     } catch (e) { console.error('[mcp]', e.message) }
   }
 
@@ -3379,6 +3402,12 @@ app.post('/api/chat', async (req, res) => {
   // Spoken in, spoken out: the reply is read aloud, so it has to lead with a
   // sentence. Volatile, so it travels with the plan text, not the persona.
   if (spoken) planAddendum = planAddendum ? `${planAddendum}\n\n${VOICE_ADDENDUM}` : VOICE_ADDENDUM
+  // The model must know a server exists that it was not handed, or it will say
+  // "I have no access to Linear" to someone who set Linear up an hour ago.
+  if (mcpSkipped.length) {
+    const line = `MCP tools not attached to this message (judged not needed): ${mcpSkipped.map(s => s.name).join(', ')}. If the task turns out to need one, say so plainly and ask the user to send the request again naming it.`
+    planAddendum = planAddendum ? `${planAddendum}\n\n${line}` : line
+  }
 
   const common = {
     provider,

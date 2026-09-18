@@ -183,6 +183,60 @@ ok('turning caching off reaches OpenRouter too, not just the Anthropic path',
   ok('the session keeps both', session.stats?.cachedIn >= 15000 && session.stats?.cacheWrite >= 2000, JSON.stringify(session.stats))
 }
 
+// ── each round's request is the previous one plus a tail ────────────────────
+// ⚠️ THE CONVERSATION WAS REWRITTEN EVERY ROUND. Every tool call of a turn was
+// folded into ONE assistant message, so round three sent assistant:[A, B]
+// where round two had sent assistant:[A] — a different block at the same
+// position, and the cache matched nothing past the system prompt. Measured:
+// 7% cached on a Claude subscription against Claude Code's 93%, and four times
+// the cost for the same answers. Three rounds through a stub; every request
+// must begin with the whole of the one before it.
+{
+  const seen = []
+  const stub = http.createServer(async (req, res) => {
+    let body = ''; for await (const c of req) body += c
+    const b = JSON.parse(body); seen.push(b)
+    res.writeHead(200, { 'content-type': 'text/event-stream' })
+    const w = ev => res.write(`event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`)
+    w({ type: 'message_start', message: { usage: { input_tokens: 5 } } })
+    const n = seen.length
+    if (n <= 2) {
+      // round 1 asks for one read; round 2 asks for TWO in parallel
+      const calls = n === 1 ? ['r1'] : ['r2a', 'r2b']
+      calls.forEach((id, i) => {
+        w({ type: 'content_block_start', index: i, content_block: { type: 'tool_use', id, name: 'read_file' } })
+        w({ type: 'content_block_delta', index: i, delta: { type: 'input_json_delta', partial_json: JSON.stringify({ path: id + '.txt' }) } })
+        w({ type: 'content_block_stop', index: i })
+      })
+      w({ type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 3 } })
+    } else {
+      w({ type: 'content_block_start', index: 0, content_block: { type: 'text' } })
+      w({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'done' } })
+      w({ type: 'content_block_stop', index: 0 })
+      w({ type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 1 } })
+    }
+    w({ type: 'message_stop' }); res.end()
+  })
+  await new Promise(r => stub.listen(0, '127.0.0.1', r))
+  const session = { cwd: dir, messages: [{ role: 'user', text: 'read things' }] }
+  await runTurn({
+    provider: { id: 'anthropic', type: 'anthropic', baseUrl: `http://127.0.0.1:${stub.address().port}` },
+    model: 'claude-sonnet-5', apiKey: 'x', session, useTools: true, computerControl: false, skills: [], persona: '',
+    emit: () => {}, requestApproval: null, signal: new AbortController().signal
+  })
+  stub.close()
+  const rounds = seen.filter(b => Array.isArray(b.tools) && b.tools.length)   // the turn's own calls, not the housekeeping after it
+  ok('three rounds reached the stub', rounds.length === 3, JSON.stringify(rounds.map(b => ({ model: b.model, msgs: b.messages.length, tools: (b.tools || []).length, last: JSON.stringify(b.messages.at(-1)).slice(0, 120) }))))
+  const msgs = rounds.map(b => b.messages)
+  ok('round two carries round one\'s call as its own assistant message, then its result',
+     msgs[1]?.length === 3 && msgs[1][1].role === 'assistant' && msgs[1][1].content.filter(c => c.type === 'tool_use').length === 1 && msgs[1][2].role === 'user')
+  ok('round three begins with EXACTLY what round two sent — a prefix the cache can match',
+     msgs[2] && JSON.stringify(msgs[2].slice(0, msgs[1].length)) === JSON.stringify(msgs[1]), JSON.stringify(msgs[2]?.slice(0, 3)).slice(0, 300))
+  ok('and adds the second round as new messages after it', msgs[2]?.length === 5)
+  ok('two calls made in the same round stay together in one assistant message',
+     msgs[2]?.[3]?.content.filter(c => c.type === 'tool_use').length === 2 && msgs[2]?.[4]?.content.filter(c => c.type === 'tool_result').length === 2)
+}
+
 console.log(results.join('\n'))
 console.log(`\n${pass}/${pass + fail} passed  ·  the cached half never moves, and the switch reaches every path`)
 process.exit(fail ? 1 : 0)

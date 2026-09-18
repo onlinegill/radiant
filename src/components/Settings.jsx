@@ -932,8 +932,9 @@ function ModelsPane ({ onModelsChanged, config, onSettings }) {
 
 // ---------- MCP ----------
 
-function McpPane ({ config, onConfigChange }) {
+function McpPane ({ config, onConfigChange, onSettings }) {
   const servers = config.mcpServers || []
+  const hasOpenRouter = Boolean(config.providers?.find?.(p => p.id === 'openrouter')?.hasKey ?? config.keys?.openrouter)
   const [status, setStatus] = useState([])
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
@@ -1022,6 +1023,16 @@ function McpPane ({ config, onConfigChange }) {
         </div>
       )}
       {!servers.length && <div className='activity-empty' style={{ marginTop: 8 }}>No MCP servers yet.</div>}
+      {servers.length > 0 && (
+        <label className='check-row' style={{ marginTop: 10 }}>
+          <input
+            type='checkbox'
+            checked={config.settings?.smartTools !== false}
+            onChange={e => onSettings?.({ smartTools: e.target.checked })}
+          />
+          <span>Attach a server’s tools only when a message needs them <span className='desc'>— a quick, cheap decision model (Jev, through OpenRouter) reads each message first, so a Linear server is not sent along with “fix this bug”. A server already used in the conversation stays attached. Off, or without an OpenRouter key, every server’s tools go with every message.{hasOpenRouter ? '' : ' Add an OpenRouter key under Providers to enable it.'}</span></span>
+        </label>
+      )}
 
       {adding
         ? <div className='skill-add'>
@@ -3362,6 +3373,8 @@ const GUIDE = [
     items: [
       ['Voice can now use Google\u2019s Gemini Live as well as OpenAI', 'Settings \u2192 Voice has a choice of who does the talking. OpenAI\u2019s GPT-Live is about 5\u00a2 a minute; Google\u2019s Gemini 3.8 Live is about half a cent a minute for what you say and 1.8\u00a2 for what it says back, and can keep talking while Radiant works rather than going quiet. Both behave identically in every way that matters: they listen and speak, and hand every real request back to Radiant so your own model, tools and approvals do the work \u2014 the conversation is the only thing that leaves your Mac. Gemini needs its own key from Google AI Studio; an OpenAI key does not work for it, and the key stays on your Mac \u2014 the app hands the browser only a short-lived token that lasts one call. You can also pick the voice and choose between the fast model and the one that reasons more.'],
       ['Radiant\u2019s own housekeeping runs on a cheap model, and is counted', 'After every reply Radiant quietly makes a few more model calls for itself \u2014 naming the chat, noting anything worth remembering, drafting a skill idea, and summarizing when a conversation gets long. Those ran on whatever model the chat was using, so an expensive model was being paid top rates to write a one-line note, and none of it appeared in the token counter. They now run on the cheapest model the same provider offers, and what they spend is shown in the counter\u2019s tooltip under its own heading. Settings \u2192 Models \u2192 Background work lets you choose the model yourself.'],
+      ['MCP tools ride along only when a message needs them', 'An MCP server you have switched on \u2014 Linear, say \u2014 is a bundle of tool descriptions, and every one of them was being sent to the model on every single call of every chat, whether or not the chat had anything to do with it. Linear alone is sixty-nine tools and about sixteen thousand tokens a call. Radiant now asks a small decision model first \u2014 Jev, through OpenRouter, a third of a second and a fraction of a cent \u2014 whether the message needs that server, and attaches its tools only when it does. A server already used in the conversation stays attached. If it is left off, the agent is told the server exists so it can ask you to name it rather than claim it has no access. Settings \u2192 MCP servers has the switch; without an OpenRouter key everything is attached as before.'],
+      ['On a Claude subscription, a long agentic turn now costs a quarter of what it did', 'Every tool call an agent made in a turn was being folded into one message when the conversation was sent back to the model, so each round rewrote the previous one instead of adding to it. The model\u2019s prompt cache matched nothing past the system prompt, and the whole conversation was written to cache again on every round and read back never. Measured on a Claude subscription: 7% of what Radiant sent came from cache, against 93% for Claude Code on the same tasks, and the same answers cost four times as much. Each round is now sent as the previous one plus what happened since, which is what a cache can match. Calls the model made at the same moment still travel together.'],
       ['Your answer to an agent\u2019s question stays on the page', 'When an agent paused to ask you something and you picked an answer, the answer vanished: the agent carried on as if you had replied, but your reply was folded into a collapsed row of tool calls where nobody would look. Tony: \u201cmy reply did not appear but the agent answered it.\u201d The question and your answer now sit in the conversation where they happened, your answer marked as yours.'],
       ['A ChatGPT sign-in now uses the prompt cache \u2014 the same chats cost a fraction', 'With a ChatGPT subscription, Radiant was sending every round of a conversation as if it were brand new: the fixed part of the prompt \u2014 tools, instructions, the conversation so far \u2014 was billed in full on every model call, because each call carried a different session id and OpenAI could not match it to the one before. A benchmark of Radiant against other coding tools caught it: one 13-round task read 286,000 input tokens and 0 from the cache. Every call in a chat now carries the same id, and the cached share shows in the counter. The same fix on a Claude subscription: the cached share was being counted but never reported, so \u201c% cached\u201d never appeared there \u2014 it does now.'],
       ['The token counter now says how much was cached', 'A chat\u2019s token count could look alarming for a reason that was never explained: an agent re-sends the whole conversation to the model on every round of its work, so a chat holding 150,000 tokens can legitimately report millions of input tokens across a day \u2014 that is the loop working, not a leak. What decides whether it costs anything is how much the provider served from its own prompt cache, at a fraction of the price. Radiant was reading that number and discarding it. The counter beside the composer now shows the cached share, and its tooltip spells out why the input number counts every round, so an expensive chat can be told apart from a busy one.'],
@@ -3549,7 +3562,7 @@ export default function Settings ({ config, initialTab = 'providers', initialAge
           {tab === 'models' && <ModelsPane onModelsChanged={onModelsChanged} config={config} onSettings={onSettings} />}
           {tab === 'agents' && <AgentsPane config={config} onConfigChange={onConfigChange} initialView={initialAgentView} />}
           {tab === 'skills' && <SkillsPane config={config} onConfigChange={onConfigChange} />}
-          {tab === 'mcp' && <McpPane config={config} onConfigChange={onConfigChange} />}
+          {tab === 'mcp' && <McpPane config={config} onConfigChange={onConfigChange} onSettings={onSettings} />}
           {tab === 'memory' && <MemoryPane config={config} onSettings={onSettings} />}
           {tab === 'devices' && <DevicesPane config={config} />}
           {tab === 'appearance' && <AppearancePane config={config} onSettings={onSettings} />}

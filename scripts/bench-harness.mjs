@@ -329,7 +329,8 @@ async function run () {
   const only = opt('only') ? opt('only').split(',') : null
   const p = loadPlan()
   const tasks = (only || p.tasks).slice(0, N)
-  const tag = `${harness}${harness === 'radiant' && mcp ? '+mcp' : ''}__${model.replace(/\//g, '_')}`
+  // --tag names the result set, so a rerun after a fix sits beside the run before it
+  const tag = `${harness}${harness === 'radiant' && mcp ? '+mcp' : ''}${opt('tag') ? '@' + opt('tag') : ''}__${model.replace(/\//g, '_')}`
   const dir = path.join(RESULTS, tag)
   fs.mkdirSync(dir, { recursive: true })
   console.log(`${harness} · ${model} · ${tasks.length} task(s) × ${RUNS} run(s) → ${dir}`)
@@ -394,7 +395,7 @@ async function run () {
 // ── grade ─────────────────────────────────────────────────────────────────
 function grade () {
   const harness = opt('harness'), model = opt('model')
-  const tag = `${harness}${harness === 'radiant' && opt('mcp', 'off') === 'on' ? '+mcp' : ''}__${model.replace(/\//g, '_')}`
+  const tag = `${harness}${harness === 'radiant' && opt('mcp', 'off') === 'on' ? '+mcp' : ''}${opt('tag') ? '@' + opt('tag') : ''}__${model.replace(/\//g, '_')}`
   const dir = path.join(RESULTS, tag)
   const recs = fs.readdirSync(dir).filter(f => f.endsWith('.json') && f.includes('__r')).map(f => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))
   for (let k = 1; k <= RUNS; k++) {

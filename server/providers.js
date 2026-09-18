@@ -191,12 +191,32 @@ function toAnthropic (messages) {
     }
     for (const p of m.parts) {
       if (p.type === 'text') { flush(); if (p.text) blocks.push({ type: 'text', text: p.text }) }
-      else if (p.type === 'tool') pendingTools.push(p)
+      else if (p.type === 'tool') { if (!sameRound(pendingTools, p)) flush(); pendingTools.push(p) }
     }
     flush()
     if (blocks.length) out.push({ role: 'assistant', content: blocks })
   }
   return out
+}
+
+/**
+ * ⚠️ ONE MODEL CALL, ONE ASSISTANT MESSAGE. Every tool call of a turn used to
+ * be folded into a single assistant message with a single user message of
+ * results — so on round three the request carried assistant:[A, B] where round
+ * two had sent assistant:[A]. The bytes at that position changed, the prompt
+ * cache matched nothing past the system prompt, and the whole conversation
+ * was WRITTEN to cache at 1.25× every round and never read: the harness
+ * benchmark measured 7% cached on a Claude subscription against Claude
+ * Code's 93%, and Radiant cost four times as much for the same answers. Tool
+ * parts carry the round they were made in; calls from the same round were
+ * genuinely parallel and stay together, and a new round starts a new message,
+ * so each request is the previous one plus a tail. Parts without a round (old
+ * sessions) each get their own message, which is always valid.
+ */
+function sameRound (pending, p) {
+  if (!pending.length) return true
+  const r = pending[0].round
+  return r != null && p.round === r
 }
 
 function toOpenAI (messages, system) {
@@ -234,7 +254,7 @@ function toOpenAI (messages, system) {
     }
     for (const p of m.parts) {
       if (p.type === 'text') { flush(); text += p.text || '' }
-      else if (p.type === 'tool') pendingTools.push(p)
+      else if (p.type === 'tool') { if (!sameRound(pendingTools, p)) flush(); pendingTools.push(p) }
     }
     flush()
     if (text) out.push({ role: 'assistant', content: text })
@@ -443,6 +463,7 @@ async function anthropicRound ({ baseUrl, apiKey, accessToken, model, messages, 
     headers['x-api-key'] = apiKey
     if (cacheTtl === '1h') headers['anthropic-beta'] = 'extended-cache-ttl-2025-04-11'
   }
+  if (process.env.RADIANT_USAGE_DEBUG) console.error('[anthropic req]', JSON.stringify({ model, prefixTokens, useCaching, cachingEnabled, sysBlocks: sys.map(b => ({ len: b.text.length, cc: !!b.cache_control })), topCC: !!body.cache_control, tools: (body.tools || []).length, msgs: body.messages.length, thinking: body.thinking, output_config: body.output_config }))
   const res = await modelFetch(`${baseUrl}/v1/messages`, {
     method: 'POST',
     headers,
@@ -460,6 +481,7 @@ async function anthropicRound ({ baseUrl, apiKey, accessToken, model, messages, 
       // reads/writes land in separate fields. Sum all three so the context-window
       // gauge still reflects the true prompt size, not just what was billed fresh.
       const u = ev.message.usage
+      if (process.env.RADIANT_USAGE_DEBUG) console.error('[anthropic usage]', JSON.stringify(u))
       const totalIn = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0)
       // ⚠️ AND SAY HOW MUCH OF IT WAS CACHED. The OpenAI path reported
       // cacheRead and this one did not, so on a Claude subscription — the
