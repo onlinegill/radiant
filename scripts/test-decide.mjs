@@ -128,5 +128,39 @@ stub.close()
   r = await chooseModel({ ...base, apiKey: null, message: 'thanks!' })
   ok('no key and no judge: nothing changes', !r.routed)
 }
+
+// ── skills: which always-on skills ride along ──────────────────────────────
+{
+  const { chooseSkills } = await import('../server/decide.js')
+  const skills = [{ id: 'style', name: 'House style', description: 'how we write prose' }, { id: 'deploy', name: 'Deploy', description: 'ship a release' }, { id: 'pdf', name: 'PDF forms', description: 'fill PDF forms' }]
+  const jev = ans => async ({ questions }) => ({ answers: Object.fromEntries(Object.keys(questions).map(k => [k, { noul: ans[k] ?? 0 }])) })
+  let r = await chooseSkills({ message: 'ship it', skills, judged: new Set(['style', 'deploy', 'pdf']), decideFn: jev({ deploy: 0.9, style: 0.1, pdf: 0.05 }), apiKey: 'k' })
+  ok('only the skill the message needs is attached', r.decided && r.attach.has('deploy') && !r.attach.has('style') && r.skipped.length === 2)
+  r = await chooseSkills({ message: 'ship it', skills, judged: new Set(['style']), decideFn: jev({ style: 0.1 }), apiKey: 'k' })
+  ok('skills not up for judgment (agent, slash) always go', r.attach.has('deploy') && r.attach.has('pdf') && !r.attach.has('style'))
+  r = await chooseSkills({ message: 'ship it', skills, judged: new Set(['style', 'deploy', 'pdf']), sticky: new Set(['pdf']), decideFn: jev({ deploy: 0.9, style: 0.1, pdf: 0.05 }), apiKey: 'k' })
+  ok('a skill attached earlier in the chat stays (sticky)', r.attach.has('pdf'))
+  r = await chooseSkills({ message: 'ship it', skills, judged: new Set(['style', 'deploy', 'pdf']), decideFn: async () => null, apiKey: 'k' })
+  ok('Jev unreachable → every skill, as before', !r.decided && r.attach.size === 3)
+  r = await chooseSkills({ message: 'ship it', skills, judged: new Set(['style']), decideFn: jev({}), apiKey: null })
+  ok('no key → every skill', !r.decided && r.attach.size === 3)
+}
+
+// ── housekeeping: one call gates three writers ─────────────────────────────
+{
+  const { chooseHousekeeping } = await import('../server/decide.js')
+  let asked = null
+  const jev = ans => async ({ questions }) => { asked = Object.keys(questions); return { answers: Object.fromEntries(Object.keys(questions).map(k => [k, { noul: ans[k] ?? 0 }])) } }
+  let r = await chooseHousekeeping({ userText: 'thanks!', assistantText: 'you are welcome', heuristicTitle: 'thanks', wantTitle: true, wantMemory: true, wantSkill: true, decideFn: jev({ title_ok: 0.9, memory: 0.05, skill: 0.02 }), apiKey: 'k' })
+  ok('one request carries all three questions', asked.length === 3)
+  ok('"thanks" runs no writer at all', r.decided && !r.title && !r.memory && !r.skill)
+  r = await chooseHousekeeping({ userText: 'from now on always use tabs', assistantText: 'noted', heuristicTitle: 'from now on always use', wantTitle: true, wantMemory: true, wantSkill: false, decideFn: jev({ title_ok: 0.2, memory: 0.95 }), apiKey: 'k' })
+  ok('a preference runs the memory writer and the title writer', r.memory && r.title && !r.skill)
+  ok('questions not wanted are not asked', asked.length === 2)
+  r = await chooseHousekeeping({ userText: 'x', assistantText: 'y', wantTitle: false, wantMemory: true, wantSkill: true, decideFn: jev({ memory: 0.3, skill: 0.5 }), apiKey: 'k' })
+  ok('the bars are inclusive: memory 0.3, skill 0.5', r.memory && r.skill)
+  r = await chooseHousekeeping({ userText: 'x', assistantText: 'y', wantTitle: true, wantMemory: true, wantSkill: true, decideFn: async () => null, apiKey: 'k' })
+  ok('Jev unreachable → every writer runs, as before', !r.decided && r.title && r.memory && r.skill)
+}
 console.log(`\n${pass}/${pass + fail} passed  ·  a decision can save tokens, never a capability`)
 process.exit(fail ? 1 : 0)

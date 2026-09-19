@@ -181,3 +181,76 @@ export async function chooseModel ({ message, attachments = [], history = [], se
   if (p >= ROUTE_BAR) return { model: fastModel, routed: true, p, judge, reason: 'easy' }
   return { model: sessionModel, routed: false, p, judge, reason: 'hard' }
 }
+
+/**
+ * Which of the always-on skills does THIS message need?
+ *
+ * Skills ride in the system prompt, so every always-on skill is on every
+ * request of every chat — a house-style guide, a deploy checklist and a
+ * PDF-filling procedure all along for "say hi". Same shape as MCP servers:
+ * one yes/no per skill, attach at p ≥ 0.35, and STICKY — a skill attached
+ * once in a chat stays, so the cached system prefix only ever grows rather
+ * than churning from message to message.
+ *
+ * Only skills that are on for everything are judged. A skill the agent
+ * carries or one added to this chat with a slash command was chosen on
+ * purpose and always goes. Any failure → all, as before.
+ */
+export async function chooseSkills ({ message, history = [], skills = [], judged = new Set(), sticky = new Set(), decideFn, apiKey, sessionId, signal }) {
+  const all = () => ({ attach: new Set(skills.map(s => s.id)), skipped: [], decided: false })
+  const toAsk = skills.filter(s => judged.has(s.id) && !sticky.has(s.id))
+  if (!toAsk.length || !decideFn || !apiKey) return all()
+  const recent = history.filter(m => m.role === 'user').slice(-3).map(m => String(m.text || '').slice(0, 400))
+  const questions = {}
+  for (const s of toAsk) {
+    questions[s.id] = {
+      type: 'noul',
+      instructions: `Would the "${s.name}" skill help with the user's latest message? Only the latest message matters; earlier ones are context.`,
+      criteria: {
+        true: `The latest message is the kind of task this skill is for: ${String(s.description || s.content || '').slice(0, 300)}`,
+        false: 'The latest message is unrelated to what this skill covers.'
+      }
+    }
+  }
+  const out = await decideFn({ apiKey, sessionId, signal, state: { latest_message: String(message || '').slice(0, 2000), earlier_messages: recent }, questions })
+  if (!out) return all()
+  const attach = new Set(skills.filter(s => !judged.has(s.id) || sticky.has(s.id)).map(s => s.id))
+  const skipped = []
+  for (const s of toAsk) {
+    const a = out.answers?.[s.id]
+    const p = a && typeof a.noul === 'number' ? a.noul : null
+    if (p == null || p >= 0.35) attach.add(s.id)
+    else skipped.push({ id: s.id, name: s.name, p })
+  }
+  return { attach, skipped, decided: true, usage: out.usage }
+}
+
+/**
+ * After a turn: is any of the housekeeping worth a model call?
+ *
+ * Three background writers used to run after every turn — a title, a memory
+ * distiller, a skill reflection — each a model call, on turns like "thanks".
+ * One Jev request answers all three at once (questions run in parallel;
+ * the extra ones are nearly free), and only the writers that pass run.
+ * Bars: memory 0.3 (a missed fact is worse than a wasted call), skill 0.5,
+ * "the heuristic title is already fine" 0.7 (the writer is skipped only when
+ * Jev is sure). Unreachable → run everything, as before.
+ */
+export async function chooseHousekeeping ({ userText, assistantText, toolNames = [], heuristicTitle, wantTitle, wantMemory, wantSkill, decideFn, apiKey, sessionId, signal }) {
+  const all = { title: wantTitle, memory: wantMemory, skill: wantSkill, decided: false }
+  if (!decideFn || !apiKey || !(wantTitle || wantMemory || wantSkill)) return all
+  const questions = {}
+  if (wantTitle) questions.title_ok = { type: 'noul', instructions: `Is "${heuristicTitle}" already a good short title for a chat that begins with the user's message — clear about the topic, not cut off mid-thought?`, criteria: { true: 'It reads as a title someone would give the chat.', false: 'It is a truncated fragment, starts with filler, or misses the point.' } }
+  if (wantMemory) questions.memory = { type: 'noul', instructions: 'Does this exchange contain a NEW, durable fact about the user or their project — a preference, decision, name, convention, tool or goal — worth remembering in later chats?', criteria: { true: 'A lasting fact is stated or decided here.', false: 'Task chatter, a one-off request, an answer that leaves nothing to remember.' } }
+  if (wantSkill) questions.skill = { type: 'noul', instructions: 'Does this exchange show a repeatable, multi-step procedure — how to do a recurring kind of task — that would be worth saving as a reusable skill?', criteria: { true: 'A sequence of steps that will recur, or a correction of how something should be done from now on.', false: 'A one-off answer, a single command, a question, or chatter.' } }
+  const state = { user_message: String(userText || '').slice(0, 1500), assistant_reply: String(assistantText || '').slice(0, 1500), tools_used: toolNames.slice(0, 20) }
+  const out = await decideFn({ apiKey, sessionId, signal, state, questions })
+  if (!out) return all
+  const p = k => { const a = out.answers?.[k]; return a && typeof a.noul === 'number' ? a.noul : null }
+  return {
+    title: wantTitle && !(p('title_ok') != null && p('title_ok') >= 0.7),
+    memory: wantMemory && (p('memory') == null || p('memory') >= 0.3),
+    skill: wantSkill && (p('skill') == null || p('skill') >= 0.5),
+    decided: true, usage: out.usage, p: { title_ok: p('title_ok'), memory: p('memory'), skill: p('skill') }
+  }
+}

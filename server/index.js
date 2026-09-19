@@ -3206,7 +3206,27 @@ app.post('/api/chat', async (req, res) => {
     ...(Array.isArray(session.skillIds) ? session.skillIds : []),
     ...(Array.isArray(turnSkillIds) ? turnSkillIds : [])
   ])
-  const mergedSkills = allSkills.filter(s => s.enabled || agentSkillIds.has(s.id) || chatSkillIds.has(s.id))
+  let mergedSkills = allSkills.filter(s => s.enabled || agentSkillIds.has(s.id) || chatSkillIds.has(s.id))
+  // ⚠️ ALWAYS-ON SKILLS RIDE ONLY WHEN THE MESSAGE NEEDS THEM (decide.js
+  // chooseSkills). Sticky per chat, so the cached system prefix grows and
+  // never churns. Agent skills and slash skills were chosen on purpose and
+  // always go. The model is told what it was not handed, below.
+  let skillsSkipped = []
+  if (config.settings.smartTools !== false && config.keys.openrouter && !session.group) {
+    try {
+      const { chooseSkills, decide } = await import('./decide.js')
+      const text0 = typeof content === 'string' ? content : (content?.text || '')
+      const judged = new Set(mergedSkills.filter(s => s.enabled && !agentSkillIds.has(s.id) && !chatSkillIds.has(s.id)).map(s => s.id))
+      const sticky = new Set(Array.isArray(session.skillsAttached) ? session.skillsAttached : [])
+      const pick = await chooseSkills({ message: text0, history: session.messages, skills: mergedSkills, judged, sticky, decideFn: decide, apiKey: config.keys.openrouter, sessionId })
+      if (pick.decided) {
+        mergedSkills = mergedSkills.filter(s => pick.attach.has(s.id))
+        skillsSkipped = pick.skipped
+        session.skillsAttached = [...new Set([...sticky, ...mergedSkills.filter(s => judged.has(s.id)).map(s => s.id)])]
+        if (skillsSkipped.length) console.log('[skills] left off this turn:', skillsSkipped.map(s => `${s.name} (${Math.round(s.p * 100)}%)`).join(', '))
+      }
+    } catch (e) { console.error('[skills]', e.message) }
+  }
 
   // MCP tools from enabled servers, bridged into the tool set
   let mcpTools = []
@@ -3422,6 +3442,10 @@ app.post('/api/chat', async (req, res) => {
     const line = `MCP tools not attached to this message (judged not needed): ${mcpSkipped.map(s => s.name).join(', ')}. If the task turns out to need one, say so plainly and ask the user to send the request again naming it.`
     planAddendum = planAddendum ? `${planAddendum}\n\n${line}` : line
   }
+  if (skillsSkipped.length) {
+    const line = `Skills the user has on but not loaded for this message (judged not needed): ${skillsSkipped.map(s => s.name).join(', ')}. If one turns out to apply, say so and ask the user to send the message again with /${skillsSkipped[0].name.toLowerCase().replace(/\s+/g, '-')} or the skill named.`
+    planAddendum = planAddendum ? `${planAddendum}\n\n${line}` : line
+  }
 
   // ⚠️ WHICH MODEL ANSWERS THIS MESSAGE. Easy messages go to a fast model on
   // the same provider (server/decide.js chooseModel: Jev with a key, a cheap
@@ -3540,15 +3564,43 @@ app.post('/api/chat', async (req, res) => {
         onPlanExit: () => { session.planMode = false; emit({ type: 'plan_mode', on: false }) }
       })
     }
-    // auto-title a still-unnamed session from its first user message
+    // ⚠️ ONE DECISION BEFORE THREE WRITERS. A title, a memory distiller and a
+    // skill reflection each cost a model call after every turn — on "thanks"
+    // as much as on real work. One Jev request (decide.js chooseHousekeeping)
+    // says which are worth running; unreachable, all three run as before.
+    const clean = s => (s || '').replace(/\s+/g, ' ').trim().replace(/^["'#\s]+|["'.…\s]+$/g, '').slice(0, 56)
     const firstUser = session.messages.find(m => m.role === 'user')
+    const cloud = ['anthropic', 'openai', 'openrouter', 'nousresearch'].includes(provider.id)
+    const hk = await (async () => {
+      const lastUser = [...session.messages].reverse().find(m => m.role === 'user')
+      const lastAsst = [...session.messages].reverse().find(m => m.role === 'assistant')
+      const wantTitle = Boolean(firstUser?.text && session.autoTitle !== false && cloud && session.messages.filter(m => m.role === 'user').length === 1)
+      const wantMemory = Boolean(memoryOn && !session.group)
+      const wantSkill = Boolean(config.settings.suggestSkills !== false && cloud && !session.group)
+      if (!config.keys.openrouter || controller.signal.aborted) return { title: wantTitle, memory: wantMemory, skill: wantSkill, decided: false }
+      try {
+        const { chooseHousekeeping, decide } = await import('./decide.js')
+        const r = await chooseHousekeeping({
+          userText: lastUser?.text, assistantText: (lastAsst?.parts || []).filter(p => p.type === 'text').map(p => p.text).join(' '),
+          toolNames: [...new Set((lastAsst?.parts || []).filter(p => p.type === 'tool' && p.name).map(p => p.name))],
+          heuristicTitle: clean((firstUser?.text || '').split(' ').slice(0, 8).join(' ')),
+          wantTitle, wantMemory, wantSkill, decideFn: decide, apiKey: config.keys.openrouter, sessionId, signal: controller.signal
+        })
+        if (r.decided) {
+          const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
+          st.decisions = (st.decisions || 0) + 1
+          st.decisionCost = (st.decisionCost || 0) + (r.usage?.cost || 0)
+          console.log(`[housekeeping] title ${r.title ? 'write' : 'skip'} · memory ${r.memory ? 'write' : 'skip'} · skill ${r.skill ? 'write' : 'skip'}` + (r.p ? ` (${Object.entries(r.p).filter(([, v]) => v != null).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ')})` : ''))
+        }
+        return r
+      } catch { return { title: wantTitle, memory: wantMemory, skill: wantSkill, decided: false } }
+    })()
+    // auto-title a still-unnamed session from its first user message
     if (firstUser?.text && session.autoTitle !== false && !controller.signal.aborted) {
-      const clean = s => (s || '').replace(/\s+/g, ' ').trim().replace(/^["'#\s]+|["'.…\s]+$/g, '').slice(0, 56)
       // fast heuristic fallback: first several words of the request
       let t = clean(firstUser.text.split(' ').slice(0, 8).join(' '))
       // nicer LLM title, but only for cloud models (local ones are slow / echo the prompt)
-      const cloud = ['anthropic', 'openai', 'openrouter', 'nousresearch'].includes(provider.id)
-      if (cloud) {
+      if (cloud && hk.title) {
         try {
           const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `Reply with ONLY a 3-6 word title (no quotes, no punctuation) summarizing this coding request:\n\n${firstUser.text.slice(0, 600)}` }] }
           const raw = await utilityTurn({ provider, apiKey, session, tmp, signal: controller.signal })
@@ -3573,7 +3625,7 @@ app.post('/api/chat', async (req, res) => {
     const FROM_ELSEWHERE = /^(fetch_url|web_search|browser_|mcp__)/
     const readElsewhere = (m => (m?.parts || []).some(p => p.type === 'tool' && FROM_ELSEWHERE.test(p.name || '')))(
       [...session.messages].reverse().find(m => m.role === 'assistant'))
-    if (memoryOn && !readElsewhere && !session.group && !controller.signal.aborted) {
+    if (memoryOn && hk.memory && !readElsewhere && !session.group && !controller.signal.aborted) {
       try {
         const lastUser = [...session.messages].reverse().find(m => m.role === 'user')
         const lastAsst = [...session.messages].reverse().find(m => m.role === 'assistant')
@@ -3593,13 +3645,12 @@ app.post('/api/chat', async (req, res) => {
     // skillsmith: draft a reusable-skill proposal from procedural work (best-effort,
     // cloud models only, and only when the turn looks skill-worthy). Never auto-saves.
     const suggestOn = config.settings.suggestSkills !== false
-    const cloud = ['anthropic', 'openai', 'openrouter', 'nousresearch'].includes(provider.id)
-    if (suggestOn && cloud && !session.group && !controller.signal.aborted) {
+    if (suggestOn && hk.skill && cloud && !session.group && !controller.signal.aborted) {
       try {
         const lastUser = [...session.messages].reverse().find(m => m.role === 'user')
         const lastAsst = [...session.messages].reverse().find(m => m.role === 'assistant')
         const alreadyPending = (config.skillSuggestions || []).some(s => s.sessionId === session.id)
-        if (!alreadyPending && shouldReflect(lastUser, lastAsst)) {
+        if (!alreadyPending && (hk.decided || shouldReflect(lastUser, lastAsst))) {
           const asstText = (lastAsst?.parts || []).filter(p => p.type === 'text').map(p => p.text).join(' ')
           const toolNames = [...new Set((lastAsst?.parts || []).filter(p => p.type === 'tool' && p.name).map(p => p.name))].join(', ')
           const exchange = `User: ${(lastUser?.text || '').slice(0, 1800)}\n\nAssistant (tools used: ${toolNames || 'none'}): ${asstText.slice(0, 1800)}`
