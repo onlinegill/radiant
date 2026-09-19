@@ -78,7 +78,10 @@ It verifies committed / pushed / Read-me-kept-current / tagged — and, fifth,
 answer whether they say *why* and whether they are written for a person using
 the app. On its first run it failed two entries that talked about prompt
 caches and tool schemas to users. Below 50% fails the check; unreachable, it
-passes and says so. Rewrite in plain words, commit again.
+passes and says so. Rewrite in plain words, commit again. Since 2026-09-19 it
+also reads the DIFF, per source file: a likely bug or a security hole at
+≥ 70% fails; "users would notice, message is silent" and "logic with no test"
+print as ⚠ warnings for a person to weigh.
 
 New GitHub issues are sorted the moment they land (`scripts/triage.mjs`, run by
 `.github/workflows/triage.yml`): app, kind, severity, possible duplicate — as

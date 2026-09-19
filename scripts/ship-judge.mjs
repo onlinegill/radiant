@@ -62,6 +62,23 @@ for (const line of diff.split('\n')) {
 }
 const notes = notesPath && fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : null
 
+// ── the code itself ───────────────────────────────────────────────────────
+// ⚠️ THE DIFF, NOT ONLY THE WORDS ABOUT IT. Everything above judges prose;
+// this reads what changed (the jev-review pattern): per source file, four
+// probabilities — a likely bug, a security or privacy hole, a behaviour
+// change users would notice that the message does not mention, and a
+// change that the test gates do not cover. Bugs and security at ≥ 0.7 fail;
+// the other two are printed as warnings, because they are judgment calls a
+// person should see, not a wall. Generated and vendored files are skipped.
+const SKIP = /^(src\/sf-symbols|bench\/|docs\/|.*\.(png|icns|json|md|lock)$|package-lock|dist\/|release\/)/
+const files = git('diff', '--name-only', spec).split('\n').filter(f => f && !SKIP.test(f))
+const codeDiffs = []
+for (const f of files) {
+  const d = git('diff', spec, '--', f)
+  if (d.length > 200 && d.length <= 24000) codeDiffs.push({ file: f, diff: d })
+  else if (d.length > 24000) codeDiffs.push({ file: f, diff: d.slice(0, 24000) + '\n… (truncated)' })
+}
+
 // ── the questions ─────────────────────────────────────────────────────────
 const questions = {}
 const state = {}
@@ -95,6 +112,14 @@ if (notes) {
   }
 }
 
+codeDiffs.forEach((c, i) => {
+  state[`diff_${i}`] = `File: ${c.file}\nCommit message:\n${messages.map(m => m.text).join('\n---\n').slice(0, 1500)}\n\nDiff:\n${c.diff}`
+  questions[`bug_${i}`] = { type: 'noul', instructions: `Read diff_${i}. Does the changed code contain a likely bug — a wrong condition, an unhandled case, a typo in a name, a resource never closed, an off-by-one — that would misbehave when run?`, criteria: { true: 'There is a specific defect a careful reviewer would flag as broken.', false: 'The change reads as correct; style or taste differences do not count.' } }
+  questions[`sec_${i}`] = { type: 'noul', instructions: `Read diff_${i}. Does the change open a security or privacy hole — secrets logged or sent, input passed to a shell or a query unescaped, a check removed, data written where it should not be?`, criteria: { true: 'A concrete way for data to leak or for untrusted input to do harm.', false: 'No new exposure.' } }
+  questions[`unsaid_${i}`] = { type: 'noul', instructions: `Read diff_${i}. Does the change alter behaviour a USER would notice that the commit message does not mention?`, criteria: { true: 'Something visible or felt changes and the message is silent about it.', false: 'The message covers what a user would notice, or nothing user-visible changes.' } }
+  questions[`untested_${i}`] = { type: 'noul', instructions: `Read diff_${i}. Is this the kind of change that needs a test and the diff adds or changes none? Pure comments, copy, and generated files do not need one.`, criteria: { true: 'Logic changed and no test in the diff exercises it.', false: 'A test covers it, or it is not logic.' } }
+})
+
 if (!Object.keys(questions).length) { console.log('ship-judge: nothing to judge in ' + spec); process.exit(0) }
 
 const key = openrouterKey()
@@ -117,5 +142,12 @@ readme.forEach((r, i) => {
   row(`${r.where}: says what they can do`, pct(out.answers[`cando_${i}`]))
 })
 if (notes) row('release notes written for users', pct(out.answers.notes_user))
+codeDiffs.forEach((c, i) => {
+  row(`${c.file}: no likely bug`, pct(out.answers[`bug_${i}`]) == null ? null : 100 - pct(out.answers[`bug_${i}`]), 30)
+  row(`${c.file}: no security or privacy hole`, pct(out.answers[`sec_${i}`]) == null ? null : 100 - pct(out.answers[`sec_${i}`]), 30)
+  const unsaid = pct(out.answers[`unsaid_${i}`]), untested = pct(out.answers[`untested_${i}`])
+  if (unsaid != null && unsaid >= 60) console.log(`  ⚠ ${String(unsaid + '%').padStart(4)}  ${c.file}: changes something users would notice that the message does not say`)
+  if (untested != null && untested >= 60) console.log(`  ⚠ ${String(untested + '%').padStart(4)}  ${c.file}: logic changed with no test in the diff`)
+})
 console.log(failed ? `\n${failed} judgment(s) below the bar — rewrite before it ships` : '\nall judgments pass')
 process.exit(failed ? 1 : 0)
