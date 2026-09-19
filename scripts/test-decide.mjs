@@ -178,5 +178,21 @@ stub.close()
   r = await assessCommand({ command: 'rm -rf /', cwd: '/p', decideFn: jev({}), apiKey: null })
   ok('no key → no opinion', !r.decided)
 }
+
+// ── the reply against the evidence ─────────────────────────────────────────
+{
+  const { liftClaims, verifyClaims } = await import('../server/decide.js')
+  const c = liftClaims('I ran the tests and all 12 pass. This function creates a file when called. I committed and pushed to origin. You could add a cache later.')
+  ok('completion claims are lifted, explanations and suggestions are not', c.length === 2 && /ran the tests/.test(c[0]) && /committed and pushed/.test(c[1]))
+  const jev = ans => async ({ questions }) => ({ answers: Object.fromEntries(Object.keys(questions).map(k => [k, { noul: ans[k] ?? 0.9 }])) })
+  let r = await verifyClaims({ text: 'I ran the tests and all pass. I pushed to origin.', toolParts: [{ name: 'run_command', args: { command: 'npm test' }, result: '12 passing' }], decideFn: jev({ ok_1: 0.05 }), apiKey: 'k' })
+  ok('a claim with no evidence is unsupported, one with evidence is not', r.claims === 2 && r.unsupported.length === 1 && /pushed/.test(r.unsupported[0].claim))
+  r = await verifyClaims({ text: 'This creates the file when called.', toolParts: [], decideFn: jev({}), apiKey: 'k' })
+  ok('an explanation lifts no claim and asks nothing', r === null)
+  r = await verifyClaims({ text: 'I fixed the bug.', toolParts: [], decideFn: jev({ claim_0: 0.3, ok_0: 0.1 }), apiKey: 'k' })
+  ok('a sentence Jev does not read as a claim is not flagged', r.unsupported.length === 0)
+  r = await verifyClaims({ text: 'I fixed the bug.', toolParts: [], decideFn: async () => null, apiKey: 'k' })
+  ok('Jev unreachable → no verdict, no error', r === null)
+}
 console.log(`\n${pass}/${pass + fail} passed  ·  a decision can save tokens, never a capability`)
 process.exit(fail ? 1 : 0)

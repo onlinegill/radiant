@@ -111,13 +111,15 @@ export async function chooseMcpServers ({ message, history = [], servers = [], t
 
   const attach = new Set(usedIds)
   const skipped = []
+  const probs = {}
   for (const s of toAsk) {
     const a = out.answers?.[s.id]
     const p = a && typeof a.noul === 'number' ? a.noul : null
+    if (p != null) probs[s.id] = p
     if (p == null || p >= 0.35) attach.add(s.id)
     else skipped.push({ id: s.id, name: s.name, p })
   }
-  return { attach, skipped, decided: true, usage: out.usage }
+  return { attach, skipped, decided: true, usage: out.usage, probs }
 }
 
 /**
@@ -216,13 +218,15 @@ export async function chooseSkills ({ message, history = [], skills = [], judged
   if (!out) return all()
   const attach = new Set(skills.filter(s => !judged.has(s.id) || sticky.has(s.id)).map(s => s.id))
   const skipped = []
+  const probs = {}
   for (const s of toAsk) {
     const a = out.answers?.[s.id]
     const p = a && typeof a.noul === 'number' ? a.noul : null
+    if (p != null) probs[s.id] = p
     if (p == null || p >= 0.35) attach.add(s.id)
     else skipped.push({ id: s.id, name: s.name, p })
   }
-  return { attach, skipped, decided: true, usage: out.usage }
+  return { attach, skipped, decided: true, usage: out.usage, probs }
 }
 
 /**
@@ -241,7 +245,13 @@ export async function chooseHousekeeping ({ userText, assistantText, toolNames =
   if (!decideFn || !apiKey || !(wantTitle || wantMemory || wantSkill)) return all
   const questions = {}
   if (wantTitle) questions.title_ok = { type: 'noul', instructions: `Is "${heuristicTitle}" already a good short title for a chat that begins with the user's message — clear about the topic, not cut off mid-thought?`, criteria: { true: 'It reads as a title someone would give the chat.', false: 'It is a truncated fragment, starts with filler, or misses the point.' } }
-  if (wantMemory) questions.memory = { type: 'noul', instructions: 'Does this exchange contain a NEW, durable fact about the user or their project — a preference, decision, name, convention, tool or goal — worth remembering in later chats?', criteria: { true: 'A lasting fact is stated or decided here.', false: 'Task chatter, a one-off request, an answer that leaves nothing to remember.' } }
+  // ⚠️ A LESSON ABOUT THE WORK COUNTS AS MUCH AS A FACT ABOUT THE USER.
+  // "The build needs -skipPackagePluginValidation", "that page needs a real
+  // browser, fetch gets a shell" — AgentRun has its agent write one to three
+  // sentences of that after every run and the next run reads them. The
+  // memory writer already runs; this asks it to look for the failed-then-
+  // worked shape too, so AGENTS.md's sharp edges stop being hand-written.
+  if (wantMemory) questions.memory = { type: 'noul', instructions: 'Does this exchange contain something worth remembering in later chats: a NEW durable fact about the user or their project (a preference, decision, name, convention, tool or goal) — OR a lesson about how the work is done here (something that failed and then worked, a flag or step a tool needs, a source that had the answer when another did not)?', criteria: { true: 'A lasting fact is stated or decided, or a reusable lesson about the tools, the build, the environment or the sources shows up.', false: 'Task chatter, a one-off request, an answer that leaves nothing to remember.' } }
   if (wantSkill) questions.skill = { type: 'noul', instructions: 'Does this exchange show a repeatable, multi-step procedure — how to do a recurring kind of task — that would be worth saving as a reusable skill?', criteria: { true: 'A sequence of steps that will recur, or a correction of how something should be done from now on.', false: 'A one-off answer, a single command, a question, or chatter.' } }
   const state = { user_message: String(userText || '').slice(0, 1500), assistant_reply: String(assistantText || '').slice(0, 1500), tools_used: toolNames.slice(0, 20) }
   const out = await decideFn({ apiKey, sessionId, signal, state, questions })
@@ -286,4 +296,64 @@ export async function assessCommand ({ command, cwd, userText, decideFn, apiKey,
   const labels = { destroys: 'could destroy data', exfiltrates: 'could send private data out', system: 'changes the system', outside: 'changes files outside the project' }
   const reasons = ps.filter(([, p]) => p >= RISK_BAR).sort((a, b) => b[1] - a[1]).map(([k, p]) => `${labels[k]} (${Math.round(p * 100)}%)`)
   return { risk: Math.max(...ps.map(([, p]) => p)), reasons, decided: true, usage: out.usage }
+}
+
+/**
+ * Does the evidence support what the reply says was done?
+ *
+ * ⚠️ THE CLAIM IS NOT THE WORK. "Tests pass", "committed and pushed", "the
+ * file is created", "verified on the simulator" — a reply can say any of
+ * these with nothing in the turn to show it, and the transcript reads as
+ * finished. AgentRun's verify clause (Grep.ai, 2026-09) does this per field
+ * against cited evidence; here it is per sentence against the turn's own
+ * tool calls and outputs. Sentences that look like completion claims are
+ * lifted by shape (first person past tense, "tests pass", "is now live"),
+ * and Jev answers two things about each in one request: is it really a
+ * claim that the assistant itself did or checked something in this turn,
+ * and does the evidence support it. A claim at ≥ 0.6 with support < 0.3 is
+ * unsupported. Explanations ("this function creates a file") are not
+ * claims and are left alone.
+ */
+const CLAIM_RX = [
+  /\b(?:I|I've|I have|we|we've|we have)\b[^.!?\n]{0,80}\b(?:ran|run|created|wrote|written|committed|pushed|installed|deployed|verified|tested|fixed|updated|added|removed|built|released|checked|confirmed|opened|closed|merged|published|uploaded|installed)\b[^.!?\n]*[.!?]?/i,
+  /\b(?:tests?|checks?|build|lint|gates?)\s+(?:all\s+)?(?:pass(?:es|ed)?|(?:are|is)\s+(?:passing|green)|succeed(?:s|ed)?)\b[^.!?\n]*[.!?]?/i,
+  /\b(?:all|every)\s+\d*\s*(?:tests?|checks?|gates?)\s+(?:pass|passed|green)\b[^.!?\n]*[.!?]?/i,
+  /\b(?:is|are|has been|have been)\s+now\s+(?:live|deployed|installed|running|fixed|working|in place|committed|pushed|released)\b[^.!?\n]*[.!?]?/i,
+  /\b(?:committed and pushed|pushed to (?:origin|master|main)|no errors|builds? cleanly|works as expected|verified (?:that|on|in))\b[^.!?\n]*[.!?]?/i
+]
+export function liftClaims (text) {
+  const out = []
+  const seen = new Set()
+  for (const sentence of String(text || '').split(/(?<=[.!?])\s+|\n+/)) {
+    const s = sentence.trim()
+    if (s.length < 12 || s.length > 300) continue
+    if (CLAIM_RX.some(rx => rx.test(s)) && !seen.has(s)) { seen.add(s); out.push(s) }
+    if (out.length >= 8) break
+  }
+  return out
+}
+
+export async function verifyClaims ({ text, toolParts = [], decideFn, apiKey, sessionId, signal }) {
+  const claims = liftClaims(text)
+  if (!claims.length || !decideFn || !apiKey) return null
+  const evidence = toolParts.slice(-24).map(p => {
+    const a = p.args || {}
+    const head = p.name === 'run_command' ? a.command : (a.path || a.url || a.query || JSON.stringify(a).slice(0, 120))
+    const r = p.denied ? '[denied by user]' : String(p.result ?? '').slice(0, 500)
+    return `${p.name}(${String(head || '').slice(0, 160)}) → ${r}`
+  })
+  const questions = {}
+  claims.forEach((c, i) => {
+    questions[`claim_${i}`] = { type: 'noul', instructions: `Read claims[${i}]. Is it a statement that the assistant ITSELF completed, ran or verified something during this turn — as opposed to an explanation, a suggestion, a plan, or a description of how code behaves?`, criteria: { true: 'The assistant asserts that it did or checked something.', false: 'It explains, proposes, describes, or talks about the future.' } }
+    questions[`ok_${i}`] = { type: 'noul', instructions: `Read claims[${i}] and the evidence — every tool the assistant called this turn and what came back. Does the evidence show the claim is true?`, criteria: { true: 'A tool call and its output in the evidence establish it (a test run that passed, a commit that succeeded, a file written without error).', false: 'Nothing in the evidence shows it, or the evidence contradicts it (an error, a denied call, no such call at all).' } }
+  })
+  const out = await decideFn({ apiKey, sessionId, signal, state: { claims, evidence: evidence.length ? evidence : ['(no tools were called this turn)'] }, questions })
+  if (!out) return null
+  const p = k => { const a = out.answers?.[k]; return a && typeof a.noul === 'number' ? a.noul : null }
+  const unsupported = []
+  claims.forEach((c, i) => {
+    const isClaim = p(`claim_${i}`), ok = p(`ok_${i}`)
+    if (isClaim != null && ok != null && isClaim >= 0.6 && ok < 0.3) unsupported.push({ claim: c, support: ok })
+  })
+  return { claims: claims.length, unsupported, usage: out.usage }
 }

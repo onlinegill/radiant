@@ -45,10 +45,11 @@ export async function classifyLookup ({ message, attachments = [], history = [],
   if (!hasLinear) delete criteria.issue
   const out = await decideFn({ apiKey, sessionId, signal, state: { latest_message: text }, questions: { lane: { type: 'choice', instructions: 'Is this message exactly one of these quick lookups, answerable by running the tool named and showing its output — or anything else?', criteria } } })
   const a = out?.answers?.lane
-  if (!a?.choice || a.choice === 'none') return { lane: 'none', p: a?.probabilities?.[a?.choice] ?? null }
+  const probs = a?.probabilities || null
+  if (!a?.choice || a.choice === 'none') return { lane: 'none', p: a?.probabilities?.[a?.choice] ?? null, choice: a?.choice, confidence: a?.confidence, probs }
   const p = a.probabilities?.[a.choice] ?? 0
-  if ((a.confidence ?? 0) < LANE_BAR || p < LANE_BAR) return { lane: 'none', p, reason: 'not sure enough' }
-  return { lane: a.choice, p }
+  if ((a.confidence ?? 0) < LANE_BAR || p < LANE_BAR) return { lane: 'none', p, reason: 'not sure enough', choice: a.choice, confidence: a.confidence, probs }
+  return { lane: a.choice, p, choice: a.choice, confidence: a.confidence, probs }
 }
 
 const run = (cmd, args, cwd, ms = 8000) => new Promise(resolve => execFile(cmd, args, { cwd, timeout: ms, maxBuffer: 1 << 20, env: scrubbedEnv() }, (err, stdout, stderr) => resolve(err ? `${stdout || ''}${stderr || err.message}`.trim() : String(stdout).trim())))

@@ -889,7 +889,7 @@ function planBlocked (name) {
 }
 
 // ---------- the agent loop ----------
-export async function runTurn ({ provider, model, routed, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
+export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
   // ⚠️ NOT `session.cwd || os.homedir()`. A folder that is set and not here is
   // the case that broke every tool call in the chat — see usableCwd.
   const { dir: cwd, missing: strayCwd } = usableCwd(session.cwd)
@@ -960,6 +960,7 @@ export async function runTurn ({ provider, model, routed, apiKey, getAccessToken
   // and stopping mid chat." One nudge, then a halt that says why.
   let emptyRounds = 0
   let nudge = ''
+  let claimNudged = false   // the reply-vs-evidence check gets one correction round
 
   const accessToken = getAccessToken ? await getAccessToken() : null
   const accountId = getAccountId ? await getAccountId() : null
@@ -1151,6 +1152,8 @@ export async function runTurn ({ provider, model, routed, apiKey, getAccessToken
     // it is not the whole reply rather than left to look finished.
     if (result.finish === 'length') emit({ type: 'notice', text: 'The model hit its output limit mid-reply — what it wrote is kept, but it did not finish. Say "continue" to get the rest.' })
     if (!result.parts.length) {
+      // nothing to add after the reply-vs-evidence nudge is an answer, not a fault
+      if (claimNudged) { finishStats(); emit({ type: 'done' }); return }
       emptyRounds++
       if (emptyRounds === 1 && round < MAX_ROUNDS - 1) {
         nudge = '[Your previous response was empty. Continue the work you were doing: call the next tool you need, or say what you did and what remains. Do not return an empty response.]'
@@ -1167,7 +1170,29 @@ export async function runTurn ({ provider, model, routed, apiKey, getAccessToken
       return
     }
     emptyRounds = 0; nudge = ''
-    if (!toolParts.length || !result.stopOnTools) { finishStats(); emit({ type: 'done' }); return }
+    if (!toolParts.length || !result.stopOnTools) {
+      // ⚠️ THE REPLY IS CHECKED AGAINST THE TURN. What it says was done has
+      // to be visible in the tools it ran (decide.js verifyClaims). A claim
+      // nothing supports is written under the reply, and the model gets one
+      // round to do the thing or correct itself. Never on the phone, never
+      // without a key: verifyClaims is null then.
+      if (verifyClaims && !signal?.aborted) {
+        try {
+          const text = assistant.parts.filter(p => p.type === 'text').map(p => p.text).join('\n')
+          const v = await verifyClaims({ text, toolParts: assistant.parts.filter(p => p.type === 'tool') })
+          if (v?.unsupported?.length) {
+            const list = v.unsupported.map(u => `“${u.claim.length > 120 ? u.claim.slice(0, 117) + '…' : u.claim}”`).join(' · ')
+            emit({ type: 'notice', text: `Not shown by anything in this turn: ${list}` })
+            if (!claimNudged && round < MAX_ROUNDS - 1) {
+              claimNudged = true
+              nudge = `[Your reply claims: ${v.unsupported.map(u => u.claim).join(' | ')} — but no tool call in this turn shows it. Either do it now with the tools and report the real result, or correct the reply to say what actually happened. Do not repeat an unsupported claim.]`
+              continue
+            }
+          }
+        } catch {}
+      }
+      finishStats(); emit({ type: 'done' }); return
+    }
 
     const toolLoopStart = Date.now()
     for (const call of toolParts) {

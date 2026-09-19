@@ -3060,6 +3060,21 @@ function recordTurnFailure (session, emit, message) {
 // key is known to work and no second account is needed. The pick is
 // data-driven rather than a hardcoded id, because a wrong id would silently
 // stop titles and memory from working at all.
+/** Failed tool calls and the call that followed each — the shape a lesson has. */
+function troubleLog (parts) {
+  const tools = parts.filter(p => p.type === 'tool')
+  const lines = []
+  tools.forEach((p, i) => {
+    const r = String(p.result ?? '')
+    if (!(p.denied || /\b(error|failed|not found|no such|cannot|exit code [1-9]|ENOENT|EACCES|Traceback)\b/i.test(r.slice(0, 400)))) return
+    const head = t => `${t.name}(${String(t.args?.command || t.args?.path || t.args?.url || '').slice(0, 120)}) → ${String(t.result ?? '').replace(/\s+/g, ' ').slice(0, 160)}`
+    lines.push('FAILED ' + head(p))
+    if (tools[i + 1]) lines.push('  then ' + head(tools[i + 1]))
+    if (lines.length >= 8) return
+  })
+  return lines.slice(0, 8).join('\n')
+}
+
 const UTILITY_HINTS = [/haiku/i, /flash[-_ ]?lite/i, /\bnano\b/i, /\bmini\b/i, /flash/i, /\blite\b/i, /\bsmall\b/i, /\b[0-4](?:\.\d)?b\b/i]
 // ⚠️ NAMES ARE NOT PRICES. The hints above found nothing on xAI (no model is
 // called mini) and on OpenRouter would have taken the first "haiku" in the
@@ -3231,6 +3246,11 @@ app.post('/api/chat', async (req, res) => {
     ...(Array.isArray(session.skillIds) ? session.skillIds : []),
     ...(Array.isArray(turnSkillIds) ? turnSkillIds : [])
   ])
+  // ⚠️ EVERY DECISION IS KEPT WITH THE REPLY, probabilities and all, so it can
+  // be replayed: change a bar, re-read the transcripts, see which messages
+  // would have gone the other way — no new calls (scripts/replay-decisions.mjs).
+  // AgentRun keeps its Jev answers with each case for the same reason.
+  const decided = {}
   let mergedSkills = allSkills.filter(s => s.enabled || agentSkillIds.has(s.id) || chatSkillIds.has(s.id))
   // ⚠️ ALWAYS-ON SKILLS RIDE ONLY WHEN THE MESSAGE NEEDS THEM (decide.js
   // chooseSkills). Sticky per chat, so the cached system prefix grows and
@@ -3245,6 +3265,7 @@ app.post('/api/chat', async (req, res) => {
       const sticky = new Set(Array.isArray(session.skillsAttached) ? session.skillsAttached : [])
       const pick = await chooseSkills({ message: text0, history: session.messages, skills: mergedSkills, judged, sticky, decideFn: decide, apiKey: config.keys.openrouter, sessionId })
       if (pick.decided) {
+        decided.skills = { probs: pick.probs, attached: [...pick.attach], bar: 0.35 }
         mergedSkills = mergedSkills.filter(s => pick.attach.has(s.id))
         skillsSkipped = pick.skipped
         session.skillsAttached = [...new Set([...sticky, ...mergedSkills.filter(s => judged.has(s.id)).map(s => s.id)])]
@@ -3276,6 +3297,7 @@ app.post('/api/chat', async (req, res) => {
         const text0 = typeof content === 'string' ? content : (content?.text || '')
         const pick = await chooseMcpServers({ message: text0, history: session.messages, servers: config.mcpServers, toolsByServer, decideFn: decide, apiKey: config.keys.openrouter, sessionId })
         if (pick.decided) {
+          decided.mcp = { probs: pick.probs, attached: [...pick.attach], bar: 0.35 }
           mcpTools = mcpTools.filter(t => { const h = /^mcp__([^_]+(?:_[^_]+)*)__/.exec(t.name); return !h || pick.attach.has(h[1]) })
           mcpSkipped = pick.skipped
           const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
@@ -3324,12 +3346,13 @@ app.post('/api/chat', async (req, res) => {
       const { decide } = await import('./decide.js')
       const hasLinear = mcpTools.some(t => /get_issue$/.test(t.name))
       const c = await classifyLookup({ message: text, attachments, history: session.messages, hasLinear, decideFn: decide, apiKey: config.keys.openrouter, sessionId, signal: controller.signal })
+      if (c.probs || c.p != null) decided.lane = { choice: c.choice, confidence: c.confidence, probs: c.probs, took: c.lane, bar: 0.85 }
       if (c.lane !== 'none') {
         const t0 = Date.now()
         const body = await runLookup(c.lane, { cwd: session.cwd, message: text, session, provider, callMcp, mcpTools })
         if (body) {
           console.log(`[lane] ${c.lane} (${Math.round(c.p * 100)}%) in ${Date.now() - t0} ms`)
-          const assistant = { role: 'assistant', model: session.model, lane: c.lane, parts: [{ type: 'text', text: body }, { type: 'notice', text: LANE_NOTE }] }
+          const assistant = { role: 'assistant', model: session.model, lane: c.lane, decisions: decided, parts: [{ type: 'text', text: body }, { type: 'notice', text: LANE_NOTE }] }
           if (session.agentId) assistant.agentId = session.agentId
           session.messages.push(assistant)
           const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
@@ -3539,16 +3562,29 @@ app.post('/api/chat', async (req, res) => {
       if (pick.p != null) {
         const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
         st.decisions = (st.decisions || 0) + 1
-      }
+        decided.route = { p: pick.p, judge: pick.judge, routed: pick.routed, from: session.model, to: pick.model, bar: 0.8 }
+      } else decided.route = { reason: pick.reason }
       if (pick.routed) { turnModel = pick.model; routed = { from: session.model, p: pick.p, judge: pick.judge } }
       console.log(`[route] ${pick.routed ? `${session.model} → ${pick.model}` : `kept ${session.model}`} · ${pick.reason}${pick.p != null ? ` (${Math.round(pick.p * 100)}% easy, ${pick.judge})` : ''}${fastModel ? '' : ' · no fast model on ' + provider.id}`)
     } catch (e) { console.error('[route]', e.message) }
+  }
+
+  // the reply-vs-evidence check, when there is a key to ask with
+  let verifyClaims = null
+  if (config.settings.verifyClaims !== false && config.keys.openrouter) {
+    const { verifyClaims: vc, decide } = await import('./decide.js')
+    verifyClaims = async ({ text, toolParts }) => {
+      const v = await vc({ text, toolParts, decideFn: decide, apiKey: config.keys.openrouter, sessionId, signal: controller.signal })
+      if (v) (decided.claims ||= []).push({ claims: v.claims, unsupported: v.unsupported, bars: { claim: 0.6, support: 0.3 } })
+      return v
+    }
   }
 
   const common = {
     provider,
     model: turnModel,
     routed,
+    verifyClaims,
     apiKey,
     getAccessToken: hasOAuth ? () => validAccessToken(provider.id, config, saveConfig) : null,
     getAccountId: hasOAuth ? () => config.oauth[provider.id]?.accountId || null : null,
@@ -3635,6 +3671,11 @@ app.post('/api/chat', async (req, res) => {
         onPlanExit: () => { session.planMode = false; emit({ type: 'plan_mode', on: false }) }
       })
     }
+    // the turn's decisions ride on its reply, for replay
+    {
+      const lastA = [...session.messages].reverse().find(m => m.role === 'assistant')
+      if (lastA && Object.keys(decided).length) lastA.decisions = decided
+    }
     // ⚠️ ONE DECISION BEFORE THREE WRITERS. A title, a memory distiller and a
     // skill reflection each cost a model call after every turn — on "thanks"
     // as much as on real work. One Jev request (decide.js chooseHousekeeping)
@@ -3652,12 +3693,13 @@ app.post('/api/chat', async (req, res) => {
       try {
         const { chooseHousekeeping, decide } = await import('./decide.js')
         const r = await chooseHousekeeping({
-          userText: lastUser?.text, assistantText: (lastAsst?.parts || []).filter(p => p.type === 'text').map(p => p.text).join(' '),
+          userText: lastUser?.text, assistantText: (lastAsst?.parts || []).filter(p => p.type === 'text').map(p => p.text).join(' ') + (troubleLog(lastAsst?.parts || []) ? '\n\n[tool calls that failed, then what came next]\n' + troubleLog(lastAsst?.parts || []) : ''),
           toolNames: [...new Set((lastAsst?.parts || []).filter(p => p.type === 'tool' && p.name).map(p => p.name))],
           heuristicTitle: clean((firstUser?.text || '').split(' ').slice(0, 8).join(' ')),
           wantTitle, wantMemory, wantSkill, decideFn: decide, apiKey: config.keys.openrouter, sessionId, signal: controller.signal
         })
         if (r.decided) {
+          decided.housekeeping = { p: r.p, ran: { title: r.title, memory: r.memory, skill: r.skill }, bars: { title_ok: 0.7, memory: 0.3, skill: 0.5 } }
           const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
           st.decisions = (st.decisions || 0) + 1
           st.decisionCost = (st.decisionCost || 0) + (r.usage?.cost || 0)
@@ -3700,8 +3742,11 @@ app.post('/api/chat', async (req, res) => {
       try {
         const lastUser = [...session.messages].reverse().find(m => m.role === 'user')
         const lastAsst = [...session.messages].reverse().find(m => m.role === 'assistant')
-        const exchange = `User: ${(lastUser?.text || '').slice(0, 1500)}\n\nAssistant: ${(lastAsst?.parts || []).filter(p => p.type === 'text').map(p => p.text).join(' ').slice(0, 1500)}`
-        const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `From this exchange, extract any NEW durable facts worth remembering long-term about the USER or their PROJECT — preferences, decisions, names, conventions, tools/environment, or goals. Only lasting facts, not task-specific chatter or one-off requests. Write each as a short standalone sentence, one per line. If there is nothing durable, reply exactly "none".\n\n${exchange}` }] }
+        // the lessons live in the tool calls, not the prose: a call that failed
+        // and the one that followed it are the failed-then-worked shape
+        const trouble = troubleLog(lastAsst?.parts || [])
+        const exchange = `User: ${(lastUser?.text || '').slice(0, 1500)}\n\nAssistant: ${(lastAsst?.parts || []).filter(p => p.type === 'text').map(p => p.text).join(' ').slice(0, 1500)}${trouble ? `\n\nTool calls that failed, and what came next:\n${trouble}` : ''}`
+        const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `From this exchange, extract anything worth remembering long-term: NEW durable facts about the USER or their PROJECT — preferences, decisions, names, conventions, tools/environment, goals — AND lessons about how the work is done here: something that failed and then worked, a flag or step a tool needs, a source that had the answer when another did not. Only lasting things, not task-specific chatter or one-off requests. Write each as a short standalone sentence a future assistant can act on, one per line. If there is nothing durable, reply exactly "none".\n\n${exchange}` }] }
         const out = await utilityTurn({ provider, apiKey, session, tmp, signal: controller.signal })
         if (out && !/^\s*none\b/i.test(out.trim())) {
           // Replacing a fact is not adding one. addFacts used to return the two
