@@ -914,6 +914,14 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   const emitRaw = emit
   emit = ev => {
     if (ev.type === 'notice' && ev.text) assistant.parts.push({ type: 'notice', text: ev.text })
+    // the provider's own count for the round, written on the record that sent it
+    if (ev.type === 'usage' && assistant.sent?.length) {
+      const r = assistant.sent[assistant.sent.length - 1]
+      if (ev.input) r.input = ev.input
+      if (ev.output) r.output = ev.output
+      if (ev.cacheRead) r.cacheRead = ev.cacheRead
+      if (ev.cacheWrite) r.cacheWrite = ev.cacheWrite
+    }
     // ⚠️ A HALT MUST SURVIVE THE STREAM CLOSING, same as a notice — it is the
     // only thing in the transcript that says the turn is not finished.
     if (ev.type === 'halt') assistant.parts.push({ type: 'halt', reason: ev.reason, text: ev.text })
@@ -1067,6 +1075,29 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
     try {
       // a saved voice conversation reads as user text; toAnthropic would choke on its role
       const reqMsgs = foldOldToolResults(voiceAsText(groupSpeakerId ? groupFlatten(session.messages, groupSpeakerId, groupNames || {}) : session.messages), { hard: hardFold })
+      // ⚠️ MODEL-VISIBLE MEANS LOGGED. Everything this round sends is written
+      // down beside the reply — which model, how much system text (and a hash
+      // of it), which tools, how many messages, whether old results were
+      // trimmed — so "what did the model actually see?" is answered from the
+      // transcript, not by rerunning the chat. The cache-splitting bug of
+      // 2026-09-18 cost Claude users 90% of their cache for weeks and took a
+      // 90-run benchmark to notice; a per-round record shows it in one chat
+      // (a system hash that changes between rounds, or a message count that
+      // does not grow by one). Never a part: parts go to the model, this does not.
+      const sent = {
+        round, at: Date.now(), provider: provider.id, model,
+        api: provider.type === 'anthropic' ? 'messages' : useChatgpt ? 'responses' : 'chat',
+        systemChars: (system.stable || '').length + (system.volatile || '').length,
+        systemSha: crypto.createHash('sha1').update(system.stable || '').digest('hex').slice(0, 10),
+        volatileChars: (system.volatile || '').length + (nudge ? nudge.length + 2 : 0),
+        tools: toolsEnabled ? (toolDefs || []).map(t => t.name || t.function?.name).filter(Boolean) : [],
+        messages: reqMsgs.length,
+        items: reqMsgs.reduce((n, m) => n + (m.parts ? m.parts.length : 1), 0),
+        estTokens: estimateTokens(reqMsgs) + roughTokens(system.stable || '') + roughTokens(system.volatile || '') + (toolsEnabled && toolDefs ? roughTokens(JSON.stringify(toolDefs)) : 0),
+        trimmed: Boolean(hardFold)
+      }
+      if (round === 0 && (system.stable || '').length <= 65536) sent.systemText = system.stable
+      ;(assistant.sent || (assistant.sent = [])).push(sent)
       result = provider.type === 'anthropic'
         ? await anthropicRound({ ...args, messages: toAnthropic(reqMsgs) })
         : useChatgpt

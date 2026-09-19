@@ -41,6 +41,7 @@ run "gemini voice"   node scripts/test-voice-gemini.mjs
 run "rating ask"     node scripts/test-rating.mjs
 run "unsent drafts"  node scripts/test-drafts.mjs
 run "decisions"      node scripts/test-decide.mjs
+run "what the model saw" node scripts/test-model-saw.mjs
 run "asked and answered" node scripts/test-asked.mjs
 run "packaged imports" node scripts/test-packaged-imports.mjs
 run "two macs"       node scripts/test-two-macs.mjs

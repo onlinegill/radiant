@@ -85,6 +85,57 @@ function TodoChecklist ({ todos }) {
 }
 
 // files this turn created or edited, as clickable chips
+// ⚠️ WHAT THE MODEL SAW, FROM THE TRANSCRIPT. Each round of a reply carries a
+// record of what was sent (server/providers.js, `assistant.sent`): model,
+// system size and a hash of it, tools attached, message count, tokens, cache
+// hits. Folded by default; opened, it answers the question that used to need
+// a benchmark. Two things it flags outright, because each is a bug we shipped:
+// the system text changing between rounds (kills the prompt cache), and the
+// message count not growing by exactly one round to round (same).
+function ModelSaw ({ sent }) {
+  const [open, setOpen] = React.useState(false)
+  if (!Array.isArray(sent) || !sent.length) return null
+  const k = n => n == null ? '—' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
+  const warnings = []
+  for (let i = 1; i < sent.length; i++) {
+    if (sent[i].systemSha !== sent[i - 1].systemSha) warnings.push(`round ${sent[i].round + 1}: the system text changed — the prompt cache cannot carry over`)
+    if (sent[i].items != null && sent[i - 1].items != null && sent[i].items <= sent[i - 1].items) warnings.push(`round ${sent[i].round + 1}: the conversation did not grow (${sent[i - 1].items} → ${sent[i].items} items) — it was rewritten, not appended`)
+  }
+  const last = sent[sent.length - 1]
+  const cached = sent.reduce((a, r) => a + (r.cacheRead || 0), 0)
+  const input = sent.reduce((a, r) => a + (r.input || 0), 0)
+  return (
+    <div className={'modelsaw' + (open ? ' is-open' : '')}>
+      <button className='modelsaw-toggle' onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        What the model saw · {sent.length} round{sent.length === 1 ? '' : 's'} · {last.tools.length} tool{last.tools.length === 1 ? '' : 's'}{input ? ` · ${k(input)} in, ${input ? Math.round(100 * cached / input) : 0}% cached` : ''}{warnings.length ? ' · ⚠' : ''}
+      </button>
+      {open && (
+        <div className='modelsaw-body'>
+          {warnings.map((w, i) => <div key={i} className='modelsaw-warn'>{w}</div>)}
+          <table>
+            <thead><tr><th>Round</th><th>Model</th><th>System</th><th>Tools</th><th>Messages</th><th>Sent</th><th>Cached</th><th>Out</th></tr></thead>
+            <tbody>
+              {sent.map(r => (
+                <tr key={r.round}>
+                  <td>{r.round + 1}</td>
+                  <td title={`${r.provider} · ${r.api}`}>{r.model}</td>
+                  <td title={`sha ${r.systemSha} · ${r.volatileChars} chars change per turn`}>{k(r.systemChars)} chars</td>
+                  <td title={r.tools.join(', ')}>{r.tools.length}</td>
+                  <td title={`${r.items ?? '?'} items`}>{r.messages}{r.trimmed ? ' (trimmed)' : ''}</td>
+                  <td title='the provider’s count; ~ means Radiant’s estimate'>{r.input ? k(r.input) : '~' + k(r.estTokens)}</td>
+                  <td>{r.cacheRead ? k(r.cacheRead) : r.cacheWrite ? `+${k(r.cacheWrite)} written` : '—'}</td>
+                  <td>{k(r.output)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {sent[0].systemText && <details className='modelsaw-sys'><summary>System text ({k(sent[0].systemText.length)} chars)</summary><pre>{sent[0].systemText}</pre></details>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Deliverables ({ parts }) {
   const files = []
   const seen = new Set()
@@ -419,7 +470,7 @@ function WorkingBadge ({ parts, thinkingActive, startedAt, lastEventAt }) {
   )
 }
 
-function AssistantMessage ({ parts, thinking, thinkingActive, thinkingSecs, streaming, model, agent, local, onChoose, onContinue, startedAt, lastEventAt, showThinking = true }) {
+function AssistantMessage ({ parts, sent, thinking, thinkingActive, thinkingSecs, streaming, model, agent, local, onChoose, onContinue, startedAt, lastEventAt, showThinking = true }) {
   const waiting = streaming && !parts.length && !thinking
   // A local model that isn't resident cold-loads its weights before the first token.
   // Reveal the note only after a beat, so a warm model (fast first token) never shows it.
@@ -488,6 +539,7 @@ function AssistantMessage ({ parts, thinking, thinkingActive, thinkingSecs, stre
         return out
       })()}
       {!streaming && <Deliverables parts={parts} />}
+      {!streaming && <ModelSaw sent={sent} />}
       {waiting && (slowWait
         ? <div className='notice loading-note'>
             <span className='shimmer'>Loading the model into memory…</span>
@@ -1422,7 +1474,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                     This turn ended without a reply. The model returned nothing — ask again, or try another model.
                   </div>
                 )
-                : <AssistantMessage key={i} parts={m.parts || []} model={m.model} agent={m.agentId ? agents.find(a => a.id === m.agentId) || sessionAgent : sessionAgent} onChoose={onWidgetChoice} onContinue={continueTurn} showThinking={showThinking} />
+                : <AssistantMessage key={i} parts={m.parts || []} sent={m.sent} model={m.model} agent={m.agentId ? agents.find(a => a.id === m.agentId) || sessionAgent : sessionAgent} onChoose={onWidgetChoice} onContinue={continueTurn} showThinking={showThinking} />
           )}
           {live && (
             <AssistantMessage

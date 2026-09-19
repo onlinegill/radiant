@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { execFile, spawn } from 'child_process'
-import { SPAWN_ENV } from './ollama.js'
+import { SPAWN_ENV, scrubbedEnv } from './ollama.js'
 import { searchSessions, usableCwd } from './config.js'
 
 
@@ -14,7 +14,7 @@ function newJob (command, cwd) {
   // PATH=/usr/bin:/bin:/usr/sbin:/sbin, so anything in Homebrew or ~/.local/bin
   // is "command not found" — while working perfectly when the server is started
   // from a terminal, which is how this kept getting tested.
-  const proc = spawn('bash', ['-lc', command], { cwd, detached: false, env: SPAWN_ENV })
+  const proc = spawn('bash', ['-lc', command], { cwd, detached: false, env: scrubbedEnv() })
   const job = { id, command, output: '', done: false, exitCode: null, startedAt: Date.now(), proc }
   const cap = d => { job.output = (job.output + d.toString()).slice(-200_000) }
   proc.stdout.on('data', cap)
@@ -349,7 +349,7 @@ export async function runTool (rawName, rawInput, cwd, signal) {
           // ⚠️ `signal` KILLS THE CHILD. Without it Stop was a suggestion: the
           // command ran to completion, or to the 120s timeout, whichever came
           // first, and the turn could not end until it did.
-          execFile('bash', ['-lc', input.command], { cwd, timeout: 120_000, maxBuffer: 10 * 1024 * 1024, env: SPAWN_ENV, signal }, (err, stdout, stderr) => {
+          execFile('bash', ['-lc', input.command], { cwd, timeout: 120_000, maxBuffer: 10 * 1024 * 1024, env: scrubbedEnv(), signal }, (err, stdout, stderr) => {
             let out = ''
             if (stdout) out += stdout
             if (stderr) out += (out ? '\n--- stderr ---\n' : '') + stderr

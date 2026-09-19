@@ -10,6 +10,25 @@ const EXTRA_DIRS = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', p
 
 export const SPAWN_ENV = { ...process.env, PATH: [...EXTRA_DIRS, process.env.PATH || ''].filter(Boolean).join(':') }
 
+// ⚠️ THE AGENT'S COMMANDS DO NOT GET THE SECRETS. A command the model runs —
+// `env`, a script that prints its environment, a crash dump — would show every
+// API key and token sitting in Radiant's own process environment, and that
+// output goes straight back into the transcript and to the provider. Any
+// variable whose NAME looks like a credential is dropped before the shell
+// starts (the rule DeepSeek Harness ships, and the one we lacked). Radiant's
+// own tools (Ollama, Hermes) keep SPAWN_ENV; only the model's shell gets this.
+//
+// Known limit, stated so nobody thinks it is airtight: run_command uses a
+// login shell, so a key exported from ~/.zshrc comes back. This closes the
+// path from Radiant's process; it cannot close the one from the user's profile.
+// not AUTH: SSH_AUTH_SOCK is how git reaches the agent, and it holds no secret
+const SECRET_NAME = /KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL/i
+export function scrubbedEnv (env = SPAWN_ENV) {
+  const out = {}
+  for (const [k, v] of Object.entries(env)) if (!SECRET_NAME.test(k)) out[k] = v
+  return out
+}
+
 // ⚠️ EVERY SPAWNED TOOL NEEDS THIS, NOT JUST OLLAMA. The Hermes relay called
 // bare spawn('hermes') and died with ENOENT for every user who launched Radiant
 // from the Dock, while working perfectly from a terminal — which is exactly how
