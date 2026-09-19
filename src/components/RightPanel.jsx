@@ -68,7 +68,23 @@ function ForYou ({ waiting, onOpen }) {
   )
 }
 
+const SECTIONS = [
+  { id: 'activity', label: 'Activity' },
+  { id: 'terminal', label: 'Terminal' },
+  { id: 'preview', label: 'Preview' },
+  { id: 'foryou', label: 'For you', hint: '⇧⌘I' }
+]
+
 export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose, session, waiting = [], onOpenSession }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+  useEffect(() => {
+    if (!menuOpen) return
+    const away = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false) }
+    const esc = e => { if (e.key === 'Escape') setMenuOpen(false) }
+    window.addEventListener('mousedown', away); window.addEventListener('keydown', esc)
+    return () => { window.removeEventListener('mousedown', away); window.removeEventListener('keydown', esc) }
+  }, [menuOpen])
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem('radiant.rightWidth'))
     return saved >= MIN_W && saved <= MAX_W ? saved : 400
@@ -103,11 +119,29 @@ export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose, 
   return (
     <aside className='right-panel' style={{ width }}>
       <div className='right-resize' onMouseDown={startDrag} title='Drag to resize' />
+      {/* ⚠️ ONE MENU, NOT A ROW OF TABS. Four tabs across a 300px panel read
+          as clutter — Tony: "dont like all the tabs. make it a menu." The
+          strip shows the section you are in and a chevron; the menu lists
+          the rest, with the For you count where it is. */}
       <div className='right-tabs'>
-        <button className={'right-tab' + (tab === 'activity' ? ' active' : '')} onClick={() => onTab('activity')}>Activity</button>
-        <button className={'right-tab' + (tab === 'terminal' ? ' active' : '')} onClick={() => onTab('terminal')}>Terminal</button>
-        <button className={'right-tab' + (tab === 'preview' ? ' active' : '')} onClick={() => onTab('preview')}>Preview</button>
-        <button className={'right-tab' + (tab === 'foryou' ? ' active' : '')} onClick={() => onTab('foryou')} title='Chats waiting on you (⇧⌘I)'>For you{waiting.length ? <span className='right-tab-badge'>{waiting.length}</span> : null}</button>
+        <div className='right-menu-wrap' ref={menuRef}>
+          <button className='right-menu-btn' onClick={() => setMenuOpen(o => !o)} aria-haspopup='menu' aria-expanded={menuOpen}>
+            <span>{SECTIONS.find(x => x.id === tab)?.label || 'Activity'}</span>
+            {tab !== 'foryou' && waiting.length ? <span className='right-tab-badge'>{waiting.length}</span> : null}
+            <Icon.chevronDown size={12} />
+          </button>
+          {menuOpen && (
+            <div className='right-menu' role='menu'>
+              {SECTIONS.map(x => (
+                <button key={x.id} role='menuitem' className={'right-menu-item' + (x.id === tab ? ' selected' : '')} onClick={() => { onTab(x.id); setMenuOpen(false) }}>
+                  <span className='rmi-label'>{x.label}</span>
+                  {x.id === 'foryou' && waiting.length ? <span className='right-tab-badge'>{waiting.length}</span> : null}
+                  {x.hint && <span className='rmi-hint'>{x.hint}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div style={{ flex: 1 }} />
         <button className='icon-btn' onClick={onClose} title='Close panel'><Icon.close /></button>
       </div>
