@@ -702,6 +702,14 @@ function UtilityModelBlock ({ config, onSettings }) {
       <label className='check-row' style={{ marginTop: 12 }}>
         <input
           type='checkbox'
+          checked={config?.settings?.fastLane !== false}
+          onChange={e => onSettings({ fastLane: e.target.checked })}
+        />
+        <span>Answer quick lookups instantly, without a model <span className='desc'>— “what’s uncommitted”, “last few commits”, “what’s in this folder”, “which model is this”, “what’s TG-474 about” (with a Linear server). A quick decision recognizes the question, the tool runs, and its output is the answer, in under a second. Only when it is sure; never mid-task. Needs an OpenRouter key.</span></span>
+      </label>
+      <label className='check-row' style={{ marginTop: 12 }}>
+        <input
+          type='checkbox'
           checked={config?.settings?.smartRouting !== false}
           onChange={e => onSettings({ smartRouting: e.target.checked })}
         />
@@ -3230,6 +3238,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['Quick lookups answer instantly', 'Ask \u201cwhat\u2019s uncommitted?\u201d, \u201clast few commits?\u201d, \u201cwhat\u2019s in this folder?\u201d, \u201cwhich model is this?\u201d or \u201cwhat\u2019s TG-474 about?\u201d and the answer appears in under a second, labeled \u201cinstant\u201d \u2014 no model was involved, the tool\u2019s output is the answer. A quick decision recognizes those questions and only takes the shortcut when it is sure; anything else, and anything mid-task, goes to the model as usual. Want the model\u2019s take on the same thing? Ask in more words. Off switch under Settings \u2192 Models \u2192 Background work.'],
       ['Less busywork after each message', 'After every reply Radiant used to make three more small model calls in the background \u2014 to name the chat, to look for something worth remembering, and to look for a procedure worth saving as a skill \u2014 even after \u201cthanks\u201d. Now one quick decision runs first and only the ones worth doing run: a preference you state gets remembered, a chat about nothing leaves no trace and costs nothing extra. In the same spirit, a skill you have switched on for everything now rides along only when the message calls for it, and once it has joined a chat it stays for the rest of it. Both use the same decision model as the fast lane and need an OpenRouter key; without one, everything runs as before.'],
       ['Easy messages get a fast answer', 'Not every message needs your strongest model. Before each one, Radiant asks a tiny decision model whether a fast model can answer it well \u2014 a quick question, a one-line change, \u201cthanks, now commit\u201d. When it is sure, a fast model from the same provider answers in a couple of seconds instead of ten; anything harder goes to the model you chose. The reply\u2019s label shows which one answered and says \u201crouted\u201d, so nothing is hidden. It stays out of the way mid-task, in plan mode and in group chats. On Grok it uses Grok 4.20 non-reasoning; on OpenRouter, GPT-5 mini; on Claude, Haiku. Switch it off under Settings \u2192 Models \u2192 Background work.'],
       ['What the model saw', 'Under every reply there is a small line \u2014 \u201cWhat the model saw \u00b7 3 rounds \u00b7 12 tools \u00b7 41k in, 88% cached\u201d. Open it and you get a table, one row per request the reply took: which model, how big the instructions were, how many tools were attached, how much of it came from the cache. It is the answer to \u201cwhy was that slow\u201d or \u201cwhy did that cost so much\u201d without guessing. If something is wrong \u2014 the instructions changing mid-reply, which throws the cache away \u2014 it says so in red. Commands the agent runs also no longer see any password, key or token from Radiant\u2019s own environment, so a script that prints its surroundings cannot put a key into the chat.'],

@@ -470,7 +470,7 @@ function WorkingBadge ({ parts, thinkingActive, startedAt, lastEventAt }) {
   )
 }
 
-function AssistantMessage ({ parts, sent, routed, thinking, thinkingActive, thinkingSecs, streaming, model, agent, local, onChoose, onContinue, startedAt, lastEventAt, showThinking = true }) {
+function AssistantMessage ({ parts, sent, routed, lane, thinking, thinkingActive, thinkingSecs, streaming, model, agent, local, onChoose, onContinue, startedAt, lastEventAt, showThinking = true }) {
   const waiting = streaming && !parts.length && !thinking
   // A local model that isn't resident cold-loads its weights before the first token.
   // Reveal the note only after a beat, so a warm model (fast first token) never shows it.
@@ -486,7 +486,7 @@ function AssistantMessage ({ parts, sent, routed, thinking, thinkingActive, thin
         {agent
           ? <><span className='who-agent-emoji' style={isImported(agent) ? undefined : { '--ah': agent.hue ?? 'var(--accent-h)', color: glyphColor(agent.hue, 0.7, 0.16) }}><AgentGlyph agent={agent} size={14} /></span><span className='who-word'>{agent.name}</span></>
           : <><span className='logo-mark' aria-hidden /><span className='wordmark who-word'>Radiant</span></>}
-        {model && <span className='who-model' title={routed ? `Judged an easy message (${Math.round((routed.p || 0) * 100)}%${routed.judge === 'jev' ? ', by Jev' : ''}) and answered by ${model} instead of ${routed.from}. Settings → Models → Background work turns this off.` : undefined}>{model}{routed ? <span className='who-routed'> · routed</span> : null}</span>}
+        {model && <span className='who-model' title={routed ? `Judged an easy message (${Math.round((routed.p || 0) * 100)}%${routed.judge === 'jev' ? ', by Jev' : ''}) and answered by ${model} instead of ${routed.from}. Settings → Models → Background work turns this off.` : undefined}>{lane ? 'instant' : model}{routed ? <span className='who-routed'> · routed</span> : null}</span>}
         {streaming && <WorkingBadge parts={parts} thinkingActive={thinkingActive} startedAt={startedAt} lastEventAt={lastEventAt} />}
       </div>
       {thinking && showThinking ? <ThinkingTrace thinking={thinking} active={Boolean(thinkingActive)} seconds={thinkingSecs} /> : null}
@@ -1474,7 +1474,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                     This turn ended without a reply. The model returned nothing — ask again, or try another model.
                   </div>
                 )
-                : <AssistantMessage key={i} parts={m.parts || []} sent={m.sent} routed={m.routed} model={m.model} agent={m.agentId ? agents.find(a => a.id === m.agentId) || sessionAgent : sessionAgent} onChoose={onWidgetChoice} onContinue={continueTurn} showThinking={showThinking} />
+                : <AssistantMessage key={i} parts={m.parts || []} sent={m.sent} routed={m.routed} lane={m.lane} model={m.model} agent={m.agentId ? agents.find(a => a.id === m.agentId) || sessionAgent : sessionAgent} onChoose={onWidgetChoice} onContinue={continueTurn} showThinking={showThinking} />
           )}
           {live && (
             <AssistantMessage

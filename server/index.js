@@ -3289,6 +3289,40 @@ app.post('/api/chat', async (req, res) => {
   res.on('close', () => { if (!res.writableEnded) controller.abort() })
   const stopHeartbeat = startHeartbeat(res)
 
+  // ⚠️ THE FAST LANE (server/fastlane.js): a closed list of read-only lookups
+  // answered by a tool in well under a second, no model. Jev classifies the
+  // message; only a confident match takes it. The reply is marked `lane` so
+  // the label says "instant" and the transcript says how to get the model.
+  if (config.settings.fastLane !== false && config.keys.openrouter && !session.group && !session.planMode) {
+    try {
+      const { classifyLookup, runLookup, LANE_NOTE } = await import('./fastlane.js')
+      const { decide } = await import('./decide.js')
+      const hasLinear = mcpTools.some(t => /get_issue$/.test(t.name))
+      const c = await classifyLookup({ message: text, attachments, history: session.messages, hasLinear, decideFn: decide, apiKey: config.keys.openrouter, sessionId, signal: controller.signal })
+      if (c.lane !== 'none') {
+        const t0 = Date.now()
+        const body = await runLookup(c.lane, { cwd: session.cwd, message: text, session, provider, callMcp, mcpTools })
+        if (body) {
+          console.log(`[lane] ${c.lane} (${Math.round(c.p * 100)}%) in ${Date.now() - t0} ms`)
+          const assistant = { role: 'assistant', model: session.model, lane: c.lane, parts: [{ type: 'text', text: body }, { type: 'notice', text: LANE_NOTE }] }
+          if (session.agentId) assistant.agentId = session.agentId
+          session.messages.push(assistant)
+          const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
+          st.turns += 1; st.decisions = (st.decisions || 0) + 1; st.lane = (st.lane || 0) + 1
+          emit({ type: 'text_delta', text: body })
+          emit({ type: 'notice', text: LANE_NOTE })
+          emit({ type: 'done' })
+          stopHeartbeat()
+          activeTurns.delete(sessionId)
+          saveTurnSession(session)
+          emit({ type: 'closed' })
+          res.end()
+          return
+        }
+      }
+    } catch (e) { console.error('[lane]', e.message) }
+  }
+
   const requestApproval = call => new Promise(async resolve => {
     // approval mode: 'ask' = confirm every command, 'auto' = only risky ones, 'off' = never
     const mode = config.settings.approvalMode || (config.settings.approveCommands === false ? 'off' : 'ask')
