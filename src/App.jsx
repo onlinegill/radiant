@@ -611,7 +611,7 @@ function DesktopApp () {
           // approval looks exactly like a turn still working, from anywhere but
           // this window, and it will wait forever.
           case 'approval_request':
-            setApprovalFor(sessionId, { id: ev.id, name: ev.name, args: ev.args })
+            setApprovalFor(sessionId, { id: ev.id, name: ev.name, args: ev.args, reason: ev.reason })
             notifyAway({ sessionId, title: chatTitle, body: `Waiting for you: approve ${ev.name}?` })
             // Approvals stay in the app — the voice says so rather than deciding.
             if (vs) vs.commentary(`I need your approval in the app before I run ${ev.name.replace(/_/g, ' ')}.`, delegationId)

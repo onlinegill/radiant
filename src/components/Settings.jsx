@@ -1988,7 +1988,7 @@ function AgentPane ({ config, onSettings }) {
           })}
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 6 }}>
-          <strong>Auto</strong> runs safe commands (ls, grep, tests, git status…) silently and only asks before risky ones — deletes, sudo, network fetches, pushes, chmod. MCP tools and computer-control actions always ask in Auto, no matter how safe — only <strong>Never ask</strong> skips those too.
+          <strong>Auto</strong> runs safe commands (ls, grep, tests, git status…) silently and only asks before risky ones — deletes, sudo, network fetches, pushes, chmod. With an OpenRouter key, a quick decision model also reads each “safe” command in context and pauses it if it could destroy data, send private data out, or change the machine — the card says why. MCP tools and computer-control actions always ask in Auto, no matter how safe — only <strong>Never ask</strong> skips those too.
         </div>
       </div>
       <label className='check-row'>
@@ -3404,6 +3404,7 @@ const GUIDE = [
   {
     title: 'Tools the agent can use',
     items: [
+      ['Auto mode gets a second opinion', 'With shell approval set to Auto, Radiant runs safe-looking commands without asking. The rule list knows the obvious ones (rm -rf, sudo, pushes). Now a quick decision model also reads each command it is about to run silently, with the folder and what you asked for, and pauses it if it could destroy data, send private data out, change the machine, or change files outside the project \u2014 things like \u201cgit checkout -- .\u201d or \u201cgit stash drop\u201d that the rules called safe. The approval card says why it paused. It can only make Radiant ask more, never less. Needs an OpenRouter key; without one, Auto works as before.'],
       ['Files & commands', 'Read, write, and edit files and run shell commands in the workspace folder. Toggle with the “tools” pill; command runs ask for approval.'],
       ['Set the workspace folder', 'Click the folder chip at the top of a chat to choose which folder the agent works in — it opens a native folder picker.'],
       ['Permissions', 'The composer’s permissions pill sets how much the agent can do without asking — Ask each (confirm every command), Auto approve (low-risk runs silently, risky ones still ask), or Allow all (never ask). MCP tools and computer control always ask under Auto approve, even when they are harmless — only Allow all skips those prompts too. Flip it to Allow all for an unattended long build.'],

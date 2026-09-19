@@ -3289,15 +3289,27 @@ app.post('/api/chat', async (req, res) => {
   res.on('close', () => { if (!res.writableEnded) controller.abort() })
   const stopHeartbeat = startHeartbeat(res)
 
-  const requestApproval = call => new Promise(resolve => {
+  const requestApproval = call => new Promise(async resolve => {
     // approval mode: 'ask' = confirm every command, 'auto' = only risky ones, 'off' = never
     const mode = config.settings.approvalMode || (config.settings.approveCommands === false ? 'off' : 'ask')
     if (mode === 'off') return resolve(true)
     // in Auto mode, run low-risk shell commands silently (a quick notice); still ask
     // for risky commands and always for MCP / desktop control.
+    let reason = null
     if (mode === 'auto' && call.name === 'run_command' && commandRisk(call.args?.command) === 'low') {
-      emit({ type: 'notice', text: `Ran: ${call.args.command}` })
-      return resolve(true)
+      // ⚠️ THE RULES SAY LOW; JEV GETS A SECOND LOOK (decide.js assessCommand).
+      // It can only turn a silent run into a question, never the reverse.
+      if (config.settings.smartTools !== false && config.keys.openrouter) {
+        try {
+          const { assessCommand, RISK_BAR, decide } = await import('./decide.js')
+          const v = await assessCommand({ command: call.args.command, cwd: session.cwd, userText: text, decideFn: decide, apiKey: config.keys.openrouter, sessionId, signal: controller.signal })
+          if (v.decided && v.risk >= RISK_BAR) { reason = v.reasons.join(', '); console.log(`[auto] asking instead of running: ${call.args.command} — ${reason}`) }
+        } catch {}
+      }
+      if (!reason) {
+        emit({ type: 'notice', text: `Ran: ${call.args.command}` })
+        return resolve(true)
+      }
     }
     // The client that would answer this is already gone. Waiting out the full
     // 10 minutes here kept activeTurns occupied that whole time, so a dropped
@@ -3305,7 +3317,7 @@ app.post('/api/chat', async (req, res) => {
     // 10 minutes even after recordTurnStopped had already offered Continue.
     if (controller.signal.aborted) return resolve(false)
     pendingApprovals.set(call.id, resolve)
-    emit({ type: 'approval_request', id: call.id, name: call.name, args: call.args })
+    emit({ type: 'approval_request', id: call.id, name: call.name, args: call.args, ...(reason ? { reason } : {}) })
     const timer = setTimeout(() => {
       if (pendingApprovals.delete(call.id)) resolve(false)
     }, 10 * 60 * 1000)

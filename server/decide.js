@@ -254,3 +254,36 @@ export async function chooseHousekeeping ({ userText, assistantText, toolNames =
     decided: true, usage: out.usage, p: { title_ok: p('title_ok'), memory: p('memory'), skill: p('skill') }
   }
 }
+
+/**
+ * Auto mode's second opinion: is this command safe to run without asking?
+ *
+ * The rule list in util.js (commandRisk) knows `rm -rf` and `sudo`; it does
+ * not know that `git checkout -- .` throws away uncommitted work, that
+ * `curl -d @~/.ssh/id_rsa` is exfiltration, or that `find / -delete` is a
+ * catastrophe spelled without rm. Jev reads the command with the folder and
+ * the user's own words and answers four questions in one request. Anything
+ * at or over 0.5 turns a silent run into a question, with the reason shown.
+ *
+ * Jev can only ESCALATE here. A command the rules call risky is never waved
+ * through on Jev's say-so: a wrong "safe" is the one mistake this cannot
+ * afford, and "Auto" was described to the user as rules.
+ */
+export const RISK_BAR = 0.5
+export async function assessCommand ({ command, cwd, userText, decideFn, apiKey, sessionId, signal }) {
+  const none = { risk: null, reasons: [], decided: false }
+  if (!command || !decideFn || !apiKey) return none
+  const questions = {
+    destroys: { type: 'noul', instructions: 'Could this command delete, overwrite or discard data that is not easily recovered — files, uncommitted work, a database, a branch, history? Build output, caches and temp files do not count.', criteria: { true: 'It removes, resets, truncates, force-pushes, drops or overwrites something with no easy undo.', false: 'It only reads, builds, tests, lists, or writes to output and temp locations.' } },
+    exfiltrates: { type: 'noul', instructions: 'Could this command send local files, keys, tokens, environment variables or other private data to a network destination?', criteria: { true: 'It uploads, posts or pipes local content or secrets to a remote host.', false: 'It stays local, or only downloads, or talks to localhost.' } },
+    system: { type: 'noul', instructions: 'Does this command change the machine beyond the project — system settings, global installs, permissions, services, other users, sudo?', criteria: { true: 'It needs elevated rights or changes something outside the project that persists.', false: 'It acts inside the project or the user’s own tooling.' } },
+    outside: { type: 'noul', instructions: `Does this command act on paths outside the working folder (${cwd || 'unknown'}) in a way that changes them?`, criteria: { true: 'It writes, moves or deletes outside the working folder.', false: 'It reads outside at most, or stays inside.' } }
+  }
+  const out = await decideFn({ apiKey, sessionId, signal, state: { command: String(command).slice(0, 2000), working_folder: cwd || '', user_latest_message: String(userText || '').slice(0, 800) }, questions })
+  if (!out) return none
+  const ps = Object.entries(questions).map(([k]) => [k, out.answers?.[k]?.noul]).filter(([, p]) => typeof p === 'number')
+  if (!ps.length) return none
+  const labels = { destroys: 'could destroy data', exfiltrates: 'could send private data out', system: 'changes the system', outside: 'changes files outside the project' }
+  const reasons = ps.filter(([, p]) => p >= RISK_BAR).sort((a, b) => b[1] - a[1]).map(([k, p]) => `${labels[k]} (${Math.round(p * 100)}%)`)
+  return { risk: Math.max(...ps.map(([, p]) => p)), reasons, decided: true, usage: out.usage }
+}

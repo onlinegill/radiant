@@ -1497,6 +1497,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
             <div className='approval-card'>
               <div className='q'>Run this command in <span className='mono'>{session.cwd?.replace(/^\/Users\/[^/]+/, '~')}</span>?</div>
               <code>{approval.args?.command}</code>
+              {approval.reason && <div className='approval-reason'>Auto mode paused this one: {approval.reason}.</div>}
               <div className='row'>
                 <button className='small-btn primary' onClick={() => onApproval(approval.id, true)}>Run it</button>
                 <button className='small-btn danger' onClick={() => onApproval(approval.id, false)}>Deny</button>
