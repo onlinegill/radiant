@@ -97,5 +97,20 @@ ok(/adoptDraft\(id,/.test(screen), 'the chat route restores the draft for its co
 ok(/onDraftChange=\{onDraftChange\}/.test(screen) && /saveDraft\(id, text\)/.test(screen),
    'and persists it against that conversation')
 
+
+// ── thinking is folded out of what the phone shows ─────────────────────────
+{
+  const { visibleText } = await import('../src/mobile/thinking.js')
+  {
+    const t = (raw) => visibleText(raw)
+    ok('a whole think block disappears', t('<think>hmm</think>\nHi there').text === 'Hi there')
+    ok('an open block hides everything after it and says thinking', t('<think>the user wants').text === '' && t('<think>the user wants').thinking)
+    ok('a partial closing tag is still hidden', t('<think>x</thi').text === '')
+    ok('a partial opening tag at the end is held back', t('Sure<thi').text === 'Sure' && !t('Sure<thi').thinking)
+    ok('text with no block is untouched', t('plain answer').text === 'plain answer')
+    ok('text after the block keeps its own paragraphs', t('<think>a</think>\n\nOne\n\nTwo').text === 'One\n\nTwo')
+  }
+}
+
 console.log(`\n${pass}/${pass + fail} passed  ·  an unsent sentence outlives the screen it was typed in`)
 process.exit(fail ? 1 : 0)

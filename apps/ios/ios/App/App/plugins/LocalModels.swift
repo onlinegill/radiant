@@ -373,6 +373,17 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
 
     private var loaded: (id: String, container: ModelContainer)?
     private var task: Task<Void, Never>?
+    /// ⚠️ THE MODEL'S MEMORY OF THE CONVERSATION, KEPT BETWEEN TURNS. Until
+    /// build 25 every message built a fresh ChatSession, so the whole
+    /// transcript was re-read from the top before the first token of every
+    /// reply — seconds of dead air that grew with the chat. A ChatSession
+    /// keeps its KV cache across streamResponse calls; one per conversation,
+    /// and a follow-up starts almost at once. It is dropped the moment it
+    /// could be wrong: another conversation, another model, other
+    /// instructions, a cancelled reply (its history would hold half an
+    /// answer), or the JS side saying `reset` because the transcript was
+    /// edited. Rebuilding it costs exactly what every turn used to cost.
+    private var chat: (conversation: String, modelId: String, instructions: String, session: ChatSession)?
 
     // MARK: - catalog
 
@@ -900,6 +911,9 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
            let data = Data(base64Encoded: b64), let ci = CIImage(data: data) {
             images = [.ciImage(ci)]
         }
+        let conversation = call.getString("conversation") ?? ""
+        let instructions = call.getString("instructions") ?? ""
+        let reset = call.getBool("reset") ?? true
         task?.cancel()
         task = Task {
             do {
@@ -910,17 +924,42 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
                     // loading evicts the previous model: two multi-GB models
                     // will not fit in a phone's memory at once
                     loaded = nil
+                    chat = nil
                     container = try await #huggingFaceLoadModelContainer(configuration: entry.config)
                     loaded = (entry.id, container)
                 }
-                let session = ChatSession(container)
+                let session: ChatSession
+                let reused: Bool
+                if !reset, let c = chat, c.conversation == conversation, c.modelId == entry.id, c.instructions == instructions {
+                    session = c.session; reused = true
+                } else {
+                    // ⚠️ NO THINKING OUT LOUD. Qwen 3's chat template writes a
+                    // <think> block before every answer unless told not to,
+                    // and on a phone that is a wall of deliberation scrolling
+                    // past before the reply. Tony, build 25: "tons of internal
+                    // thinking. not good." Templates that know the flag honour
+                    // it; the rest ignore it, and the JS side folds any <think>
+                    // block that still arrives (DeepSeek R1 always thinks).
+                    session = ChatSession(container, instructions: instructions.isEmpty ? nil : instructions,
+                                          additionalContext: ["enable_thinking": false])
+                    chat = (conversation, entry.id, instructions, session)
+                    reused = false
+                }
+                let started = Date()
+                var first: TimeInterval?
+                var cancelled = false
                 for try await chunk in session.streamResponse(to: prompt, images: images) {
-                    if Task.isCancelled { break }
+                    if Task.isCancelled { cancelled = true; break }
+                    if first == nil { first = Date().timeIntervalSince(started) }
                     self.notifyListeners("token", data: ["id": entry.id, "text": chunk])
                 }
-                self.notifyListeners("done", data: ["id": entry.id])
+                if cancelled { chat = nil }   // half an answer in its history is not a memory worth keeping
+                let ms = Int(((first ?? Date().timeIntervalSince(started)) * 1000).rounded())
+                print("[gen] first token after \(ms) ms · prompt \(prompt.count) chars · session \(reused ? "reused" : "fresh")")
+                self.notifyListeners("done", data: ["id": entry.id, "firstTokenMs": ms, "reused": reused])
                 call.resolve()
             } catch {
+                chat = nil
                 self.notifyListeners("failed", data: ["message": error.localizedDescription])
                 call.reject(error.localizedDescription)
             }
@@ -929,6 +968,7 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
 
     @objc func stop(_ call: CAPPluginCall) {
         task?.cancel(); task = nil
+        chat = nil
         call.resolve()
     }
 

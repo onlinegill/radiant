@@ -6,6 +6,7 @@ import Gauge from './Gauge.jsx'
 import * as haptics from './haptics.js'
 import BrandSpinner, { BrandMark } from './BrandSpinner.jsx'
 import { loadChosen, providerById } from './providers.js'
+import { visibleText } from './thinking.js'
 import { hasConsent, grantConsent } from './consent.js'
 import ConsentSheet from './ConsentSheet.jsx'
 import SF from './SF.jsx'
@@ -15,9 +16,15 @@ import SF from './SF.jsx'
 // Everything here is built to the plugin we actually have, not the one we wish
 // we had (apps/ios/ios/App/App/plugins/LocalModels.swift):
 //
-//   · generate({ id, prompt }) builds a FRESH ChatSession every call, so the
-//     native side has no memory of the conversation. The transcript is
-//     serialized into `prompt` on every send — see buildPrompt.
+//   · generate({ id, prompt, conversation, instructions, reset }) keeps ONE
+//     ChatSession per conversation on the native side (build 25+), so a
+//     follow-up sends only the new message and the model's memory of the
+//     chat (its KV cache) carries over — the first token arrives in well
+//     under a second instead of after re-reading the transcript. `reset`
+//     is sent whenever this side cannot vouch for what native remembers:
+//     first turn, another model, another skill, a stopped or failed reply,
+//     a cleared chat. Then the full transcript goes again — see buildPrompt.
+//     An older native build ignores the extra fields and still works.
 //   · `token` events carry incremental chunks. Append, never replace.
 //   · stop() cancels the Swift Task and the plugin may then emit either `done`
 //     or `failed`. Whichever lands first is terminal, and a `failed` that lands
@@ -38,7 +45,7 @@ const PROMPT_CHARS = 4000
 // The native side has no conversation memory, so multi-turn is a string we
 // rebuild on every send. Last six turns, hard-capped, ending on the bare
 // "Assistant:" the model is meant to complete.
-export function buildPrompt (messages, next, skill) {
+export function buildPrompt (messages, next, skill, { inlineInstructions = true } = {}) {
   // ⚠️ A SKILL COSTS PROMPT BUDGET AND MUST BE PAID FOR, NOT ADDED ON TOP.
   // PROMPT_CHARS is the whole budget the phone has; appending instructions
   // without reserving room for them would push the cap over silently and the
@@ -58,7 +65,9 @@ export function buildPrompt (messages, next, skill) {
   // One turn on its own can still blow the cap. Keep its END: the question the
   // user just asked matters more than how the paragraph started.
   if (!fits()) blocks[0] = blocks[0].slice(-(budget - tail.length))
-  return head + blocks.join('\n\n') + tail
+  // The budget is reserved either way; the native session can hold the
+  // instructions itself, in which case they are not repeated in the text.
+  return (inlineInstructions ? head : '') + blocks.join('\n\n') + tail
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -260,6 +269,7 @@ function AssistantTurn ({ model, children, marker }) {
       <div className='rx-chat-byline'>
         <span className='rx-chat-marker'><BrandSpinner size={22} /></span>
         <span className='rx-chat-byname'>{model?.name || 'No model'}</span>
+        {marker === 'thinking' && <span className='rx-chat-thinking'>thinking…</span>}
       </div>
       {children}
     </div>
@@ -335,6 +345,10 @@ export default function MobileChat ({
   onDeleteConversation, skillId = null, onSkillChange, onManageSkills,
   initialDraft = '', onDraftChange, onGetModel}) {
   const [messages, setMessages] = useState(initialMessages)
+  // what the native session remembers, if anything: { modelId, skillKey, count }
+  // where count is messages.length after its last completed turn
+  const native = useRef(null)
+  const conversation = useRef('c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7))
   // ⚠️ SEEDED, AND WRITTEN BACK. What you typed and did not send belongs to the
   // conversation, not to this component's lifetime — leaving the screen to go
   // and get a model used to throw the sentence away. See drafts.js.
@@ -649,7 +663,11 @@ export default function MobileChat ({
       run.current = null
       setLive(null)
       setRate(null)
-      setMessages(prev => [...prev, { id: r.turnId, role: 'assistant', text, error }])
+      setMessages(prev => {
+        // the native session now holds this exchange too — unless it ended badly
+        if (r.native) native.current = (error || r.stoppedAt) ? null : { ...r.native, count: prev.length + 1 }
+        return [...prev, { id: r.turnId, role: 'assistant', text, error }]
+      })
       if (follow.current) requestAnimationFrame(() => stick())
     }
 
@@ -664,10 +682,17 @@ export default function MobileChat ({
         r.firstAt = performance.now()
         setLive(l => (l ? { ...l, marker: 'generating' } : l))
       }
-      // One text node, appended in place. A span per token drops a ProMotion
+      // One text node, updated in place. A span per token drops a ProMotion
       // phone off 120Hz inside a hundred tokens, and per-token fades jitter.
+      // The node shows the folded text — thinking blocks removed — so its data
+      // is set from the buffer rather than appended.
+      const vis = visibleText(bufRef.current)
       const node = liveNode.current?.firstChild
-      if (node) node.appendData(chunk)
+      if (node && node.data !== vis.text) node.data = vis.text
+      if (vis.thinking !== Boolean(r.thinking)) {
+        r.thinking = vis.thinking
+        setLive(l => (l ? { ...l, marker: vis.thinking ? 'thinking' : 'generating' } : l))
+      }
       // tok/s only if a chunk really is a token. If the stream turns out to be
       // chunked by sentence, print nothing rather than a wrong number.
       const secs = (performance.now() - r.firstAt) / 1000
@@ -681,7 +706,7 @@ export default function MobileChat ({
       }
     }
 
-    const onDone = () => finish(bufRef.current.trim(), null)
+    const onDone = () => finish(visibleText(bufRef.current).text.trim(), null)
 
     const onFailed = e => {
       const r = run.current
@@ -692,9 +717,9 @@ export default function MobileChat ({
       // on the first one, so there is no later real failure to miss. Deliberately
       // not a wall-clock window: a busy bridge can easily miss 400ms, and the
       // whole point of the rule is that a cancel never turns red.
-      if (r.stoppedAt) return finish(bufRef.current.trim(), null)
+      if (r.stoppedAt) return finish(visibleText(bufRef.current).text.trim(), null)
       haptics.notification?.('ERROR')
-      finish(bufRef.current.trim(), e?.message || 'Generation failed.')
+      finish(visibleText(bufRef.current).text.trim(), e?.message || 'Generation failed.')
     }
 
     // Both sources, one set of handlers — the transcript does not care whether
@@ -757,7 +782,12 @@ export default function MobileChat ({
     body = parsed.text
 
     haptics.impact?.('LIGHT')
-    const prompt = buildPrompt(messages, body, turnSkill || skill)
+    const sk = turnSkill || skill
+    const skillKey = sk?.body ? String(sk.body) : ''
+    const reuse = Boolean(model && !model.apple && !model.cloud && native.current &&
+      native.current.modelId === model.id && native.current.skillKey === skillKey && native.current.count === messages.length)
+    // reuse: only the new message; the native session remembers the rest
+    const prompt = reuse ? body : buildPrompt(messages, body, sk, { inlineInstructions: false })
     const stamp = Date.now()
     setMessages(prev => [...prev, { id: 'u' + stamp, role: 'user', text: body }])
     setDraft('')
@@ -765,6 +795,7 @@ export default function MobileChat ({
     multiline.current = false
     bufRef.current = ''
     run.current = { turnId: 'a' + stamp, chunks: 0, firstAt: 0, stoppedAt: 0, done: false, raf: 0 }
+    if (model && !model.apple && !model.cloud) run.current.native = { modelId: model.id, skillKey }
     // Rest coverage until the wait is real: the gauge animates only for
     // operations longer than 400ms, so dead air below that shows nothing.
     setLive({ marker: 'resident', error: null })
@@ -811,7 +842,7 @@ export default function MobileChat ({
       return
     }
 
-    lm.generate({ id: model.id, prompt, imageB64: model?.vision ? (photo?.b64 || '') : '' }).catch(() => {
+    lm.generate({ id: model.id, prompt, conversation: conversation.current, instructions: skillKey, reset: !reuse, imageB64: model?.vision ? (photo?.b64 || '') : '' }).catch(() => {
       // The rejection and the `failed` event describe the same failure; the
       // event carries the message, so let it do the talking and only clean up
       // here if it never arrives.
@@ -860,6 +891,7 @@ export default function MobileChat ({
 
   const clear = () => {
     if (run.current) stop()
+    native.current = null
     bufRef.current = ''
     setMessages([])
     setLive(null)
@@ -991,7 +1023,7 @@ export default function MobileChat ({
                   // the finished turn replaces it. Seeding also self-heals if
                   // this node is ever remounted mid-stream.
                   if (node && !node.firstChild) {
-                    node.appendChild(document.createTextNode(bufRef.current))
+                    node.appendChild(document.createTextNode(visibleText(bufRef.current).text))
                   }
                 }}
               />
@@ -1283,6 +1315,7 @@ const CSS = `
 .rx-chat-byline { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: var(--rx-label-2); }
 .rx-chat-marker { display: block; width: 22px; height: 22px; flex: none; }
 .rx-chat-byname { font-size: calc(13px * var(--rx-dt)); line-height: 1.385; font-weight: 400; font-weight: 600; color: var(--rx-label-2); }
+.rx-chat-thinking { margin-left: 8px; font-size: calc(13px * var(--rx-dt)); color: var(--rx-label-3, var(--rx-label-2)); font-style: italic; }
 .rx-chat-inlinecode {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.92em;

@@ -31,6 +31,13 @@ const sections = () => [
     ]
   },
   {
+    title: 'Follow-ups start faster, and no thinking out loud',
+    body: [
+      'The model now keeps its memory of the conversation between messages instead of re-reading the whole chat before every reply. The first message in a chat takes what it always took; the ones after it start almost at once, however long the chat has grown. A stopped or failed reply, a change of model or a change of skill clears that memory, and the next message rebuilds it.',
+      'Models that think before they answer used to show all of it \u2014 paragraphs of \u201cthe user wants\u2026 let me consider\u2026\u201d before one line of reply. Qwen 3 is now told not to, and any model that thinks anyway shows a small \u201cthinking\u2026\u201d by its name until the answer starts. The deliberation is never shown or kept.'
+    ]
+  },
+  {
     title: 'The icons are the ones iOS uses',
     body: [
       'The gear, the back arrow, the ⋯ menu, the download circle, the tick, the send arrow and the rest are now the same symbols iOS itself draws, at the same weights, so they sit next to the system\u2019s own icons without looking a little off. They follow the text color, so they read correctly in light and dark.'
