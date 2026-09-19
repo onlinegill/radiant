@@ -3036,6 +3036,19 @@ function recordTurnFailure (session, emit, message) {
 // data-driven rather than a hardcoded id, because a wrong id would silently
 // stop titles and memory from working at all.
 const UTILITY_HINTS = [/haiku/i, /flash[-_ ]?lite/i, /\bnano\b/i, /\bmini\b/i, /flash/i, /\blite\b/i, /\bsmall\b/i, /\b[0-4](?:\.\d)?b\b/i]
+// ⚠️ NAMES ARE NOT PRICES. The hints above found nothing on xAI (no model is
+// called mini) and on OpenRouter would have taken the first "haiku" in the
+// catalogue — Claude 3 Haiku, from 2024. Per provider, the models that ARE
+// the cheap fast lane, checked against the price lists on 2026-09-18 and
+// listed cheapest-first; the first one the account can see wins.
+//   xAI: 4.20 non-reasoning and 4.3 are $1.25/$2.50 per M against 4.6's
+//   $2/$6, and non-reasoning skips the thinking step, so it is faster too.
+//   OpenRouter: gpt-5-mini $0.25/$2, gemini-3.5-flash-lite $0.15/$1.25,
+//   haiku 4.5 $1/$5. Fine for an easy message; a tenth of Opus's $5/$25.
+const UTILITY_PREFERRED = {
+  xai: [/^grok-4\.20-.*non-reasoning$/i, /^grok-4\.3$/i],
+  openrouter: [/^openai\/gpt-5-mini$/i, /^google\/gemini-3\.5-flash-lite$/i, /^anthropic\/claude-haiku-4\.5$/i, /^google\/gemini-3\.[5-9]-flash$/i]
+}
 const utilityCache = new Map()   // providerId -> { at, model }
 
 async function pickUtilityModel (provider, sessionModel) {
@@ -3050,7 +3063,8 @@ async function pickUtilityModel (provider, sessionModel) {
     const accessToken = hasOAuth ? await validAccessToken(provider.id, config, saveConfig).catch(() => null) : null
     const models = await listModels(provider, config.keys[provider.id], accessToken, hasOAuth ? config.oauth[provider.id]?.accountId : null)
     const ids = (models || []).map(m => m.id)
-    for (const rx of UTILITY_HINTS) { const m = ids.find(id => rx.test(id)); if (m) { chosen = m; break } }
+    for (const rx of (UTILITY_PREFERRED[provider.id] || [])) { const m = ids.find(id => rx.test(id)); if (m) { chosen = m; break } }
+    if (!chosen) for (const rx of UTILITY_HINTS) { const m = ids.find(id => rx.test(id)); if (m) { chosen = m; break } }
   } catch {}
   utilityCache.set(provider.id, { at: Date.now(), model: chosen })
   return { provider, model: chosen || sessionModel }
