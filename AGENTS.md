@@ -202,6 +202,15 @@ HuggingFace packages (TG-221); the next build fails with "unable to resolve
 module dependency: 'Cmlx'". The script restores the file from git after every
 sync. If you sync by hand, `git checkout -- apps/ios/ios/App/CapApp-SPM/Package.swift`.
 
+⚠️ **iOS 27 SDK refuses the old app lifecycle.** Build 23 (2026-09-18) was the
+first compiled after Xcode moved to the iOS 27 SDK, and it died at launch on
+Tony's iPhone with SIGTRAP in
+`__UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`. Capacitor's
+template has no scene; `App/SceneDelegate.swift` plus the
+`UIApplicationSceneManifest` in `Info.plist` are what keep it launching. Do not
+let a `cap sync` or a template refresh remove either. Crash reports come off
+the phone with `xcrun devicectl device copy from --domain-type systemCrashLogs`.
+
 **Building it takes two non-obvious flags.** Plain `xcodebuild` fails twice:
 
 ```bash
