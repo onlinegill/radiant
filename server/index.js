@@ -3409,9 +3409,37 @@ app.post('/api/chat', async (req, res) => {
     planAddendum = planAddendum ? `${planAddendum}\n\n${line}` : line
   }
 
+  // ⚠️ WHICH MODEL ANSWERS THIS MESSAGE. Easy messages go to a fast model on
+  // the same provider (server/decide.js chooseModel: Jev with a key, a cheap
+  // model as the judge without one, off with neither). The reply carries
+  // `routed` so the transcript says who answered and why. Same provider only:
+  // the request below is built for THIS provider's auth.
+  let turnModel = session.model
+  let routed = null
+  if (config.settings.smartRouting !== false && !session.group && !session.planMode && !agent?.model) {
+    try {
+      const { chooseModel, decide } = await import('./decide.js')
+      const fast = await pickUtilityModel(provider, session.model)
+      const fastModel = fast.provider.id === provider.id ? fast.model : null
+      const judgeFn = config.keys.openrouter ? null : async (state, q) => {
+        const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `You are sorting one chat message by difficulty. ${q.instructions}\n\nEASY means: ${q.criteria.true}\nHARD means: ${q.criteria.false}\n\nEarlier messages (context only):\n${state.earlier_messages.map(m => '- ' + m).join('\n') || '(none)'}\n\nLatest message:\n${state.latest_message}\n\nAnswer with exactly one word: EASY or HARD.` }] }
+        const out = await utilityTurn({ provider, apiKey, session, tmp, signal: controller.signal })
+        return /^\s*easy\b/i.test(out) ? 0.9 : /^\s*hard\b/i.test(out) ? 0.1 : null
+      }
+      const pick = await chooseModel({ message: text, attachments, history: session.messages, sessionModel: session.model, fastModel, planMode: session.planMode, group: session.group, agentModel: agent?.model, decideFn: decide, judgeFn, apiKey: config.keys.openrouter, sessionId, signal: controller.signal })
+      if (pick.p != null) {
+        const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
+        st.decisions = (st.decisions || 0) + 1
+      }
+      if (pick.routed) { turnModel = pick.model; routed = { from: session.model, p: pick.p, judge: pick.judge } }
+      console.log(`[route] ${pick.routed ? `${session.model} → ${pick.model}` : `kept ${session.model}`} · ${pick.reason}${pick.p != null ? ` (${Math.round(pick.p * 100)}% easy, ${pick.judge})` : ''}${fastModel ? '' : ' · no fast model on ' + provider.id}`)
+    } catch (e) { console.error('[route]', e.message) }
+  }
+
   const common = {
     provider,
-    model: session.model,
+    model: turnModel,
+    routed,
     apiKey,
     getAccessToken: hasOAuth ? () => validAccessToken(provider.id, config, saveConfig) : null,
     getAccountId: hasOAuth ? () => config.oauth[provider.id]?.accountId || null : null,

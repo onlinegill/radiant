@@ -699,6 +699,14 @@ function UtilityModelBlock ({ config, onSettings }) {
           onRefresh={() => {}}
         />
       </div>
+      <label className='check-row' style={{ marginTop: 12 }}>
+        <input
+          type='checkbox'
+          checked={config?.settings?.smartRouting !== false}
+          onChange={e => onSettings({ smartRouting: e.target.checked })}
+        />
+        <span>Let easy messages go to that cheap model <span className='desc'>— before each message, a quick decision says whether a fast model can answer it well (a short question, a one-line edit, “thanks, now commit”). If it is sure, the fast model answers in a couple of seconds; anything harder stays on the model you chose. The reply says which model answered. Never mid-task, in plan mode or in a group chat. With an OpenRouter key the decision is Jev’s (0.3 s); without one the cheap model judges (1–2 s); with neither, nothing changes.</span></span>
+      </label>
     </div>
   )
 }
@@ -3222,6 +3230,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['Easy messages get a fast answer', 'Not every message needs your strongest model. Before each one, Radiant asks a tiny decision model whether a fast model can answer it well \u2014 a quick question, a one-line change, \u201cthanks, now commit\u201d. When it is sure, a fast model from the same provider answers in a couple of seconds instead of ten; anything harder goes to the model you chose. The reply\u2019s label shows which one answered and says \u201crouted\u201d, so nothing is hidden. It stays out of the way mid-task, in plan mode and in group chats. Switch it off under Settings \u2192 Models \u2192 Background work.'],
       ['What the model saw', 'Under every reply there is a small line \u2014 \u201cWhat the model saw \u00b7 3 rounds \u00b7 12 tools \u00b7 41k in, 88% cached\u201d. Open it and you get a table, one row per request the reply took: which model, how big the instructions were, how many tools were attached, how much of it came from the cache. It is the answer to \u201cwhy was that slow\u201d or \u201cwhy did that cost so much\u201d without guessing. If something is wrong \u2014 the instructions changing mid-reply, which throws the cache away \u2014 it says so in red. Commands the agent runs also no longer see any password, key or token from Radiant\u2019s own environment, so a script that prints its surroundings cannot put a key into the chat.'],
       ['@others, and a room that keeps everyone\u2019s plan current', 'In a group chat you could already name one agent with @Coder so only that agent acts. Two more ways to address the room: <b>@others</b> (or @all) pulls the rest in \u2014 not to do the work, but to say what changes in their own plans because of it \u2014 and <b>!@Name</b> keeps someone out of a message entirely, wherever you write it. So \u201c@coder move the backend to Go; @others !@marketing update your plans\u201d has Coder do the work, DevOps and Security revise theirs, and Marketing sit it out. Only the agent actually doing the work gets tools. There is also a switch on the group\u2019s roster bar, <b>others re-plan</b>: with it on, naming one agent pulls the rest in automatically, so you do not have to type @others every time.'],
       ['A project can have a folder, and says what it really is', 'A project groups chats in the sidebar \u2014 it does not create a folder on your disk, and now says so where you make one. It can point at a folder, though: the folder button on a project row picks one, and every new chat you start in that project opens in it instead of your home folder.'],

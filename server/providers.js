@@ -889,7 +889,7 @@ function planBlocked (name) {
 }
 
 // ---------- the agent loop ----------
-export async function runTurn ({ provider, model, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
+export async function runTurn ({ provider, model, routed, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
   // ⚠️ NOT `session.cwd || os.homedir()`. A folder that is set and not here is
   // the case that broke every tool call in the chat — see usableCwd.
   const { dir: cwd, missing: strayCwd } = usableCwd(session.cwd)
@@ -898,7 +898,7 @@ export async function runTurn ({ provider, model, apiKey, getAccessToken, getAcc
   if (autoCompact && summarize && estimateTokens(session.messages) > PROACTIVE_TOKENS) {
     await compactSession(session, 4, summarize, emit)
   }
-  const assistant = { role: 'assistant', model, parts: [] }
+  const assistant = { role: 'assistant', model, parts: [], ...(routed ? { routed } : {}) }
   if (agentId) assistant.agentId = agentId
   session.messages.push(assistant)
 

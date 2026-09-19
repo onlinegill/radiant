@@ -119,3 +119,65 @@ export async function chooseMcpServers ({ message, history = [], servers = [], t
   }
   return { attach, skipped, decided: true, usage: out.usage }
 }
+
+/**
+ * Which model should answer THIS message: the one the user picked, or a fast
+ * one on the same provider?
+ *
+ * ⚠️ WHY. Most messages in a coding chat are not coding: "what did that
+ * error say", "rename it", "and the other file?", "thanks, now commit". Each
+ * one waits on the strongest model the user owns — 5–20 s and full price —
+ * for an answer a fast model gives in 2 s at a tenth of the cost. Jev reads
+ * the message and says "easy" or "hard" in 300 ms; a fast model takes the
+ * easy ones. The reply says which model answered, so nothing is hidden.
+ *
+ * Rules, in order — each is a way routing could make the app worse:
+ *   1. No fast model, or it IS the chosen model → keep.
+ *   2. Plan mode, a group chat, or an agent with its own model → keep.
+ *   3. Mid-task: the previous reply used tools → keep. "And close it" says
+ *      nothing a classifier could catch; the big model has the thread.
+ *   4. Attachments, a slash command, or a long message (> 4000 chars) → keep.
+ *   5. Ask. Jev if there is a key; else `judgeFn` (a cheap model, 1–2 s);
+ *      else keep. Route only at p ≥ 0.8 — a wrong "easy" costs the user a
+ *      worse answer, a wrong "hard" costs a few seconds.
+ *   6. Any failure → keep. Routing can make Radiant faster; it must never
+ *      make it answer worse.
+ */
+export const ROUTE_BAR = 0.8
+export async function chooseModel ({ message, attachments = [], history = [], sessionModel, fastModel, planMode, group, agentModel, decideFn, judgeFn, apiKey, sessionId, signal }) {
+  const keep = reason => ({ model: sessionModel, routed: false, reason })
+  if (!fastModel || fastModel === sessionModel) return keep('no fast model')
+  if (planMode || group || agentModel) return keep(planMode ? 'plan mode' : group ? 'group chat' : 'agent model')
+  const text = String(message || '')
+  if (attachments.length || text.startsWith('/') || text.length > 4000) return keep('attachments, command, or long')
+  // 3. the previous assistant reply, before the message just added
+  for (let i = history.length - 1; i >= 0; i--) {
+    const m = history[i]
+    if (m.role === 'user' && i === history.length - 1) continue
+    if (m.role === 'assistant') { if ((m.parts || []).some(p => p.type === 'tool')) return keep('mid-task'); break }
+  }
+  const recent = history.filter(m => m.role === 'user').slice(-4, -1).map(m => String(m.text || '').slice(0, 300))
+  const state = { latest_message: text.slice(0, 2000), earlier_messages: recent }
+  const question = {
+    type: 'noul',
+    instructions: 'Could a small, fast model (Claude Haiku, GPT mini, Gemini Flash) answer the latest_message well, or does it need the strongest model available? Judge the latest message; earlier ones are context only.',
+    criteria: {
+      true: 'A short factual question; a quick lookup; a one-line or one-file edit; a wording, naming or formatting change; a question about the conversation so far; a greeting or thanks; a simple command to run and report.',
+      false: 'Changes across several files; debugging or diagnosing a failure; design, architecture or trade-off decisions; anything the user calls hard, careful, important or thorough; long documents to write; multi-step reasoning or math; an ambiguous task that needs judgment.'
+    }
+  }
+  let p = null, judge = null
+  try {
+    if (decideFn && apiKey) {
+      const out = await decideFn({ apiKey, sessionId, signal, state, questions: { easy: question } })
+      const a = out?.answers?.easy
+      if (a && typeof a.noul === 'number') { p = a.noul; judge = 'jev' }
+    } else if (judgeFn) {
+      const v = await judgeFn(state, question)
+      if (typeof v === 'number') { p = v; judge = 'model' }
+    }
+  } catch { p = null }
+  if (p == null) return keep('no judge')
+  if (p >= ROUTE_BAR) return { model: fastModel, routed: true, p, judge, reason: 'easy' }
+  return { model: sessionModel, routed: false, p, judge, reason: 'hard' }
+}
