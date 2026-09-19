@@ -1365,6 +1365,31 @@ async function claudeUsage (token) {
 }
 
 // open a file/folder in the OS default app (for the "files changed" chips)
+// ⚠️ THE PREVIEW PANE READS FILES; IT DOES NOT BROWSE THE DISK. A file the
+// agent wrote (or one the user typed into the address field) is served for
+// the right panel's Preview tab, read-only, with a content type from its
+// extension. Only files under the user's home or a session's working folder,
+// never dotfiles, never anything outside — this endpoint is reachable from a
+// paired phone, and a path is attacker-shaped input.
+app.get('/api/preview', (req, res) => {
+  const p = path.resolve(String(req.query.path || '').replace(/^~(?=\/|$)/, os.homedir()))
+  const roots = [os.homedir(), os.tmpdir(), '/tmp', ...listSessions().map(s => s.cwd).filter(Boolean)].map(r => path.resolve(r))
+  const inside = roots.some(r => p === r || p.startsWith(r + path.sep))
+  if (!p || !inside || p.split(path.sep).some(seg => seg.startsWith('.') && seg !== '.' && seg !== '..')) return res.status(403).json({ error: 'not previewable' })
+  let st
+  try { st = fs.statSync(p) } catch { return res.status(404).json({ error: 'no such file' }) }
+  if (!st.isFile()) return res.status(400).json({ error: 'not a file' })
+  if (st.size > 32 * 1024 * 1024) return res.status(413).json({ error: 'too large to preview' })
+  const types = { html: 'text/html', htm: 'text/html', md: 'text/markdown', markdown: 'text/markdown', txt: 'text/plain', svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf', json: 'application/json', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript', csv: 'text/plain' }
+  const ext = path.extname(p).slice(1).toLowerCase()
+  res.setHeader('content-type', (types[ext] || 'text/plain') + '; charset=utf-8')
+  res.setHeader('last-modified', st.mtime.toUTCString())
+  res.setHeader('etag', `"${st.size}-${Math.floor(st.mtimeMs)}"`)
+  res.setHeader('cache-control', 'no-store')
+  if (req.method === 'HEAD') return res.end()
+  fs.createReadStream(p).pipe(res)
+})
+
 app.post('/api/open', (req, res) => {
   const p = String(req.body?.path || '')
   if (!p || !fs.existsSync(p)) return res.status(400).json({ error: 'no such file' })

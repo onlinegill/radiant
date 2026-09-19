@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Terminal from './Terminal.jsx'
+import Preview from './Preview.jsx'
 import { Icon } from './Icons.jsx'
 
 const MIN_W = 300
@@ -44,7 +45,30 @@ function ActivityItem ({ item }) {
   )
 }
 
-export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose }) {
+// ⚠️ WHO IS WAITING ON YOU, in one place. With three chats running, the only
+// sign that one had stopped to ask something was a notification you may
+// have dismissed. OpenHarness has one key for "the agents waiting on me";
+// Tony asked for it as a tab beside Activity and Terminal. Each row is a
+// chat that needs you — an approval, a question, or a turn that finished
+// while you were looking at another chat — and clicking it takes you there.
+// ⇧⌘I opens the first one.
+function ForYou ({ waiting, onOpen }) {
+  if (!waiting.length) return <div className='activity-empty'>Nothing is waiting on you. A chat that stops to ask, or finishes while you are elsewhere, will be listed here.</div>
+  const label = { approval: 'Approve', question: 'Answer', finished: 'Finished' }
+  return (
+    <div className='foryou'>
+      {waiting.map(w => (
+        <button key={w.sessionId + w.kind} className={'foryou-row is-' + w.kind} onClick={() => onOpen(w.sessionId)}>
+          <span className='foryou-kind'>{label[w.kind] || w.kind}</span>
+          <span className='foryou-title'>{w.title || 'Untitled chat'}</span>
+          {w.text && <span className='foryou-text'>{w.text}</span>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose, session, waiting = [], onOpenSession }) {
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem('radiant.rightWidth'))
     return saved >= MIN_W && saved <= MAX_W ? saved : 400
@@ -82,6 +106,8 @@ export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose }
       <div className='right-tabs'>
         <button className={'right-tab' + (tab === 'activity' ? ' active' : '')} onClick={() => onTab('activity')}>Activity</button>
         <button className={'right-tab' + (tab === 'terminal' ? ' active' : '')} onClick={() => onTab('terminal')}>Terminal</button>
+        <button className={'right-tab' + (tab === 'preview' ? ' active' : '')} onClick={() => onTab('preview')}>Preview</button>
+        <button className={'right-tab' + (tab === 'foryou' ? ' active' : '')} onClick={() => onTab('foryou')} title='Chats waiting on you (⇧⌘I)'>For you{waiting.length ? <span className='right-tab-badge'>{waiting.length}</span> : null}</button>
         <div style={{ flex: 1 }} />
         <button className='icon-btn' onClick={onClose} title='Close panel'><Icon.close /></button>
       </div>
@@ -100,6 +126,8 @@ export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose }
           </div>
         )}
         {tab === 'terminal' && <Terminal cwd={cwd} mode={mode} />}
+        {tab === 'preview' && <Preview session={session} visible />}
+        {tab === 'foryou' && <ForYou waiting={waiting} onOpen={onOpenSession} />}
       </div>
     </aside>
   )

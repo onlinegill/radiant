@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, streamChat } from './api.js'
 import { applyTheme } from './theme.js'
 import { notifyAway, turnBody } from './notify.js'
@@ -123,6 +123,9 @@ function DesktopApp () {
   const [pendingPrompt, setPendingPrompt] = useState(null) // { sessionId, text, taskId }
   const [todos, setTodos] = useState([]) // agent checklist for the active session
   const [questionMap, setQuestionMap] = useState({})
+  // chats whose turn finished while another chat was open — listed under "For you"
+  // until they are opened
+  const [finishedAway, setFinishedAway] = useState({})
   const setQuestionFor = (id, v) => setQuestionMap(m => {
     if (v == null) { if (!(id in m)) return m; const { [id]: _d, ...rest } = m; return rest }
     return { ...m, [id]: v }
@@ -257,6 +260,8 @@ function DesktopApp () {
   const openSession = async id => {
     const s = await api.getSession(id)
     setSession(s)
+    // opening a chat is reading it: it leaves the "For you" list
+    setFinishedAway(m => { if (!m[id]) return m; const { [id]: _, ...rest } = m; return rest })
     setTodos(s.todos || [])
     setStats(s.stats || null)
     setError(null)
@@ -339,6 +344,7 @@ function DesktopApp () {
     if (!session) return
     const s = await api.truncateSession(session.id, index)
     setSession(s); setLiveFor(s.id, null); setApprovalFor(s.id, null); setStats(s.stats || null); setTodos(s.todos || []); setError(null)
+    setFinishedAway(m => { if (!m[s.id]) return m; const { [s.id]: _, ...rest } = m; return rest })
     streamingRef.current.delete(session.id)
     refreshSessions()
     return s
@@ -685,6 +691,7 @@ function DesktopApp () {
       // now that was silent either way. The tag is the session, so this replaces
       // any approval prompt still sitting in Notification Center for this chat.
       notifyAway({ sessionId, title: chatTitle, body: turnBody({ sawEnd, parts: liveMsg.parts }) })
+      if (openSessionRef.current !== sessionId) setFinishedAway(m => ({ ...m, [sessionId]: { title: chatTitle, at: Date.now() } }))
       setLiveFor(sessionId, null)
       // A turn that never started never wrote the user's message to disk, so
       // refetching the saved session here is exactly what erased it. Keep the
@@ -766,11 +773,28 @@ function DesktopApp () {
     api.abort(session.id).catch(e => setError(e.message))
   }
 
+  // everything waiting on the user, across chats: approvals first, then
+  // questions, then turns that finished while another chat was open
+  const waiting = useMemo(() => {
+    const titleOf = id => sessions.find(s => s.id === id)?.title || (session?.id === id ? session.title : '')
+    const out = []
+    for (const [id, a] of Object.entries(approvalMap)) if (a) out.push({ sessionId: id, kind: 'approval', title: titleOf(id), text: a.args?.command || a.name })
+    for (const [id, q] of Object.entries(questionMap)) if (q) out.push({ sessionId: id, kind: 'question', title: titleOf(id), text: q.question })
+    for (const [id, f] of Object.entries(finishedAway)) out.push({ sessionId: id, kind: 'finished', title: f.title || titleOf(id), text: '' })
+    return out
+  }, [approvalMap, questionMap, finishedAway, sessions, session])
+
   // global keyboard shortcuts
   useEffect(() => {
     const onKey = e => {
       const meta = e.metaKey || e.ctrlKey
       if (meta && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen(o => !o) }
+      else if (meta && e.shiftKey && e.key.toLowerCase() === 'i') {
+        // ⇧⌘I: the next chat waiting on you — open it, and show the list
+        e.preventDefault()
+        setRightOpen(true); setRightTab('foryou')
+        if (waiting[0]) openSession(waiting[0].sessionId)
+      }
       else if (meta && e.key.toLowerCase() === 'n') { e.preventDefault(); newSession() }
       else if (meta && e.key === ',') { e.preventDefault(); openSettings() }
       else if (e.key === 'Escape' && live?.streaming) { stop() }
@@ -960,6 +984,9 @@ function DesktopApp () {
           cwd={session?.cwd}
           mode={config.settings.mode}
           onClose={() => setRightOpen(false)}
+          session={session}
+          waiting={waiting}
+          onOpenSession={openSession}
         />
       )}
       {paletteOpen && (

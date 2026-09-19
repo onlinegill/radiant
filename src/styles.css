@@ -1382,6 +1382,28 @@ code, pre, .mono { font-family: var(--font-mono); }
 .right-tab:hover { color: var(--text-muted); }
 .right-tab.active { color: var(--text); background: var(--bg-raised); border-color: var(--border); }
 .right-body { flex: 1; min-height: 0; position: relative; }
+.right-tab-badge { display: inline-block; margin-left: 6px; min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--bg, #fff); font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600; }
+
+/* the Preview tab: an address bar, the things the chat produced, and a frame */
+.preview { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.preview-bar { display: flex; gap: 4px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.preview-address { flex: 1; min-width: 0; font-size: 12px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text); font-family: 'JetBrains Mono', monospace; }
+.preview-cands { display: flex; gap: 4px; flex-wrap: wrap; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.preview-cand { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-cand.on { color: var(--text); background: var(--bg-raised); }
+.preview-cand.follow { border-style: dashed; }
+.preview-body { flex: 1; min-height: 0; position: relative; background: var(--bg-input); }
+.preview-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+.preview-md { position: absolute; inset: 0; overflow-y: auto; padding: 14px 16px; }
+
+/* the For you tab: one row per chat that needs the user */
+.foryou { position: absolute; inset: 0; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.foryou-row { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; text-align: left; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-raised); color: var(--text); }
+.foryou-row:hover { border-color: var(--accent); }
+.foryou-kind { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+.foryou-row.is-finished .foryou-kind { color: var(--text-faint); }
+.foryou-title { font-size: 13px; font-weight: 500; }
+.foryou-text { grid-column: 2; font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 
 .activity-feed { position: absolute; inset: 0; overflow-y: auto; padding: 12px; }
 .activity-empty { color: var(--text-faint); font-size: 12.5px; text-align: center; margin-top: 40px; }
