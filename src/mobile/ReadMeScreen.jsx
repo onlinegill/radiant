@@ -83,7 +83,7 @@ const sections = () => [
   {
     title: 'Keeping a conversation',
     body: [
-      'Swipe a row left in Recent Sessions and you get two things: Archive and Delete. Archive puts a conversation under an Archived heading at the foot of the list, folded away until you tap it.',
+      'Swipe a row left in Recent Sessions and you get two things: Archive and Delete, each an icon over its word. A quick flick opens or closes the drawer. Keep swiping past the middle of the screen and Archive grows to fill the drawer with a small tap of feedback \u2014 let go there and the chat is archived and the row folds away, the way Mail does it. Delete never happens from a swipe alone; it is always a tap on the open drawer. Archive puts a conversation under an Archived heading at the foot of the list, folded away until you tap it.',
       'That is worth knowing because the phone keeps the last forty conversations and quietly drops the oldest to make room. An archived one is never dropped, so archiving is how you keep something rather than just tidy it away.'
     ]
   },

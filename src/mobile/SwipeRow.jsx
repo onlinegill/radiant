@@ -15,12 +15,22 @@
  */
 import React, { useEffect, useRef, useState } from 'react'
 import haptics from './haptics.js'
+import SF from './SF.jsx'
 
-// 88 is two 44pt targets' worth of travel: far enough that a scroll never
-// trips it, short enough to reach with a thumb.
-const ACTION_W = 88
+// ⚠️ THE LONG SWIPE COMMITS THE SAFE ACTION, NEVER THE DESTRUCTIVE ONE. After
+// reactbits.dev/micro/swipe-row, which Tony asked for on the home list: the
+// actions carry an icon over a word, a flick opens or closes, and a swipe
+// past six tenths of the row grows the first action across the drawer with a
+// tap of haptic — let go there and it commits, and the row folds away. iOS
+// Mail does exactly this, and the action it commits is Archive. Delete is
+// reversible nowhere, so it stays a deliberate tap on an open drawer.
+//
+// 76 per action: two fit in the reach of a thumb, and the icon-over-word
+// glyph needs less width than a word alone did.
+const ACTION_W = 76
 const LOCK_SLOP = 6      // movement before we decide the gesture's direction
-const OPEN_AT = ACTION_W / 2
+const FLICK = 0.45       // px/ms — a quick throw opens or closes regardless of distance
+const COMMIT_AT = 0.6    // of the row's width
 
 export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, archiveLabel, archiveText = 'Archive', isOpen, onOpenChange, className = '', rowProps = {} }) {
   // ⚠️ THE TRAVEL FOLLOWS THE NUMBER OF ACTIONS. Two buttons behind an 88pt
@@ -31,6 +41,11 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, 
   const [dx, setDx] = useState(0)
   const dxRef = useRef(0)
   const set = (v) => { dxRef.current = v; setDx(v) }
+  const [spread, setSpread] = useState(false)     // past the commit point: Archive fills the drawer
+  const [phase, setPhase] = useState('idle')      // idle | committing | collapsing
+  const [height, setHeight] = useState(null)
+  const canCommit = Boolean(onArchive)
+  const spreadRef = useRef(false)
 
   // Another row opening closes this one.
   useEffect(() => { if (!isOpen && dxRef.current !== 0) set(0) }, [isOpen])
@@ -42,8 +57,9 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, 
     let s = null
 
     const onStart = (e) => {
+      if (phase !== 'idle') return
       const t = e.touches[0]
-      s = { x: t.clientX, y: t.clientY, base: dxRef.current, axis: null }
+      s = { x: t.clientX, y: t.clientY, base: dxRef.current, axis: null, hist: [] }
     }
     const onMove = (e) => {
       if (!s) return
@@ -58,17 +74,32 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, 
       }
       if (s.axis !== 'x') return
       e.preventDefault()
-      // Rubber-band past the stop rather than letting it slide off.
+      const W = el.offsetWidth || 360
+      const commitAt = Math.max(COMMIT_AT * W, openW + ACTION_W / 2)
+      // Past the drawer the travel is real but slower, up to the commit point;
+      // past that, rubber-band, so it never slides off the screen.
       let next = s.base + mx
-      if (next < -openW) next = -openW - ((-openW - next) * 0.35)
-      set(Math.min(0, Math.max(-openW - 24, next)))
+      if (next < -openW) {
+        const beyond = -openW - next
+        next = canCommit ? -openW - Math.min(beyond * 0.7, commitAt - openW + 40) : -openW - beyond * 0.35
+      }
+      next = Math.min(0, next)
+      set(next)
+      s.hist.push([performance.now(), next]); if (s.hist.length > 4) s.hist.shift()
+      const past = canCommit && -next >= commitAt
+      if (past !== spreadRef.current) { spreadRef.current = past; setSpread(past); if (past) haptics.impact?.('MEDIUM') }
     }
     const onEnd = () => {
       if (!s) return
       const wasX = s.axis === 'x'
+      const hist = s.hist
       s = null
       if (!wasX) return
-      const open = dxRef.current < -(openW / 2)
+      if (spreadRef.current) { commitArchive(); return }
+      const v = hist.length >= 2 ? (hist[hist.length - 1][1] - hist[0][1]) / Math.max(1, hist[hist.length - 1][0] - hist[0][0]) : 0
+      // a flick needs real travel too: a 6px twitch is not a throw
+      const moved = Math.abs(dxRef.current - (hist[0]?.[1] ?? dxRef.current))
+      const open = Math.abs(v) >= FLICK && moved >= 24 ? v < 0 : dxRef.current < -(openW / 2)
       set(open ? -openW : 0)
       if (open !== isOpen) {
         haptics.selection?.()
@@ -86,18 +117,38 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, 
       el.removeEventListener('touchend', onEnd)
       el.removeEventListener('touchcancel', onEnd)
     }
-  }, [isOpen, onOpenChange])
+  }, [isOpen, onOpenChange, phase, canCommit])
+
+  // the long swipe, or a tap on Archive: slide the face off, fold the row, then act
+  const commitArchive = () => {
+    if (phase !== 'idle' || !onArchive) return
+    const el = ref.current
+    const W = el?.offsetWidth || 360
+    setPhase('committing')
+    spreadRef.current = true; setSpread(true)
+    set(-W)
+    haptics.notification?.('SUCCESS')
+    setTimeout(() => {
+      setHeight(el?.offsetHeight || 52)
+      requestAnimationFrame(() => { setPhase('collapsing'); setHeight(0) })
+      setTimeout(() => { onOpenChange?.(false); onArchive() }, 220)
+    }, 200)
+  }
 
   return (
-    <div className="rx-swipe" ref={ref}>
+    <div
+      className={'rx-swipe' + (spread ? ' is-spread' : '') + (phase !== 'idle' ? ' is-' + phase : '')}
+      ref={ref}
+      style={height != null ? { height, overflow: 'hidden', transition: 'height 200ms cubic-bezier(.23,1,.32,1)' } : undefined}
+    >
       <div className="rx-swipe-actions">
         {onArchive && (
           <button
             className="rx-swipe-action is-archive"
             aria-label={archiveLabel}
-            onClick={(e) => { e.stopPropagation(); haptics.impact?.('MEDIUM'); onArchive() }}
+            onClick={(e) => { e.stopPropagation(); commitArchive() }}
           >
-            {archiveText}
+            <span className="rx-swipe-glyph"><SF name="archivebox" size={20} /><span>{archiveText}</span></span>
           </button>
         )}
         <button
@@ -105,7 +156,7 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, 
           aria-label={deleteLabel}
           onClick={(e) => { e.stopPropagation(); haptics.impact?.('MEDIUM'); onDelete() }}
         >
-          Delete
+          <span className="rx-swipe-glyph"><SF name="trash" size={20} /><span>Delete</span></span>
         </button>
       </div>
       <div
@@ -118,7 +169,7 @@ export default function SwipeRow ({ children, onDelete, deleteLabel, onArchive, 
         style={{
           transform: dx === 0 ? undefined : `translate3d(${dx}px,0,0)`,
           willChange: dx === 0 ? undefined : 'transform',
-          transition: dx === 0 || dx === -openW ? 'transform 220ms cubic-bezier(.32,.72,0,1)' : 'none'
+          transition: dx === 0 || dx === -openW || phase !== 'idle' ? 'transform 220ms cubic-bezier(.32,.72,0,1)' : 'none'
         }}
         {...rowProps}
       >

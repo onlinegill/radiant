@@ -1685,7 +1685,17 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                   title={voice.state !== 'off' ? 'End the voice conversation' : 'Talk to Radiant'}
                   aria-pressed={voice.state !== 'off'}
                   data-tip={voice.state !== 'off' ? 'End the voice conversation' : 'Talk to Radiant — a live voice conversation\nover this chat. Audio goes to OpenAI (GPT-Live);\nthe thinking stays on this chat\u2019s model.'}
-                ><Icon.waves size={15} /><span className='pill-label'>{voice.state !== 'off' ? 'On a call' : 'Talk'}</span></button>)}
+                ><Icon.waves size={15} /><span className='pill-label'>{
+                  // ⚠️ SAY WHAT IS HAPPENING, NOT "ON A CALL". Tony: "that makes no
+                  // sense" — nobody is calling anyone. The word follows the voice
+                  // state: connecting, listening, working, and "End" once it is
+                  // simply on, because that is what pressing it does.
+                  voice.state === 'connecting' ? 'Connecting…'
+                    : voice.state === 'listening' ? 'Listening'
+                    : voice.state === 'working' ? 'Working…'
+                    : voice.state === 'closing' ? 'Ending…'
+                    : voice.state !== 'off' ? 'End' : 'Talk'
+                }</span></button>)}
               {/* ⚠️ EVERY BUTTON ON THIS BAR GROWS INTO ITS WORD. Dictate and
                   Talk did; Attach, Design and Skills stayed bare icons. Tony:
                   "why arent there button popups for design or skills like the

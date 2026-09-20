@@ -970,12 +970,20 @@
 .is-native .rx-swipe-actions { justify-self: end; display: flex; height: 100%; }
 .is-native .rx-swipe-action.is-archive { background: var(--rx-fill-2, #8E8E93); }
 .is-native .rx-swipe-action {
-  width: 88px;
+  width: 76px;
   border: 0; margin: 0; padding: 0;
   background: var(--rx-red-fill); color: #fff;
-  font: -apple-system-body; font-weight: 500;
+  font: -apple-system-caption1; font-weight: 500;
   display: flex; align-items: center; justify-content: center;
+  transition: width 220ms cubic-bezier(.23,1,.32,1);
 }
+.is-native .rx-swipe-glyph { display: grid; justify-items: center; gap: 4px; line-height: 1; }
+/* past the commit point, Archive grows across the whole drawer (the delete
+   button shrinks to nothing) — the sign that letting go will archive */
+.is-native .rx-swipe-actions { position: relative; }
+.is-native .rx-swipe.is-spread .rx-swipe-action.is-archive { width: 100vw; justify-content: flex-end; padding-right: 28px; box-sizing: border-box; }
+.is-native .rx-swipe.is-spread .rx-swipe-action:not(.is-archive) { width: 0; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .is-native .rx-swipe-action { transition: none; } }
 .is-native .rx-swipe-action:active { filter: brightness(0.9); }
 /* ⚠️ THE FACE MUST BE OPAQUE. It slides across the red action; leave it
    transparent and Delete bleeds through every row in the list. */
