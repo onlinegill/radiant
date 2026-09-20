@@ -1,4 +1,5 @@
 import express from 'express'
+import { snapshot as ckSnapshot, changes as ckChanges, fileDiff as ckFileDiff, restore as ckRestore, eligible as ckEligible } from './checkpoints.js'
 import { listGatewayAgents } from './openclaw.js'
 import http from 'http'
 import crypto from 'crypto'
@@ -3011,6 +3012,33 @@ app.delete('/api/sessions/:id', (req, res) => {
   res.json({ ok: true })
 })
 
+// ---------- checkpoints (see server/checkpoints.js) ----------
+app.get('/api/sessions/:id/checkpoint/diff', async (req, res) => {
+  const s = loadSession(req.params.id)
+  if (!s) return res.status(404).json({ error: 'not found' })
+  const { from, to, file } = req.query
+  if (!from || !to || !file) return res.status(400).json({ error: 'from, to and file are required' })
+  try { res.json({ diff: await ckFileDiff(RADIANT_DIR, s.cwd, String(from), String(to), String(file)) }) } catch (e) { res.status(500).json({ error: e.message }) }
+})
+// ⚠️ UNDO IS ITSELF UNDOABLE. The current state is snapshotted before the
+// restore, and the note written into the chat carries that sha, so "undo
+// the undo" is one more restore.
+app.post('/api/sessions/:id/checkpoint/restore', async (req, res) => {
+  const s = loadSession(req.params.id)
+  if (!s) return res.status(404).json({ error: 'not found' })
+  if (activeTurns.has(s.id)) return res.status(409).json({ error: 'a turn is running — stop it first' })
+  const sha = String(req.body?.sha || '')
+  if (!/^[0-9a-f]{7,40}$/.test(sha)) return res.status(400).json({ error: 'bad sha' })
+  try {
+    const r = await ckRestore(RADIANT_DIR, s.cwd, sha)
+    const names = r.touched.map(t => t.file)
+    const text = `Files restored to the snapshot ${sha.slice(0, 7)}${names.length ? ` — ${names.length} file${names.length === 1 ? '' : 's'} changed: ${names.slice(0, 8).join(', ')}${names.length > 8 ? '…' : ''}` : ' (nothing differed)'}.`
+    s.messages.push({ role: 'assistant', model: 'radiant', parts: [{ type: 'notice', text }], restore: { to: sha, safety: r.safety, touched: r.touched.slice(0, 200) } })
+    saveSession(s)
+    res.json({ ok: true, touched: r.touched, safety: r.safety, session: s })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
 // rewind: drop all messages from `index` onward (branch the conversation)
 app.post('/api/sessions/:id/truncate', (req, res) => {
   const s = loadSession(req.params.id)
@@ -3569,6 +3597,16 @@ app.post('/api/chat', async (req, res) => {
     } catch (e) { console.error('[route]', e.message) }
   }
 
+  // ⚠️ A SNAPSHOT BEFORE THE TURN, so the reply's changes can be undone
+  // (server/checkpoints.js). Not the home folder; not a folder that proved
+  // slow. `session.checkpointNote` is set once so the chat says why not.
+  let ckBefore = null
+  if (config.settings.checkpoints !== false) {
+    const el = ckEligible(session.cwd)
+    if (el.ok) { const r = await ckSnapshot(RADIANT_DIR, session.cwd, 'before turn'); ckBefore = r?.sha || null }
+    else if (!session.checkpointNote && session.messages.filter(m => m.role === 'user').length === 1) { session.checkpointNote = el.reason }
+  }
+
   // the reply-vs-evidence check, when there is a key to ask with
   let verifyClaims = null
   if (config.settings.verifyClaims !== false && config.keys.openrouter) {
@@ -3675,6 +3713,17 @@ app.post('/api/chat', async (req, res) => {
     {
       const lastA = [...session.messages].reverse().find(m => m.role === 'assistant')
       if (lastA && Object.keys(decided).length) lastA.decisions = decided
+      // and so does its checkpoint: before/after shas plus the files between them
+      if (lastA && ckBefore) {
+        const touchedFiles = (lastA.parts || []).some(p => p.type === 'tool' && /^(write_file|edit_file|run_command)$/.test(p.name) && !p.denied)
+        if (touchedFiles) {
+          const after = await ckSnapshot(RADIANT_DIR, session.cwd, 'after turn')
+          if (after?.sha) {
+            const ch = after.sha === ckBefore ? [] : await ckChanges(RADIANT_DIR, session.cwd, ckBefore, after.sha).catch(() => [])
+            lastA.checkpoint = { before: ckBefore, after: after.sha, files: ch.length, changes: ch.slice(0, 200) }
+          }
+        }
+      }
     }
     // ⚠️ ONE DECISION BEFORE THREE WRITERS. A title, a memory distiller and a
     // skill reflection each cost a model call after every turn — on "thanks"

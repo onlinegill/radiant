@@ -926,6 +926,7 @@ function DesktopApp () {
         onMenu={() => setNavOpen(true)}
         onNewGroup={newGroup}
         onTruncate={truncateSession}
+        onSessionReplaced={s => { if (s && session && s.id === session.id) setSession(s) }}
         onFork={forkSession}
         onFollowUp={async on => {
           if (!session) return

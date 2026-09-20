@@ -136,6 +136,55 @@ function ModelSaw ({ sent }) {
   )
 }
 
+// ⚠️ THE REPLY'S CHANGES, AND THE WAY BACK. Every turn in a project folder
+// is bracketed by two snapshots (server/checkpoints.js). This strip lists
+// the files between them, opens a diff per file, offers "Undo these
+// changes" (files only — the conversation stays, which is the point) and a
+// Comment button that drops "About <file>: " into the composer, so a note on
+// a diff becomes steering. Cline's checkpoints, per turn instead of per tool.
+function Checkpoint ({ ck, sessionId, onRestored, onComment }) {
+  const [open, setOpen] = useState(false)
+  const [diffOf, setDiffOf] = useState(null)
+  const [diff, setDiff] = useState('')
+  const [busy, setBusy] = useState(false)
+  if (!ck || !ck.after || ck.after === ck.before || !ck.files) return null
+  const show = async f => {
+    if (diffOf === f) { setDiffOf(null); return }
+    setDiffOf(f); setDiff('…')
+    try { const r = await api.checkpointDiff(sessionId, ck.before, ck.after, f); setDiff(r.diff || '(no text diff)') } catch (e) { setDiff('Could not read the diff: ' + e.message) }
+  }
+  const undo = async () => {
+    if (!window.confirm(`Put ${ck.files} file${ck.files === 1 ? '' : 's'} back the way they were before this reply? The conversation stays. This can itself be undone.`)) return
+    setBusy(true)
+    try { const r = await api.checkpointRestore(sessionId, ck.before); onRestored?.(r) } catch (e) { window.alert(e.message) } finally { setBusy(false) }
+  }
+  return (
+    <div className={'ckpt' + (open ? ' is-open' : '')}>
+      <button className='ckpt-toggle' onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        Changes · {ck.files} file{ck.files === 1 ? '' : 's'}
+      </button>
+      {open && (
+        <div className='ckpt-body'>
+          <div className='ckpt-files'>
+            {(ck.changes || []).map(c => (
+              <div key={c.file} className={'ckpt-file' + (diffOf === c.file ? ' is-open' : '')}>
+                <button className='ckpt-name' onClick={() => show(c.file)} title={c.file}>{c.file}</button>
+                <span className='ckpt-stat'>{c.added != null ? <><span className='add'>+{c.added}</span> <span className='del'>−{c.removed}</span></> : 'binary'}</span>
+                {onComment && <button className='ckpt-comment' onClick={() => onComment(c.file)} title='Say something about this file'>comment</button>}
+              </div>
+            ))}
+          </div>
+          {diffOf && <pre className='ckpt-diff'>{diff.split('\n').map((l, i) => <span key={i} className={l.startsWith('+') && !l.startsWith('+++') ? 'add' : l.startsWith('-') && !l.startsWith('---') ? 'del' : l.startsWith('@@') ? 'hunk' : ''}>{l + '\n'}</span>)}</pre>}
+          <div className='ckpt-row'>
+            <button className='small-btn' onClick={undo} disabled={busy}>{busy ? 'Restoring…' : 'Undo these changes'}</button>
+            <span className='ckpt-hint'>Files only — the conversation stays. Undo is itself undoable.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Deliverables ({ parts }) {
   const files = []
   const seen = new Set()
@@ -470,7 +519,7 @@ function WorkingBadge ({ parts, thinkingActive, startedAt, lastEventAt }) {
   )
 }
 
-function AssistantMessage ({ parts, sent, routed, lane, thinking, thinkingActive, thinkingSecs, streaming, model, agent, local, onChoose, onContinue, startedAt, lastEventAt, showThinking = true }) {
+function AssistantMessage ({ parts, sent, routed, lane, checkpoint, sessionId, onRestored, onComment, thinking, thinkingActive, thinkingSecs, streaming, model, agent, local, onChoose, onContinue, startedAt, lastEventAt, showThinking = true }) {
   const waiting = streaming && !parts.length && !thinking
   // A local model that isn't resident cold-loads its weights before the first token.
   // Reveal the note only after a beat, so a warm model (fast first token) never shows it.
@@ -539,6 +588,7 @@ function AssistantMessage ({ parts, sent, routed, lane, thinking, thinkingActive
         return out
       })()}
       {!streaming && <Deliverables parts={parts} />}
+      {!streaming && <Checkpoint ck={checkpoint} sessionId={sessionId} onRestored={onRestored} onComment={onComment} />}
       {!streaming && <ModelSaw sent={sent} />}
       {waiting && (slowWait
         ? <div className='notice loading-note'>
@@ -1020,7 +1070,7 @@ function VoiceCaptions ({ rows = [] }) {
   )
 }
 
-export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, onFollowUp, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking, voice = null, onToggleVoice }) {
+export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, onFollowUp, onSessionReplaced, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking, voice = null, onToggleVoice }) {
   // ⚠️ TOOLS RUN ON THE SERVER'S MAC. Computer control is the one where that is
   // dangerous rather than merely surprising: the mouse that moves, the keys that
   // get typed and the screen that is captured all belong to the machine running
@@ -1474,7 +1524,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                     This turn ended without a reply. The model returned nothing — ask again, or try another model.
                   </div>
                 )
-                : <AssistantMessage key={i} parts={m.parts || []} sent={m.sent} routed={m.routed} lane={m.lane} model={m.model} agent={m.agentId ? agents.find(a => a.id === m.agentId) || sessionAgent : sessionAgent} onChoose={onWidgetChoice} onContinue={continueTurn} showThinking={showThinking} />
+                : <AssistantMessage key={i} parts={m.parts || []} sent={m.sent} routed={m.routed} lane={m.lane} checkpoint={m.checkpoint} sessionId={session.id} onRestored={r => onSessionReplaced?.(r.session)} onComment={f => { setDraft(d => (d ? d + '\n' : '') + `About ${f.split('/').pop()}: `); setTimeout(() => textareaRef.current?.focus(), 0) }} model={m.model} agent={m.agentId ? agents.find(a => a.id === m.agentId) || sessionAgent : sessionAgent} onChoose={onWidgetChoice} onContinue={continueTurn} showThinking={showThinking} />
           )}
           {live && (
             <AssistantMessage

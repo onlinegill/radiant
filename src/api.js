@@ -411,6 +411,8 @@ export const api = {
   getShare: () => json('GET', '/api/share'),
   setShare: enabled => json('POST', '/api/share', { enabled }),
   openFile: p => json('POST', '/api/open', { path: p }),
+  checkpointDiff: (id, from, to, file) => json('GET', `/api/sessions/${id}/checkpoint/diff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&file=${encodeURIComponent(file)}`),
+  checkpointRestore: (id, sha) => json('POST', `/api/sessions/${id}/checkpoint/restore`, { sha }),
   answerQuestion: (id, answer) => json('POST', '/api/answer-question', { id, answer }),
   getMemory: () => json('GET', '/api/memory'),
   addMemory: text => json('POST', '/api/memory', { text }),
