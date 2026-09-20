@@ -53,6 +53,8 @@ run "app layout"     node scripts/test-app-layout.mjs
 run "tool bounds"    node scripts/test-tool-bounds.mjs
 run "graph rules"    node scripts/test-graph.mjs
 run "the graph runner" node scripts/test-graph-run.mjs
+run "research helpers" node scripts/test-research-live.mjs
+run "fusion and recall" node scripts/test-fusion-recall-live.mjs
 run "sessions"       node scripts/test-sessions.mjs
 run "the running app" bash scripts/test-ui.sh
 printf '\n'

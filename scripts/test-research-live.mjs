@@ -98,7 +98,7 @@ try {
   const subReqs = seen.filter(b => b.model === 'm1-mini' && (b.tools || []).length)
   ok(subReqs.length >= 5, `subagents ran on the cheap model (${subReqs.length} requests on m1-mini)`)
   const subTools = [...new Set(subReqs.flatMap(b => (b.tools || []).map(t => t.function?.name)))].sort()
-  ok(subTools.join(',') === 'read_file,run_command', `subagents see only read_file and run_command (saw: ${subTools.join(', ')})`)
+  ok(subTools.join(',') === 'read_file,recall,run_command', `subagents see only read_file, recall and run_command (saw: ${subTools.join(', ')})`)
   ok(!subReqs.some(b => JSON.stringify(b.messages).includes('find the greeting')), 'a subagent does not see the main conversation')
   ok(subReqs.some(b => /read-only shell commands/.test(JSON.stringify(b.messages[0]))), 'the subagent is told it is read-only in its instructions')
 

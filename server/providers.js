@@ -3,7 +3,7 @@ import path from 'path'
 import crypto from 'crypto'
 import { resolveSkillDir, usableCwd } from './config.js'
 import { fetchRetry, isTransient } from './util.js'
-import { TOOL_DEFS, runTool, outsideWorkspace } from './tools.js'
+import { TOOL_DEFS, runTool, outsideWorkspace, archiveResult, ARCHIVE_MIN } from './tools.js'
 import { commandRisk } from './util.js'
 import { COMPUTER_TOOL_DEFS, COMPUTER_TOOL_NAMES, COMPUTER_SAFE, runComputerTool } from './computer-tools.js'
 import { boundResult, withBudget, MAX_TOOL_MS, ToolTimeout } from './tool-bounds.js'
@@ -104,7 +104,7 @@ function systemPrompt (cwd, useTools, model, computerControl, skills, persona, p
     : ''
   const stable = `You are a coding agent running inside Radiant, a local coding harness on the user's ${os.type() === 'Darwin' ? 'Mac' : os.type()} (${os.platform()} ${os.release()}). Radiant is the app, not you: you are the model "${model}". If asked what model you are, answer with your actual model name and maker.${personaText}
 Workspace directory: ${cwd}
-${useTools && readOnly ? 'You have tools to read files and to run read-only shell commands (ls, cat, grep, find, git log/show/diff, wc…) in the workspace. You cannot write, edit, delete or install anything, and a command that would is refused. Read what the question needs and no more.' : useTools ? 'You have tools to read, write, and edit files and to run shell commands in the workspace. Use them to investigate before answering and to make changes when asked. Prefer edit_file for small changes and write_file for new files. After making changes, verify them when practical (run the code, run tests).' : 'Tools are disabled for this conversation; answer from knowledge and the conversation only.'}${computerControl ? `
+${useTools && readOnly ? 'You have tools to read files and to run read-only shell commands (ls, cat, grep, find, git log/show/diff, wc…) in the workspace. You cannot write, edit, delete or install anything, and a command that would is refused. Read what the question needs and no more.' : useTools ? 'You have tools to read, write, and edit files and to run shell commands in the workspace. Use them to investigate before answering and to make changes when asked. Prefer edit_file for small changes and write_file for new files. After making changes, verify them when practical (run the code, run tests) — and when you already know the command you will run right after an edit, pass it as that edit\'s `then` so both come back at once. A trimmed earlier result can be read back exactly with recall.' : 'Tools are disabled for this conversation; answer from knowledge and the conversation only.'}${computerControl ? `
 You can also control the computer. browser_* tools drive an automated browser; screen_* tools control the whole desktop. ALWAYS take a screenshot first (browser_screenshot / screen_screenshot) and look at it before clicking or typing — click coordinates are pixel positions read from the most recent screenshot. Work in small steps: screenshot, act, screenshot again to confirm. Prefer browser_* for web tasks.` : ''}
 Be direct and concise. Use markdown; fence code blocks with a language tag. When you finish a task, summarize what changed in a sentence or two.${planText}${skillText}`
 
@@ -354,6 +354,19 @@ const ROUND_STEP = 4
 
 function foldPart (p) {
   if (p.type !== 'tool' || typeof p.result !== 'string' || p.result.length <= FOLD_TO) return p
+  // ⚠️ KEEP THE TAIL TOO, AND POINT AT THE ARCHIVE. A result folded to its
+  // first 600 characters loses the line that mattered — the exit code, the
+  // last assertion — and "run it again" is another round and not always safe.
+  // With the full text kept on disk (archiveResult), the excerpt is complete
+  // head and tail lines and the exact original is one recall away.
+  if (p.archive?.id) {
+    const head = p.result.slice(0, Math.floor(FOLD_TO * 0.6)).replace(/[^\n]*$/, '')
+    const tail = p.result.slice(-Math.floor(FOLD_TO * 0.4)).replace(/^[^\n]*\n/, '')
+    return {
+      ...p,
+      result: `${head}\n\n[… trimmed: ${p.archive.lines} lines, ${p.archive.size} bytes in all. The exact output is kept — recall(id: "${p.archive.id}") reads it back by page, or with find.]\n\n${tail}`
+    }
+  }
   return {
     ...p,
     result: p.result.slice(0, FOLD_TO) +
@@ -799,7 +812,7 @@ const RESEARCH_TOOL = {
 }
 // What a research subagent may call. Everything else is refused at dispatch as
 // well as left out of the schema — the plan-mode lesson: a schema is not a gate.
-const READ_ONLY_TOOLS = new Set(['read_file', 'run_command'])
+const READ_ONLY_TOOLS = new Set(['read_file', 'run_command', 'recall'])
 
 const ASK_USER_TOOL = {
   name: 'ask_user',
@@ -917,7 +930,7 @@ function planBlocked (name) {
 // to run a command without asking; a read that leaves the workspace is refused
 // because a subagent has no approval prompt to fall back on.
 function readOnlyRefusal (call, cwd) {
-  if (!READ_ONLY_TOOLS.has(call.name)) return `${call.name} is not available to a research subagent. You can only read_file and run read-only commands.`
+  if (!READ_ONLY_TOOLS.has(call.name)) return `${call.name} is not available to a research subagent. You can only read_file, recall, and run read-only commands.`
   if (call.name === 'run_command') {
     if (call.args?.run_in_background) return 'Background jobs are not available to a research subagent. Run the command in the foreground, or narrow it.'
     if (commandRisk(call.args?.command) !== 'low') return `Not run: that command could change something, and a research subagent is read-only. Use read-only commands (ls, cat, head, grep, rg, find, wc, git log/show/diff/status) or read_file.`
@@ -1348,11 +1361,18 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
         // the model guessing where the tool's output stops and ours starts, and
         // anything reading the result programmatically has to parse our
         // commentary out of the data first.
+        // Anything big is kept in full on disk BEFORE it is bounded, so the
+        // middle that bounding drops is not gone — it is one recall away.
+        if (call.name !== 'recall' && typeof part.result === 'string' && part.result.length > ARCHIVE_MIN) {
+          const a = archiveResult(part.result)
+          if (a) part.archive = a
+        }
         const bounded = boundResult(call.name, part.result)
         part.result = bounded.text
         if (bounded.truncated) {
           part.truncated = bounded.truncated
-          emit({ type: 'notice', text: `${call.name} returned ${bounded.truncated.toLocaleString()} characters more than fits; the middle was dropped.` })
+          if (part.archive) part.result += `\n\n[the middle was dropped here; recall(id: "${part.archive.id}") has all ${part.archive.lines} lines]`
+          emit({ type: 'notice', text: `${call.name} returned ${bounded.truncated.toLocaleString()} characters more than fits; the middle was dropped${part.archive ? ', and the whole thing is kept for recall' : ''}.` })
         }
       }
       // loop-breaker: append an escalating reminder on identical consecutive calls

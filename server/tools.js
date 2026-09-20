@@ -3,7 +3,7 @@ import path from 'path'
 import crypto from 'crypto'
 import { execFile, spawn } from 'child_process'
 import { SPAWN_ENV, scrubbedEnv } from './ollama.js'
-import { searchSessions, usableCwd } from './config.js'
+import { searchSessions, usableCwd, RADIANT_DIR } from './config.js'
 
 
 // background jobs (run_command with run_in_background:true). id -> job
@@ -40,40 +40,50 @@ export const TOOL_DEFS = [
       required: ['path']
     }
   },
+  // ⚠️ `then` IS ACTION FUSION (SoL-Pi, arXiv 2609.20519). Edit, then test, is
+  // the commonest pair of calls an agent makes, and as two calls it costs a
+  // whole model round trip in between — the whole conversation re-sent so the
+  // model can say "now run the tests". Fused, the write and its check come back
+  // in one observation. It was the single best-scoring change in that study on
+  // Opus 5: fewer rounds meant less drift, not only fewer tokens. The command
+  // runs only if the write succeeded, and a write always asks first, so a fused
+  // command is never a way around the approval prompt.
   {
     name: 'write_file',
-    description: 'Create or overwrite a file with the given content. Creates parent directories as needed.',
+    description: 'Create or overwrite a file. Creates parent directories. Optional `then`: a command to run right after (tests, build), returned with the result.',
     input_schema: {
       type: 'object',
       properties: {
         path: { type: 'string', description: 'File path' },
-        content: { type: 'string', description: 'Full file content' }
+        content: { type: 'string', description: 'Full file content' },
+        then: { type: 'string', description: 'Command to run after a successful write, e.g. "npm test"' }
       },
       required: ['path', 'content']
     }
   },
   {
     name: 'edit_file',
-    description: 'Edit a file by replacing an exact string. The old string must appear exactly once unless replace_all is true.',
+    description: 'Replace an exact string in a file; it must appear once unless replace_all. Optional `then`: a command to run right after (tests, build), returned with the result.',
     input_schema: {
       type: 'object',
       properties: {
         path: { type: 'string' },
         old_string: { type: 'string' },
         new_string: { type: 'string' },
-        replace_all: { type: 'boolean' }
+        replace_all: { type: 'boolean' },
+        then: { type: 'string', description: 'Command to run after a successful edit, e.g. "npm test"' }
       },
       required: ['path', 'old_string', 'new_string']
     }
   },
   {
     name: 'run_command',
-    description: 'Run a shell command in the workspace directory with bash. Output is truncated to 40000 characters. Timeout 120s. For long-running commands (builds, test watchers, dev servers), set run_in_background:true to get a job id back immediately and keep working.',
+    description: 'Run a bash command in the workspace. Output capped at 40000 chars, 120s timeout. For builds, watchers and servers set run_in_background:true and get a job id back at once.',
     input_schema: {
       type: 'object',
       properties: {
         command: { type: 'string', description: 'The bash command to run' },
-        run_in_background: { type: 'boolean', description: 'Run detached and return a job id immediately instead of waiting (for builds, servers, watchers).' }
+        run_in_background: { type: 'boolean', description: 'Return a job id at once instead of waiting' }
       },
       required: ['command']
     }
@@ -86,7 +96,7 @@ export const TOOL_DEFS = [
     // schemas is three times the tax for one idea. The old names still WORK
     // (see aliasCall); they are simply no longer advertised.
     name: 'job',
-    description: 'Inspect or stop a background job started with run_command(run_in_background:true). action "output" reads it, "list" shows all of them, "kill" stops one.',
+    description: 'A background job from run_command: "output" reads it, "list" shows all, "kill" stops one.',
     input_schema: {
       type: 'object',
       properties: {
@@ -98,7 +108,7 @@ export const TOOL_DEFS = [
   },
   {
     name: 'fetch_url',
-    description: 'Fetch a web page or raw file over http(s) and return its text. Use this to read documentation, changelogs, issues, or any URL the user mentions.',
+    description: 'Fetch a web page or raw file over http(s) as text — docs, changelogs, issues, any URL the user mentions.',
     input_schema: {
       type: 'object',
       properties: {
@@ -120,6 +130,25 @@ export const TOOL_DEFS = [
       required: ['query']
     }
   },
+  // ⚠️ A BIG RESULT IS SENT ONCE, NOT ON EVERY ROUND (ObservationPack, SoL-Pi).
+  // Anything over ARCHIVE_MIN is kept on disk in full; the conversation keeps
+  // the whole text for the next few rounds, then only a head-and-tail excerpt
+  // and this handle. Before this the trimmed note said "run it again if you
+  // need the rest" — another tool round, and not every command is safe to
+  // repeat. recall reads the exact original back, a page or a search at a time.
+  {
+    name: 'recall',
+    description: 'Read back the exact output of an earlier result that was trimmed, by the handle in its "[… trimmed …]" note: one page, or the lines matching `find`.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'The handle, e.g. obs_a1b2c3d4' },
+        page: { type: 'number', description: '1-based, 200 lines per page' },
+        find: { type: 'string', description: 'Only lines containing this, with context; overrides page' }
+      },
+      required: ['id']
+    }
+  },
   {
     name: 'search_sessions',
     description: 'Search the user\'s past Radiant sessions (their previous conversations with you) by keyword. Use it to recall earlier decisions or work — e.g. "what did we decide about auth". Returns matching session titles and snippets.',
@@ -127,7 +156,7 @@ export const TOOL_DEFS = [
   },
   {
     name: 'todo_write',
-    description: 'Record or update your task checklist for this session so the user can follow along on multi-step work. Call it when you start a multi-step task and whenever a step\'s status changes. Always send the FULL list each time (it replaces the previous one). Keep exactly one item "in_progress".',
+    description: 'Your task checklist, shown to the user. Call it when a multi-step task starts and whenever a step changes. Send the FULL list each time; keep exactly one item "in_progress".',
     input_schema: {
       type: 'object',
       properties: {
@@ -283,6 +312,86 @@ function listDir (p, cwd) {
  * tool we have is repaired, not refused. Refusing would trade tokens saved on
  * the schema for tokens burnt on a retry.
  */
+// ── the archive behind `recall` ─────────────────────────────────────────────
+export const ARCHIVE_MIN = 10 * 1024   // bytes; the study's threshold (10 KiB)
+const ARCHIVE_DIR = path.join(RADIANT_DIR, 'archive')
+const ARCHIVE_KEEP = 2000              // files; oldest go first
+const PAGE_LINES = 200
+
+/** Keep a tool result on disk in full. Returns the handle, or null if it could not be kept. */
+export function archiveResult (text) {
+  try {
+    fs.mkdirSync(ARCHIVE_DIR, { recursive: true })
+    const id = 'obs_' + crypto.randomBytes(4).toString('hex')
+    fs.writeFileSync(path.join(ARCHIVE_DIR, id + '.txt'), text)
+    const lines = text.split('\n').length
+    pruneArchive()
+    return { id, size: Buffer.byteLength(text), lines }
+  } catch { return null }
+}
+let pruneAt = 0
+function pruneArchive () {
+  if (Date.now() < pruneAt) return
+  pruneAt = Date.now() + 60_000
+  try {
+    const files = fs.readdirSync(ARCHIVE_DIR).filter(f => f.endsWith('.txt'))
+    if (files.length <= ARCHIVE_KEEP) return
+    const aged = files.map(f => ({ f, t: fs.statSync(path.join(ARCHIVE_DIR, f)).mtimeMs })).sort((a, b) => a.t - b.t)
+    for (const { f } of aged.slice(0, files.length - ARCHIVE_KEEP)) fs.rmSync(path.join(ARCHIVE_DIR, f), { force: true })
+  } catch {}
+}
+export function readArchive (id, { page, find } = {}) {
+  if (!/^obs_[0-9a-f]{8}$/.test(String(id || ''))) return `Error: "${id}" is not a recall handle. They look like obs_a1b2c3d4 and appear in "[… trimmed …]" notes.`
+  const file = path.join(ARCHIVE_DIR, id + '.txt')
+  if (!fs.existsSync(file)) return `Error: nothing is kept under ${id} any more.`
+  const lines = fs.readFileSync(file, 'utf8').split('\n')
+  if (find) {
+    const needle = String(find).toLowerCase()
+    const hits = []
+    lines.forEach((l, i) => { if (l.toLowerCase().includes(needle)) hits.push(i) })
+    if (!hits.length) return `No line in ${id} contains "${find}" (${lines.length} lines).`
+    const want = new Set(); for (const i of hits) for (let j = Math.max(0, i - 2); j <= Math.min(lines.length - 1, i + 2); j++) want.add(j)
+    const out = []; let last = -2
+    for (const i of [...want].sort((a, b) => a - b)) { if (i !== last + 1) out.push('…'); out.push(`${i + 1}\t${lines[i]}`); last = i }
+    const capped = hits.length > 200 ? `\n[first 200 of ${hits.length} matches]` : ''
+    return `${hits.length} line(s) in ${id} match "${find}":\n${out.slice(0, 1200).join('\n')}${capped}`
+  }
+  const pages = Math.max(1, Math.ceil(lines.length / PAGE_LINES))
+  const p = Math.min(pages, Math.max(1, Number(page) || 1))
+  const start = (p - 1) * PAGE_LINES
+  const body = lines.slice(start, start + PAGE_LINES).map((l, i) => `${start + i + 1}\t${l}`).join('\n')
+  return `[${id} — page ${p} of ${pages}, ${lines.length} lines in all]\n${body}`
+}
+
+/** One shell command in the workspace, bounded and stoppable. Shared by run_command and `then`. */
+function runShell (command, cwd, signal) {
+  return new Promise(resolve => {
+    // ⚠️ `signal` KILLS THE CHILD. Without it Stop was a suggestion: the
+    // command ran to completion, or to the 120s timeout, whichever came
+    // first, and the turn could not end until it did.
+    execFile('bash', ['-lc', command], { cwd, timeout: 120_000, maxBuffer: 10 * 1024 * 1024, env: scrubbedEnv(), signal }, (err, stdout, stderr) => {
+      let out = ''
+      if (stdout) out += stdout
+      if (stderr) out += (out ? '\n--- stderr ---\n' : '') + stderr
+      if (err?.name === 'AbortError' || signal?.aborted) out += '\n[stopped by you]'
+      else if (err && err.killed) out += '\n[command timed out after 120s]'
+      // A numeric code is the command's own verdict; a string one means it
+      // never ran, and the message is the only thing that says why.
+      else if (err && typeof err.code === 'string') out += `\n[could not run it: ${err.message}]`
+      else if (err && err.code) out += `\n[exit code ${err.code}]`
+      resolve(out || '(no output)')
+    })
+  })
+}
+// The fused half of a write. Only reached when the write succeeded.
+async function thenRun (input, cwd, signal, wrote) {
+  const cmd = String(input.then || '').trim()
+  if (!cmd) return wrote
+  const stray = usableCwd(cwd).missing
+  if (stray) return `${wrote}\n\n--- then: ${cmd} ---\nNot run: the folder ${stray} does not exist on this Mac.`
+  return `${wrote}\n\n--- then: ${cmd} ---\n${await runShell(cmd, cwd, signal)}`
+}
+
 const ALIASES = {
   job_output: i => ['job', { ...i, action: 'output' }],
   job_list: i => ['job', { ...i, action: 'list' }],
@@ -317,7 +426,7 @@ export async function runTool (rawName, rawInput, cwd, signal) {
         const file = resolvePath(input.path, cwd)
         fs.mkdirSync(path.dirname(file), { recursive: true })
         fs.writeFileSync(file, input.content)
-        return `Wrote ${Buffer.byteLength(input.content)} bytes to ${file}`
+        return thenRun(input, cwd, signal, `Wrote ${Buffer.byteLength(input.content)} bytes to ${file}`)
       }
       case 'edit_file': {
         const file = resolvePath(input.path, cwd)
@@ -329,7 +438,7 @@ export async function runTool (rawName, rawInput, cwd, signal) {
           ? text.split(input.old_string).join(input.new_string)
           : text.replace(input.old_string, input.new_string)
         fs.writeFileSync(file, updated)
-        return `Replaced ${input.replace_all ? count : 1} occurrence(s) in ${file}`
+        return thenRun(input, cwd, signal, `Replaced ${input.replace_all ? count : 1} occurrence(s) in ${file}`)
       }
       case 'run_command': {
         // ⚠️ A MISSING FOLDER IS NOT AN EXIT CODE. spawn() fails before the shell
@@ -345,24 +454,9 @@ export async function runTool (rawName, rawInput, cwd, signal) {
           const id = newJob(input.command, cwd)
           return `Started in the background as ${id}. Use job(action:"output", id:"${id}") to check on it, or action:"kill" to stop it.`
         }
-        return await new Promise(resolve => {
-          // ⚠️ `signal` KILLS THE CHILD. Without it Stop was a suggestion: the
-          // command ran to completion, or to the 120s timeout, whichever came
-          // first, and the turn could not end until it did.
-          execFile('bash', ['-lc', input.command], { cwd, timeout: 120_000, maxBuffer: 10 * 1024 * 1024, env: scrubbedEnv(), signal }, (err, stdout, stderr) => {
-            let out = ''
-            if (stdout) out += stdout
-            if (stderr) out += (out ? '\n--- stderr ---\n' : '') + stderr
-            if (err?.name === 'AbortError' || signal?.aborted) out += '\n[stopped by you]'
-            else if (err && err.killed) out += '\n[command timed out after 120s]'
-            // A numeric code is the command's own verdict; a string one means it
-            // never ran, and the message is the only thing that says why.
-            else if (err && typeof err.code === 'string') out += `\n[could not run it: ${err.message}]`
-            else if (err && err.code) out += `\n[exit code ${err.code}]`
-            resolve(out || '(no output)')
-          })
-        })
+        return await runShell(input.command, cwd, signal)
       }
+      case 'recall': return readArchive(input.id, { page: input.page, find: input.find })
       case 'job': {
         if (input.action === 'list') {
           if (!jobs.size) return 'No background jobs.'

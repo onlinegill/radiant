@@ -312,13 +312,16 @@ const TOOL_ICONS = {
   edit_file: '✎',
   list_dir: '▤',
   job: '▤',
-  research: '⌕'
+  research: '⌕',
+  recall: '↺'
 }
 
 function argSummary (name, args) {
   if (!args) return ''
   if (name === 'run_command') return args.command || ''
-  if (name === 'edit_file' || name === 'read_file' || name === 'write_file') return args.path || ''
+  if (name === 'edit_file' || name === 'write_file') return args.then ? `${args.path || ''}  →  ${args.then}` : (args.path || '')
+  if (name === 'read_file') return args.path || ''
+  if (name === 'recall') return [args.id, args.find ? `find "${args.find}"` : args.page ? `page ${args.page}` : ''].filter(Boolean).join(' · ')
   if (name === 'list_dir') return args.path || '.'
   if (name === 'job') return [args.action, args.id].filter(Boolean).join(' ')
   if (name === 'research') { const qs = Array.isArray(args.questions) ? args.questions : []; return qs.length === 1 ? qs[0] : `${qs.length} questions in parallel` }
@@ -1570,11 +1573,29 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
           )}
           {approval && (
             <div className='approval-card'>
-              <div className='q'>Run this command in <span className='mono'>{session.cwd?.replace(/^\/Users\/[^/]+/, '~')}</span>?</div>
-              <code>{approval.args?.command}</code>
+              {/* ⚠️ SAY WHAT IS BEING APPROVED. The card used to say "Run this
+                  command" for every call, including a file write — where the
+                  command box came up empty — and a write can now carry a fused
+                  `then` command, which must be on screen before anyone says yes. */}
+              {(approval.name === 'write_file' || approval.name === 'edit_file') ? (
+                <>
+                  <div className='q'>{approval.name === 'write_file' ? 'Write' : 'Edit'} <span className='mono'>{approval.args?.path}</span>{approval.args?.then ? ', then run this command' : ''}?</div>
+                  {approval.args?.then && <code>{approval.args.then}</code>}
+                </>
+              ) : approval.name === 'run_command' ? (
+                <>
+                  <div className='q'>Run this command in <span className='mono'>{session.cwd?.replace(/^\/Users\/[^/]+/, '~')}</span>?</div>
+                  <code>{approval.args?.command}</code>
+                </>
+              ) : (
+                <>
+                  <div className='q'>Allow <span className='mono'>{approval.name.replace(/^mcp__/, '').replace(/_/g, ' ')}</span>?</div>
+                  <code>{JSON.stringify(approval.args || {}).slice(0, 400)}</code>
+                </>
+              )}
               {approval.reason && <div className='approval-reason'>Auto mode paused this one: {approval.reason}.</div>}
               <div className='row'>
-                <button className='small-btn primary' onClick={() => onApproval(approval.id, true)}>Run it</button>
+                <button className='small-btn primary' onClick={() => onApproval(approval.id, true)}>{approval.name === 'run_command' || approval.args?.then ? 'Run it' : 'Allow'}</button>
                 <button className='small-btn danger' onClick={() => onApproval(approval.id, false)}>Deny</button>
               </div>
             </div>

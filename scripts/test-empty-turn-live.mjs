@@ -27,6 +27,19 @@ const prov = http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     if (req.url.endsWith('/models')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ data: [{ id: 'm1' }, { id: 'm1-mini' }] })) }
     const b = JSON.parse(body); seen.push(b)
+    // ⚠️ HOUSEKEEPING RUNS ON THE CHEAP MODEL AND HITS THIS SAME PROVIDER. Title,
+    // memory and skill-idea calls pick m1-mini (a utility hint) and, with no
+    // OpenRouter key, land here too. If they shift() the shared script they eat
+    // the turn's scripted responses — which is exactly the fixture bug that made
+    // this whole test read as a product regression. Only the SESSION model (m1)
+    // is scripted; anything else gets benign text and leaves the script alone.
+    if (b.model !== 'm1') {
+      res.writeHead(200, { 'content-type': 'text/event-stream' })
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: 'ok' } }] })}\n\n`)
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop' }] })}\n\n`)
+      res.write(`data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 10, completion_tokens: 1 } })}\n\n`)
+      res.write('data: [DONE]\n\n'); return res.end()
+    }
     const kind = script.shift() || 'text'
     // A model that errors outright — the local case Tony keeps hitting: Ollama
     // 500s, or the chat template breaks on the tool results. The turn THROWS.
@@ -77,7 +90,9 @@ try {
   script = ['tool', 'empty', 'text']; seen = []
   let r = await turn('do the thing')
   ok(r.events.some(e => e.type === 'notice' && /returned nothing — asked it to continue/.test(e.text)), 'one empty round → a nudge, said in the chat')
-  ok(/empty\. Continue the work/.test(JSON.stringify(seen[2]?.messages?.[0] || seen[2])), 'the nudge reaches the model in the next request')
+  // Housekeeping (m1-mini) also lands in `seen`, so index-by-position is wrong;
+  // look across the turn's own (m1) requests for the nudge.
+  ok(seen.some(b => b.model === 'm1' && /empty\. Continue the work/.test(JSON.stringify(b.messages))), 'the nudge reaches the model in the next request')
   ok(r.events.some(e => e.type === 'text_delta' && /All done/.test(e.text)), 'and the turn finishes')
   ok(!r.events.some(e => e.type === 'halt'), 'no halt when the nudge works')
 
