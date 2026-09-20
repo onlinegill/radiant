@@ -3513,6 +3513,70 @@ app.post('/api/chat', async (req, res) => {
     return `${target.name} says:\n${answer.trim()}`
   }
 
+  // Read-only research subagents (the `research` tool; TG-514). Each question
+  // is its own sub-turn on the cheap model with its own context and only
+  // read_file + read-only run_command; they run in parallel, and only the
+  // answers come back into the main turn's context.
+  const research = async questions => {
+    const qs = (Array.isArray(questions) ? questions : [questions]).map(q => String(q || '').trim()).filter(Boolean).slice(0, 5)
+    if (!qs.length) return { text: 'Provide at least one question to research.', subagents: [] }
+    const { provider: up, model: cheap } = await pickUtilityModel(provider, session.model)
+    const upKey = config.keys[up.id] || apiKey
+    const upOAuth = Boolean(config.oauth[up.id])
+    emit({ type: 'notice', text: `Researching ${qs.length === 1 ? 'one question' : `${qs.length} questions`} in parallel on ${cheap}…` })
+    const persona = `You are a research subagent. Another agent handed you ONE question about the code in this workspace and will read your answer without seeing anything you read, so make it self-contained. Find the answer by reading — read_file, and read-only commands such as grep, rg, find, ls, git log, git grep. Be economical: a few targeted reads, not the whole tree. Then reply in this shape:
+
+Answer: the answer in plain words, with file paths and line numbers where you can.
+
+Files that matter:
+- path/to/file.js:LINE — one line on why this file matters to the question
+
+If you could not find it, say so plainly and say where you looked. Do not guess beyond what you read.`
+    const st = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
+    const runOne = async (question, model) => {
+      const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: question }] }
+      const sub = { question, model, inTokens: 0, outTokens: 0, cachedIn: 0, rounds: 0, tools: 0, ms: 0 }
+      let answer = ''
+      const t0 = Date.now()
+      await runTurn({
+        provider: up, model, apiKey: upKey,
+        getAccessToken: upOAuth ? () => validAccessToken(up.id, config, saveConfig) : null,
+        getAccountId: upOAuth ? () => config.oauth[up.id]?.accountId || null : null,
+        session: tmp, useTools: true, readOnly: true, maxRounds: 15, computerControl: false,
+        persona, skills: [],
+        emit: ev => {
+          if (ev.type === 'usage') { sub.inTokens += ev.input || 0; sub.outTokens += ev.output || 0; sub.cachedIn += ev.cacheRead || 0 }
+          if (ev.type === 'round_start') sub.rounds += 1
+          if (ev.type === 'tool_start') sub.tools += 1
+          if (ev.type === 'text_delta') answer += ev.text
+        },
+        requestApproval: null, signal: controller.signal
+      })
+      sub.ms = Date.now() - t0
+      sub.answer = answer.trim()
+      return sub
+    }
+    const results = await Promise.all(qs.map(async question => {
+      try { return await runOne(question, cheap) } catch (e) {
+        if (controller.signal.aborted) return { question, model: cheap, error: 'the turn was interrupted', inTokens: 0, outTokens: 0, ms: 0 }
+        // ⚠️ THE CHEAP MODEL NOT BEING ON THIS ACCOUNT MUST NOT KILL THE
+        // FEATURE — the same fallback utilityTurn makes. One retry on the
+        // chat's own model; a second failure is reported, not hidden.
+        if (cheap !== session.model) {
+          try { return await runOne(question, session.model) } catch (e2) { e = e2 }
+        }
+        emit({ type: 'notice', text: `A research subagent failed: ${e.message}` })
+        return { question, model: cheap, error: e.message, inTokens: 0, outTokens: 0, ms: 0 }
+      }
+    }))
+    // Counted into the session under their own heading — like housekeeping,
+    // they are real spend that is not the chat's own model.
+    for (const r of results) { st.researchIn = (st.researchIn || 0) + (r.inTokens || 0); st.researchOut = (st.researchOut || 0) + (r.outTokens || 0); st.researchCalls = (st.researchCalls || 0) + (r.error ? 0 : 1) }
+    const text = results.map((r, i) => `### ${i + 1}. ${r.question}
+${r.error ? `(no answer: ${r.error})` : (r.answer || '(the subagent returned nothing)')}`).join('\n\n')
+    return { text, subagents: results.map(({ answer, ...rest }) => rest) }
+  }
+
   // one-shot summarizer used by auto-compaction (runs on the session's model, no tools)
   const summarize = async text => {
     const tmp = { cwd: session.cwd, messages: [{ role: 'user', text: `Summarize this conversation so it can continue without losing context. Preserve: decisions made, files created or edited, the current task and its state, and any open questions or next steps. Be concise but complete; use short bullet points.\n\n${text}` }] }
@@ -3704,6 +3768,7 @@ app.post('/api/chat', async (req, res) => {
         skills: mergedSkills,
         askAgent,
         peerAgents,
+        research,
         planMode: Boolean(session.planMode),
         effort: session.effort || 'auto',
         onPlanExit: () => { session.planMode = false; emit({ type: 'plan_mode', on: false }) }
@@ -3854,6 +3919,7 @@ app.post('/api/chat', async (req, res) => {
           planAddendum,
           skills: mergedSkills,
           askAgent,
+          research,
           peerAgents,
           planMode: Boolean(session.planMode),
           effort: session.effort || 'auto',

@@ -1062,6 +1062,12 @@ code, pre, .mono { font-family: var(--font-mono); }
   white-space: pre-wrap; word-break: break-word;
   max-height: 260px; overflow-y: auto;
 }
+/* one row per research subagent, above the raw args/result */
+.research-runs { border-collapse: collapse; width: 100%; margin-bottom: 10px; white-space: normal; }
+.research-runs th, .research-runs td { text-align: left; vertical-align: top; padding: 3px 10px 3px 0; border-bottom: 1px solid var(--border); }
+.research-runs th { font-weight: 600; color: var(--text); }
+.research-runs td:first-child { color: var(--text); }
+.research-runs tr.failed td { color: var(--danger, #c33); }
 
 /* approval card */
 .approval-card, .question-card {

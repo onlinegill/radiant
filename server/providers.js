@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import { resolveSkillDir, usableCwd } from './config.js'
 import { fetchRetry, isTransient } from './util.js'
 import { TOOL_DEFS, runTool, outsideWorkspace } from './tools.js'
+import { commandRisk } from './util.js'
 import { COMPUTER_TOOL_DEFS, COMPUTER_TOOL_NAMES, COMPUTER_SAFE, runComputerTool } from './computer-tools.js'
 import { boundResult, withBudget, MAX_TOOL_MS, ToolTimeout } from './tool-bounds.js'
 import { COPILOT_HEADERS } from './oauth.js'
@@ -93,7 +94,7 @@ const STUCK_AT = 12
 // + "Multi-turn conversations". A stable-half change (e.g. the user flips
 // planMode or edits skills) is a one-time cache miss, not a per-turn one — that
 // tradeoff is deliberate, not the bug this split fixes.
-function systemPrompt (cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory) {
+function systemPrompt (cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory, readOnly) {
   const personaText = persona ? `\n\n${persona}` : ''
   const planText = planMode
     ? '\n\nPLAN MODE IS ON. Do NOT edit files, create files, or run mutating commands yet. Research the codebase (read/list/grep only), think through the approach, then present a concrete step-by-step plan by calling the exit_plan_mode tool with your plan in markdown. Only after the user approves the plan will you be able to make changes.'
@@ -103,7 +104,7 @@ function systemPrompt (cwd, useTools, model, computerControl, skills, persona, p
     : ''
   const stable = `You are a coding agent running inside Radiant, a local coding harness on the user's ${os.type() === 'Darwin' ? 'Mac' : os.type()} (${os.platform()} ${os.release()}). Radiant is the app, not you: you are the model "${model}". If asked what model you are, answer with your actual model name and maker.${personaText}
 Workspace directory: ${cwd}
-${useTools ? 'You have tools to read, write, and edit files and to run shell commands in the workspace. Use them to investigate before answering and to make changes when asked. Prefer edit_file for small changes and write_file for new files. After making changes, verify them when practical (run the code, run tests).' : 'Tools are disabled for this conversation; answer from knowledge and the conversation only.'}${computerControl ? `
+${useTools && readOnly ? 'You have tools to read files and to run read-only shell commands (ls, cat, grep, find, git log/show/diff, wc…) in the workspace. You cannot write, edit, delete or install anything, and a command that would is refused. Read what the question needs and no more.' : useTools ? 'You have tools to read, write, and edit files and to run shell commands in the workspace. Use them to investigate before answering and to make changes when asked. Prefer edit_file for small changes and write_file for new files. After making changes, verify them when practical (run the code, run tests).' : 'Tools are disabled for this conversation; answer from knowledge and the conversation only.'}${computerControl ? `
 You can also control the computer. browser_* tools drive an automated browser; screen_* tools control the whole desktop. ALWAYS take a screenshot first (browser_screenshot / screen_screenshot) and look at it before clicking or typing — click coordinates are pixel positions read from the most recent screenshot. Work in small steps: screenshot, act, screenshot again to confirm. Prefer browser_* for web tasks.` : ''}
 Be direct and concise. Use markdown; fence code blocks with a language tag. When you finish a task, summarize what changed in a sentence or two.${planText}${skillText}`
 
@@ -777,6 +778,29 @@ function askAgentToolDef (peers) {
   }
 }
 
+// Tool that fans research out to read-only subagents. Injected only when the
+// caller supplies a `research` callback (index.js), never inside a subagent.
+//
+// ⚠️ THE MAIN AGENT'S CONTEXT IS THE EXPENSIVE THING. Answering "where is X
+// handled and why" means reading a dozen files, and every one of them then rides
+// along in every later round of the turn, at flagship prices. A subagent reads
+// them in its own context on the cheap model and hands back a paragraph and a
+// list of paths; only that comes home. Cline's idea, approved for TG-514.
+const RESEARCH_TOOL = {
+  name: 'research',
+  description: 'Hand one or more focused questions about the codebase to parallel read-only research subagents. Each runs in its own context on a fast model, reads files and runs read-only commands (grep, git log, ls…), and returns an answer plus the files that matter and why. Use it when answering would mean reading many files you do not need to keep — "where is X handled", "how does Y flow from A to B", "which files touch Z" — and ask several independent questions in one call so they run at once. Subagents cannot change anything and cannot see this conversation, so put the context they need in the question.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      questions: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 5, description: 'One to five self-contained questions. Each gets its own subagent; independent questions run in parallel.' }
+    },
+    required: ['questions']
+  }
+}
+// What a research subagent may call. Everything else is refused at dispatch as
+// well as left out of the schema — the plan-mode lesson: a schema is not a gate.
+const READ_ONLY_TOOLS = new Set(['read_file', 'run_command'])
+
 const ASK_USER_TOOL = {
   name: 'ask_user',
   description: 'Ask the user a question and pause until they answer. Use this when a decision is genuinely theirs (ambiguous requirements, a fork with real tradeoffs) rather than guessing. Prefer offering a few concrete options.',
@@ -888,12 +912,26 @@ function planBlocked (name) {
   return COMPUTER_TOOL_NAMES.has(name) && !COMPUTER_SAFE.has(name)
 }
 
+// Why a research subagent may not make this call — or null when it may. The
+// command allowlist is util.js's commandRisk, the same judgement Auto mode uses
+// to run a command without asking; a read that leaves the workspace is refused
+// because a subagent has no approval prompt to fall back on.
+function readOnlyRefusal (call, cwd) {
+  if (!READ_ONLY_TOOLS.has(call.name)) return `${call.name} is not available to a research subagent. You can only read_file and run read-only commands.`
+  if (call.name === 'run_command') {
+    if (call.args?.run_in_background) return 'Background jobs are not available to a research subagent. Run the command in the foreground, or narrow it.'
+    if (commandRisk(call.args?.command) !== 'low') return `Not run: that command could change something, and a research subagent is read-only. Use read-only commands (ls, cat, head, grep, rg, find, wc, git log/show/diff/status) or read_file.`
+  }
+  if (call.name === 'read_file' && outsideWorkspace(call.args?.path, cwd)) return `Not read: ${call.args?.path} is outside the workspace (${cwd}), and a research subagent stays inside it.`
+  return null
+}
+
 // ---------- the agent loop ----------
-export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
+export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, research, readOnly, maxRounds, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
   // ⚠️ NOT `session.cwd || os.homedir()`. A folder that is set and not here is
   // the case that broke every tool call in the chat — see usableCwd.
   const { dir: cwd, missing: strayCwd } = usableCwd(session.cwd)
-  const system = systemPrompt(cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory)
+  const system = systemPrompt(cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory, readOnly)
   // proactive compaction before a very long turn
   if (autoCompact && summarize && estimateTokens(session.messages) > PROACTIVE_TOKENS) {
     await compactSession(session, 4, summarize, emit)
@@ -973,15 +1011,16 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // behind them either. The one promise plan mode makes to someone who turned it
   // on precisely because they did not trust the task was enforced by prose. Now
   // the tools are not offered, and the dispatch below refuses them a second time.
-  const toolDefs = [
+  const toolDefs = (readOnly ? TOOL_DEFS.filter(t => READ_ONLY_TOOLS.has(t.name)) : [
     ...TOOL_DEFS,
     ...(computerControl ? COMPUTER_TOOL_DEFS : []),
     ...(mcpTools || []),
     ...(canAskAgents ? [askAgentToolDef(peerAgents)] : []),
+    ...(research ? [RESEARCH_TOOL] : []),
     SHOW_WIDGET_TOOL,
     ...(requestUserChoice ? [ASK_USER_TOOL] : []),
     ...(planMode ? [EXIT_PLAN_TOOL] : [])
-  ].filter(t => !planMode || !planBlocked(t.name))
+  ]).filter(t => !planMode || !planBlocked(t.name))
 
   let toolsEnabled = useTools
   // loop-breaker: nudge (never block) when the model repeats an identical call
@@ -1008,7 +1047,9 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // thrown away, so the app showed a frightening total it could not explain and
   // nobody could tell a working cache from a burning one. Tony: "that will kill
   // this product if its burning tokens for no reason." Count it and show it.
-  const stats = session.stats || { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 }
+  // Created ON the session, not beside it, so a subagent or housekeeping call
+  // that adds to session.stats mid-turn adds to the same object this turn saves.
+  const stats = session.stats || (session.stats = { turns: 0, inTokens: 0, outTokens: 0, llmMs: 0, toolMs: 0 })
   if (typeof stats.cachedIn !== 'number') stats.cachedIn = 0
   if (typeof stats.cacheWrite !== 'number') stats.cacheWrite = 0
   stats.turns += 1
@@ -1023,7 +1064,8 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // the window rides with usage so the gauge can draw a local model it has no table row for
   const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; stats.cacheWrite += ev.cacheWrite || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
   const finishStats = () => { session.stats = stats; emit({ type: 'stats', stats }) }
-  for (let round = 0; round < MAX_ROUNDS; round++) {
+  const roundCap = Math.min(maxRounds || MAX_ROUNDS, MAX_ROUNDS)
+  for (let round = 0; round < roundCap; round++) {
     // ⚠️ STOP HAD EXACTLY ONE CHECK IN THIS WHOLE FUNCTION, and it sat after the
     // approval prompt. Everywhere else the turn found out it had been cancelled
     // only when the NEXT model request rejected — so pressing Stop while tools
@@ -1226,6 +1268,10 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
         // replaying a stale tool list must not be the thing that decides.
         part.denied = true
         part.result = `Plan mode is on, so ${call.name} is unavailable. Research with read/list/grep only, then call exit_plan_mode with your plan.`
+      } else if (readOnly && readOnlyRefusal(call, session.cwd)) {
+        // A research subagent: the same second layer, for the same reason.
+        part.denied = true
+        part.result = readOnlyRefusal(call, session.cwd)
       } else if (call.name === 'todo_write') {
         const todos = Array.isArray(call.args?.todos) ? call.args.todos : []
         session.todos = todos
@@ -1278,6 +1324,12 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
             if (call.name === 'ask_agent') {
               emit({ type: 'notice', text: `Consulting ${call.args?.agent || 'another agent'}…` })
               part.result = await askAgent(call.args?.agent, call.args?.question)
+            } else if (call.name === 'research' && research) {
+              const r = await research(call.args?.questions)
+              part.result = r.text
+              // per-subagent model, tokens and time — saved on the part so the
+              // transcript can show what each question cost
+              part.subagents = r.subagents
             } else if (isMcp) {
               part.result = callMcp ? await callMcp(call.name, call.args) : 'MCP tool unavailable.'
             } else if (isComputer) {
@@ -1314,7 +1366,7 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
       // times to stop and has not. This is what a runaway actually looks like —
       // not "used a lot of rounds getting work done".
       if (repeatCount >= STUCK_AT) {
-        emit({ type: 'tool_result', id: call.id, result: part.result, denied: !approved, hasImage: Boolean(part.resultImage) })
+        emit({ type: 'tool_result', id: call.id, result: part.result, denied: !approved, hasImage: Boolean(part.resultImage), ...(part.subagents ? { subagents: part.subagents } : {}) })
         stats.toolMs += Date.now() - toolLoopStart
         finishStats()
         emit({
@@ -1325,7 +1377,7 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
         emit({ type: 'done' })
         return
       }
-      emit({ type: 'tool_result', id: call.id, result: part.result, denied: !approved, hasImage: Boolean(part.resultImage) })
+      emit({ type: 'tool_result', id: call.id, result: part.result, denied: !approved, hasImage: Boolean(part.resultImage), ...(part.subagents ? { subagents: part.subagents } : {}) })
     }
     stats.toolMs += Date.now() - toolLoopStart
     if (signal?.aborted) { finishStats(); emit({ type: 'stopped' }); return }

@@ -608,7 +608,7 @@ function DesktopApp () {
             break
           case 'tool_result': {
             const t = liveMsg.parts.find(p => p.type === 'tool' && p.id === ev.id)
-            if (t) { t.result = ev.result; t.pending = false; t.denied = ev.denied }
+            if (t) { t.result = ev.result; t.pending = false; t.denied = ev.denied; if (ev.subagents) t.subagents = ev.subagents }
             setActivity(a => a.map(x => x.id === ev.id ? { ...x, result: ev.result, denied: ev.denied } : x))
             setApprovalFor(sessionId, null)
             break

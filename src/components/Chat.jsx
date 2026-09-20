@@ -311,7 +311,8 @@ const TOOL_ICONS = {
   write_file: '✎',
   edit_file: '✎',
   list_dir: '▤',
-  job: '▤'
+  job: '▤',
+  research: '⌕'
 }
 
 function argSummary (name, args) {
@@ -320,6 +321,7 @@ function argSummary (name, args) {
   if (name === 'edit_file' || name === 'read_file' || name === 'write_file') return args.path || ''
   if (name === 'list_dir') return args.path || '.'
   if (name === 'job') return [args.action, args.id].filter(Boolean).join(' ')
+  if (name === 'research') { const qs = Array.isArray(args.questions) ? args.questions : []; return qs.length === 1 ? qs[0] : `${qs.length} questions in parallel` }
   return JSON.stringify(args)
 }
 
@@ -337,11 +339,34 @@ function ToolChip ({ part, compact = false }) {
       </button>
       {open && (
         <div className='tool-detail'>
+          {part.subagents && <ResearchRuns runs={part.subagents} />}
           {JSON.stringify(part.args, null, 2)}
           {part.result != null && '\n\n— result —\n' + part.result}
         </div>
       )}
     </>
+  )
+}
+
+// What each research subagent cost: one row per question, so a person can see
+// that "3 questions" was three small contexts on a cheap model and not the main
+// model reading everything.
+function ResearchRuns ({ runs }) {
+  const k = n => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n || 0)
+  return (
+    <table className='research-runs'>
+      <thead><tr><th>Question</th><th>Model</th><th>Tokens in / out</th><th>Time</th></tr></thead>
+      <tbody>
+        {runs.map((r, i) => (
+          <tr key={i} className={r.error ? 'failed' : ''}>
+            <td>{r.question}</td>
+            <td>{r.model}</td>
+            <td>{r.error ? `failed: ${r.error}` : `${k(r.inTokens)} / ${k(r.outTokens)}${r.cachedIn ? ` · ${Math.round(r.cachedIn / Math.max(1, r.inTokens) * 100)}% cached` : ''}${r.tools ? ` · ${r.tools} tool${r.tools === 1 ? '' : 's'}` : ''}`}</td>
+            <td>{r.ms ? `${(r.ms / 1000).toFixed(1)}s` : ''}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -937,7 +962,7 @@ function StatsChip ({ stats }) {
        working, and the only thing that says whether it is expensive is the share
        the provider served from its prompt cache at a fraction of the price.
        Without it the chip is just a frightening number. */
-    <span className='stats-chip' title={`This session\n${stats.turns} turn(s)\n${stats.inTokens.toLocaleString()} in${stats.cachedIn ? ` (${Math.round(stats.cachedIn / stats.inTokens * 100)}% served from the provider's cache)` : ''} / ${stats.outTokens.toLocaleString()} out tokens\nAn agentic turn re-sends the conversation each round, so "in" counts every round.\nLLM: ${(stats.llmMs / 1000).toFixed(1)}s · tools: ${(stats.toolMs / 1000).toFixed(1)}s${stats.bgIn ? `\nBackground housekeeping (titles, memory, skill ideas): ${stats.bgCalls || 0} call(s), ${(stats.bgIn + (stats.bgOut || 0)).toLocaleString()} tokens on a cheap model` : ''}`}>
+    <span className='stats-chip' title={`This session\n${stats.turns} turn(s)\n${stats.inTokens.toLocaleString()} in${stats.cachedIn ? ` (${Math.round(stats.cachedIn / stats.inTokens * 100)}% served from the provider's cache)` : ''} / ${stats.outTokens.toLocaleString()} out tokens\nAn agentic turn re-sends the conversation each round, so "in" counts every round.\nLLM: ${(stats.llmMs / 1000).toFixed(1)}s · tools: ${(stats.toolMs / 1000).toFixed(1)}s${stats.bgIn ? `\nBackground housekeeping (titles, memory, skill ideas): ${stats.bgCalls || 0} call(s), ${(stats.bgIn + (stats.bgOut || 0)).toLocaleString()} tokens on a cheap model` : ''}${stats.researchIn ? `\nResearch subagents: ${stats.researchCalls || 0} question(s), ${(stats.researchIn + (stats.researchOut || 0)).toLocaleString()} tokens on a fast model, kept out of this chat's context` : ''}`}>
       {stats.turns}⟳ · {fmtTok(stats.inTokens + stats.outTokens)} tok{stats.cachedIn ? ` · ${Math.round(stats.cachedIn / stats.inTokens * 100)}% cached` : ''} · {secs}s
     </span>
   )
