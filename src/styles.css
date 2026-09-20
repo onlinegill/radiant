@@ -1382,15 +1382,24 @@ code, pre, .mono { font-family: var(--font-mono); }
 .right-tab:hover { color: var(--text-muted); }
 .right-tab.active { color: var(--text); background: var(--bg-raised); border-color: var(--border); }
 .right-body { flex: 1; min-height: 0; position: relative; }
-.right-menu-wrap { position: relative; }
-.right-menu-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-raised); color: var(--text); font-weight: 500; font-size: 12.5px; }
-.right-menu-btn:hover, .right-menu-btn[aria-expanded='true'] { background: var(--bg-hover); }
-.right-menu { position: absolute; top: calc(100% + 6px); left: 0; min-width: 180px; padding: 6px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-menu); z-index: 40; }
-.right-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 7px 10px; border: none; border-radius: 7px; background: transparent; color: var(--text); font-size: 12.5px; }
-.right-menu-item:hover { background: var(--bg-hover); }
-.right-menu-item.selected { background: var(--accent-wash); color: var(--accent-hot); }
-.right-menu-item .rmi-label { flex: 1; }
-.right-menu-item .rmi-hint { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+.glide { position: relative; display: inline-block; --glide-pop: 180ms; --glide-glide: 220ms; --glide-ease: cubic-bezier(.23, 1, .32, 1); }
+.glide-trigger { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-raised); color: var(--text); font-weight: 500; font-size: 12.5px; }
+.glide-trigger:hover, .glide-trigger[aria-expanded='true'] { background: var(--bg-hover); }
+.glide-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.glide-menu { position: absolute; left: 0; z-index: 40; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-menu); transform-origin: top left; transition: opacity var(--glide-pop) var(--glide-ease), transform var(--glide-pop) var(--glide-ease); }
+.glide[data-side='bottom'] .glide-menu { top: calc(100% + 6px); }
+.glide[data-side='top'] .glide-menu { bottom: calc(100% + 6px); transform-origin: bottom left; }
+.glide-menu[data-state='closed'] { opacity: 0; transform: scale(0.94) translateY(-4px); transition-duration: 120ms; }
+.glide[data-side='top'] .glide-menu[data-state='closed'] { transform: scale(0.94) translateY(4px); }
+.glide-menu[data-state='open'] { opacity: 1; transform: none; }
+.glide-pill { position: absolute; border-radius: 7px; background: var(--bg-hover); opacity: 0; transition: transform var(--glide-glide) var(--glide-ease), opacity 150ms; pointer-events: none; }
+.glide-row { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; padding: 0 9px; border: 0; border-radius: 7px; background: transparent; color: var(--text); font-size: 12.5px; text-align: left; }
+.glide-row.is-selected { color: var(--accent-hot); }
+.glide-label { flex: 1; }
+.glide-tag { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+.glide-tick { display: inline-flex; color: var(--accent-hot); }
+.glide-badge { display: inline-block; min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--bg, #fff); font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .glide-menu, .glide-pill { transition: none; } }
 .right-tab-badge { display: inline-block; margin-left: 6px; min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--bg, #fff); font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600; }
 
 /* the Preview tab: an address bar, the things the chat produced, and a frame */

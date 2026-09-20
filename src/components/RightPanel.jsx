@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Terminal from './Terminal.jsx'
 import Preview from './Preview.jsx'
+import GlideSelect from './GlideSelect.jsx'
 import { Icon } from './Icons.jsx'
 
 const MIN_W = 300
@@ -76,15 +77,6 @@ const SECTIONS = [
 ]
 
 export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose, session, waiting = [], onOpenSession }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef(null)
-  useEffect(() => {
-    if (!menuOpen) return
-    const away = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false) }
-    const esc = e => { if (e.key === 'Escape') setMenuOpen(false) }
-    window.addEventListener('mousedown', away); window.addEventListener('keydown', esc)
-    return () => { window.removeEventListener('mousedown', away); window.removeEventListener('keydown', esc) }
-  }, [menuOpen])
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem('radiant.rightWidth'))
     return saved >= MIN_W && saved <= MAX_W ? saved : 400
@@ -120,28 +112,18 @@ export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose, 
     <aside className='right-panel' style={{ width }}>
       <div className='right-resize' onMouseDown={startDrag} title='Drag to resize' />
       {/* ⚠️ ONE MENU, NOT A ROW OF TABS. Four tabs across a 300px panel read
-          as clutter — Tony: "dont like all the tabs. make it a menu." The
-          strip shows the section you are in and a chevron; the menu lists
-          the rest, with the For you count where it is. */}
+          as clutter — Tony: "dont like all the tabs. make it a menu." Then:
+          "use this for the sidebar menu" — reactbits' Glide Select, so the
+          highlight glides between rows and the menu pops from its trigger.
+          The For you count rides on the row, and on the trigger while you
+          are in another section. */}
       <div className='right-tabs'>
-        <div className='right-menu-wrap' ref={menuRef}>
-          <button className='right-menu-btn' onClick={() => setMenuOpen(o => !o)} aria-haspopup='menu' aria-expanded={menuOpen}>
-            <span>{SECTIONS.find(x => x.id === tab)?.label || 'Activity'}</span>
-            {tab !== 'foryou' && waiting.length ? <span className='right-tab-badge'>{waiting.length}</span> : null}
-            <Icon.chevronDown size={12} />
-          </button>
-          {menuOpen && (
-            <div className='right-menu' role='menu'>
-              {SECTIONS.map(x => (
-                <button key={x.id} role='menuitem' className={'right-menu-item' + (x.id === tab ? ' selected' : '')} onClick={() => { onTab(x.id); setMenuOpen(false) }}>
-                  <span className='rmi-label'>{x.label}</span>
-                  {x.id === 'foryou' && waiting.length ? <span className='right-tab-badge'>{waiting.length}</span> : null}
-                  {x.hint && <span className='rmi-hint'>{x.hint}</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <GlideSelect
+          ariaLabel='Panel section'
+          value={SECTIONS.some(x => x.id === tab) ? tab : 'activity'}
+          onChange={onTab}
+          options={SECTIONS.map(x => ({ value: x.id, label: x.label, tag: x.hint, badge: x.id === 'foryou' ? waiting.length : 0 }))}
+        />
         <div style={{ flex: 1 }} />
         <button className='icon-btn' onClick={onClose} title='Close panel'><Icon.close /></button>
       </div>
