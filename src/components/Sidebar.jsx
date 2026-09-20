@@ -1,8 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icons.jsx'
-import Dock from './Dock.jsx'
-// prototype switch — see Dock.jsx
-const DOCK_ON = (() => { try { return localStorage.getItem('dock') === '1' } catch { return false } })()
 import HoldButton from './HoldButton.jsx'
 import { glyphColor } from '../theme.js'
 import { AgentGlyph } from './AgentIcons.jsx'
@@ -392,14 +389,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
           ⚠️ AND THE PILL'S WIDTH IS DATA TOO, now that the two rows hold two and
           three tabs. It was hardcoded to a third of the track; on the top row
           that drew a pill two thirds the width of the button under it. */}
-      {DOCK_ON && (
-        <Dock
-          items={[{ id: 'chats', label: 'Chat', icon: 'chat' }, { id: 'bots', label: 'Agents', icon: 'users' }, { id: 'tasks', label: 'Task', icon: 'checklist' }, { id: 'loops', label: 'Loop', icon: 'repeat' }, { id: 'graph', label: 'Graph', icon: 'graph' }]}
-          activeId={section === 'chat' ? view : section}
-          onPick={id => { if (id === 'chats' || id === 'bots') { onSection?.('chat'); setView(id) } else onSection?.(id) }}
-        />
-      )}
-      {!DOCK_ON && <div className='sidebar-tabs'>
+      <div className='sidebar-tabs'>
         {/* Where you are: a conversation, or the agents that hold them. */}
         <div
           className={'sidebar-switch' + (section === 'chat' ? '' : ' is-off')}
@@ -424,7 +414,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
           <button className={section === 'graph' ? 'on' : ''}
             onClick={() => onSection?.('graph')}>Graph</button>
         </div>
-      </div>}
+      </div>
       {section === 'chat' && view === 'chats' && (
         <input className='session-search' placeholder='Search all sessions…' value={search}
           onChange={e => setSearch(e.target.value)} />
