@@ -111,7 +111,7 @@ export default function GlideSelect ({ options = [], value, onChange, ariaLabel 
       >
         <span className='glide-value'>{current ? current.label : placeholder}</span>
         {!current?.badge && totalBadge ? <span className='glide-badge'>{totalBadge}</span> : null}
-        <Icon.chevronDown size={11} />
+        <span className='glide-chevron'><Icon.chevronDown size={8} /></span>
       </button>
       {phase !== 'closed' && (
         <div ref={menu} id={id} className='glide-menu' role='listbox' aria-label={ariaLabel} style={{ width: menuWidth, padding: PAD }} data-state='closed'
