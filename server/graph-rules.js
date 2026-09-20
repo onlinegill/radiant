@@ -28,7 +28,19 @@ const NODE_ID = () => 'n-' + Math.random().toString(36).slice(2, 8)
 // results" is paying rent on your own wiring: if combining means flatten and
 // dedupe, that is a Set, and it is instant, deterministic and free. Agents are
 // for judgement. Never for plumbing.
-export const NODE_KINDS = ['agent', 'verify', 'reduce']
+// `route` is the conditional edge: an agent classifies, and steps gated on its
+// choice run or are skipped. The judgement is the model's; the branching is
+// code, so it happens the same way every time for the same answer.
+export const NODE_KINDS = ['agent', 'verify', 'reduce', 'route']
+export const ROUTE_FIELDS = ['choice', 'reason']
+
+// A graph can repeat until it runs dry — "loop until dry" — but only under a
+// hard cap. ⚠️ A CYCLE THAT NEVER CONVERGES IS AGENTS SPAWNING AGENTS UNTIL THE
+// MONEY IS GONE; on 2026-09-20 a self-scheduling audit loop emptied a five-hour
+// usage window in thirty-five minutes. So: at most MAX_ROUNDS, and it stops the
+// moment DRY_ROUNDS rounds in a row find nothing new.
+export const MAX_ROUNDS = 5
+export const DRY_ROUNDS = 2
 export const REDUCE_OPS = ['concat', 'dedupe']
 
 export const DEFAULT_CONCURRENCY = 4
@@ -36,7 +48,7 @@ export const MAX_CONCURRENCY = 12
 
 export function normalizeNode (raw, existing) {
   const kind = NODE_KINDS.includes(raw.kind) ? raw.kind : 'agent'
-  return {
+  const out = {
     id: existing?.id || raw.id || NODE_ID(),
     title: String(raw.title || '').trim(),
     kind,
@@ -50,9 +62,75 @@ export function normalizeNode (raw, existing) {
     // A contract: the fields this node must return. Empty means free text.
     // Validated after the turn, so the next node consumes it without guessing.
     fields: Array.isArray(raw.fields) ? raw.fields.map(f => String(f).trim()).filter(Boolean).slice(0, 12) : [],
-    useTools: raw.useTools !== false
+    // route only: the ways it can go
+    options: kind === 'route' ? uniqStrings(raw.options).slice(0, 6) : [],
+    // "only when <route step> chose <option>". A gated step reads the route
+    // step by definition, so the edge is added rather than trusted to be there.
+    gate: raw.gate && raw.gate.node && raw.gate.choice ? { node: String(raw.gate.node), choice: String(raw.gate.choice).trim() } : null,
+    useTools: kind !== 'reduce' && raw.useTools !== false
   }
+  if (out.gate && !out.dependsOn.includes(out.gate.node)) out.dependsOn.push(out.gate.node)
+  if (out.gate && out.gate.node === out.id) out.gate = null
+  return out
 }
+function uniqStrings (v) { return [...new Set((Array.isArray(v) ? v : String(v || '').split(/[,|\n]/)).map(x => String(x).trim()).filter(Boolean))] }
+
+/** What planLayers cannot see: a route with nothing to choose, a gate on a step that is not a route. */
+export function checkNodes (nodes) {
+  const byId = new Map(nodes.map(n => [n.id, n]))
+  for (const n of nodes) {
+    if (n.kind === 'route' && n.options.length < 2) return `"${n.title || n.id}" is a route step but has fewer than two options to choose from.`
+    if (n.gate) {
+      const r = byId.get(n.gate.node)
+      if (!r) return `"${n.title || n.id}" is gated on a step that is not in this graph.`
+      if (r.kind !== 'route') return `"${n.title || n.id}" is gated on "${r.title || r.id}", which is not a route step.`
+      if (!r.options.some(o => o.toLowerCase() === n.gate.choice.toLowerCase())) return `"${n.title || n.id}" waits for "${r.title || r.id}" to choose "${n.gate.choice}", which is not one of its options.`
+    }
+  }
+  return null
+}
+
+/** The repeat setting, or null. Clamped: the cap is the whole point of it. */
+export function normalizeRepeat (raw) {
+  if (!raw || raw.until !== 'dry') return null
+  const maxRounds = Math.max(1, Math.min(MAX_ROUNDS, Number(raw.maxRounds) || MAX_ROUNDS))
+  const dryRounds = Math.max(1, Math.min(maxRounds, Number(raw.dryRounds) || DRY_ROUNDS))
+  return { until: 'dry', maxRounds, dryRounds }
+}
+
+/**
+ * Is a gated step allowed to run? 'open' or 'closed' once its route step has
+ * finished, 'pending' before. A route that failed closes every gate on it: a
+ * branch nobody chose is a branch that does not run.
+ */
+export function gateState (node, results) {
+  if (!node.gate) return { state: 'open' }
+  const r = results[node.gate.node]
+  if (!r || r.state === 'waiting' || r.state === 'running') return { state: 'pending' }
+  if (r.state !== 'done') return { state: 'closed', why: `"${r.title || node.gate.node}" did not decide, so this branch was not taken.` }
+  const chose = String(r.data?.choice ?? '').trim().toLowerCase()
+  if (chose === node.gate.choice.toLowerCase()) return { state: 'open' }
+  return { state: 'closed', why: `"${r.title || node.gate.node}" chose "${r.data?.choice}", not "${node.gate.choice}".` }
+}
+
+/** The steps nothing else reads: where the graph's answer comes out. */
+export function leafIds (nodes) {
+  const read = new Set(nodes.flatMap(n => n.dependsOn))
+  return nodes.filter(n => !read.has(n.id)).map(n => n.id)
+}
+
+const lineKey = l => l.trim().toLowerCase().replace(/^[-*•\d.)\s]+/, '')
+/** Lines of `text` not already in `seen` (a Set of keys). Does not add them. */
+export function newLines (text, seen) {
+  const out = []
+  for (const line of String(text || '').split('\n')) {
+    const k = lineKey(line)
+    if (k.length < 4 || seen.has(k)) continue
+    out.push(line.trim())
+  }
+  return out
+}
+export const lineKeys = text => String(text || '').split('\n').map(lineKey).filter(k => k.length >= 4)
 
 /**
  * Order the nodes into layers. Everything in one layer has no dependency on
@@ -120,14 +198,15 @@ export function inputBlock (node, results) {
     // ⚠️ A MISSING INPUT IS NORMAL AND MUST BE SAID. A node that failed resolves
     // to nothing rather than killing the run, so a fan-in has to tolerate gaps —
     // and the node needs to know a gap is a gap, not an empty answer.
-    if (!r || r.state !== 'done') parts.push(`### ${r?.title || d}\n(this step did not finish, so there is nothing from it)`)
+    if (r && r.state === 'skipped') parts.push(`### ${r.title || d}\n(this step was skipped — ${r.error || 'its branch was not taken'})`)
+    else if (!r || r.state !== 'done') parts.push(`### ${r?.title || d}\n(this step did not finish, so there is nothing from it)`)
     else parts.push(`### ${r.title}\n${r.output}`)
   }
   return parts.join('\n\n')
 }
 
 /** What to say to one node. */
-export function nodePrompt (graph, node, results) {
+export function nodePrompt (graph, node, results, seen) {
   const parts = [`Goal of this graph: ${graph.title}${graph.detail ? '\n' + graph.detail : ''}`]
   parts.push(`Your job, and only this: ${node.title}`)
   if (node.prompt) parts.push(node.prompt)
@@ -145,8 +224,15 @@ export function nodePrompt (graph, node, results) {
       'If nothing survives, say exactly: NOTHING SURVIVED.'
     ].join(' '))
   }
-  if (node.fields.length) {
+  if (node.kind === 'route') {
+    parts.push(`Decide which way this goes. Pick exactly one of: ${node.options.map(o => `"${o}"`).join(', ')}. Reply with JSON only — no prose, no code fence: {"choice": "<one of those, exactly as written>", "reason": "<one line>"}.`)
+  } else if (node.fields.length) {
     parts.push(`Reply with JSON only — no prose, no code fence — an object with exactly these keys: ${node.fields.join(', ')}.`)
+  }
+  // ⚠️ DEDUPE AGAINST EVERYTHING SEEN, NOT ONLY WHAT WAS KEPT. Otherwise a
+  // rejected finding comes back every round and the loop never runs dry.
+  if (seen && seen.length && node.kind !== 'reduce') {
+    parts.push(`Earlier rounds of this graph already turned up the following. Do NOT report any of it again; look for what is not on this list.\n${seen.slice(-200).map(l => `- ${l}`).join('\n')}`)
   }
   return parts.join('\n\n')
 }
@@ -160,6 +246,16 @@ export function nodePrompt (graph, node, results) {
 export function readOutput (node, text) {
   const s = String(text || '').trim()
   if (!s) return { ok: false, reason: 'That step returned nothing at all.' }
+  if (node.kind === 'route') {
+    const m = s.match(/\{[\s\S]*\}/)
+    let obj = null
+    try { obj = m ? JSON.parse(m[0]) : null } catch {}
+    const pick = String(obj?.choice ?? '').trim()
+    const hit = node.options.find(o => o.toLowerCase() === pick.toLowerCase())
+    if (!hit) return { ok: false, reason: `Expected a choice of ${node.options.map(o => `"${o}"`).join(', ')}; got ${pick ? `"${pick}"` : 'no choice'}.` }
+    const data = { choice: hit, reason: String(obj?.reason || '').slice(0, 300) }
+    return { ok: true, output: `Chose "${hit}"${data.reason ? ` — ${data.reason}` : ''}`, data }
+  }
   if (!node.fields.length) return { ok: true, output: s }
   // Models fence JSON even when told not to. Take the first {...} block.
   const m = s.match(/\{[\s\S]*\}/)
@@ -205,7 +301,7 @@ export function toMermaid (graph, run) {
   const lines = ['flowchart LR']
   for (const n of graph.nodes) {
     const st = run?.nodes?.[n.id]?.state
-    const mark = st === 'done' ? '✓ ' : st === 'failed' ? '✕ ' : st === 'running' ? '● ' : ''
+    const mark = st === 'done' ? '✓ ' : st === 'failed' ? '✕ ' : st === 'skipped' ? '– ' : st === 'running' ? '● ' : ''
     const label = `${mark}${esc(n.title || n.id)}`
     // A skeptic and a plumbing step are not the same shape as a worker, and the
     // shape is how you read the graph at a glance.
@@ -213,11 +309,16 @@ export function toMermaid (graph, run) {
       ? `  ${ids.get(n.id)}{{"${label}"}}`
       : n.kind === 'reduce'
         ? `  ${ids.get(n.id)}[["${label}"]]`
-        : `  ${ids.get(n.id)}["${label}"]`)
+        : n.kind === 'route'
+          ? `  ${ids.get(n.id)}{"${label}"}`
+          : `  ${ids.get(n.id)}["${label}"]`)
   }
   for (const n of graph.nodes) {
     for (const d of n.dependsOn) {
-      if (ids.has(d)) lines.push(`  ${ids.get(d)} --> ${ids.get(n.id)}`)
+      if (!ids.has(d)) continue
+      // A gated edge says which choice opens it — that is the whole branch.
+      const gated = n.gate && n.gate.node === d
+      lines.push(gated ? `  ${ids.get(d)} -- "${esc(n.gate.choice)}" --> ${ids.get(n.id)}` : `  ${ids.get(d)} --> ${ids.get(n.id)}`)
     }
   }
   return lines.join('\n')
@@ -249,12 +350,13 @@ RULES, and the second one is the whole point:
 3. Include one "verify" step that reads the findings and tries to DISPROVE them. It must not be the same step that produced them.
 4. If a step only joins or de-duplicates what came before, make it "reduce" — that runs as code, costs nothing, and takes no time. Never spend an agent on plumbing.
 5. Usually finish with one step that merges what survived into the answer.
-6. If the same kind of work applies to MANY things — files, sources, angles, modules — write several steps that each take a slice and run at the same time, not one step that loops over all of them. One agent per route file beats one agent reading every route file.
-7. Prefer 3-7 steps. Before you answer, count how many run in the first stage: if the answer is one, you have drawn a chain, and a chain is the shape this is meant to replace. Go back and split the widest step.`,
+6. If the path depends on something a step finds — a small change gets a quick look, a big one a full audit — make a "route" step with 2-4 named "options", and give each downstream step a "gate": {"node": "<route id>", "choice": "<option>"}. Only the chosen branch runs; the rest are skipped. Use this only when the branches genuinely differ.
+7. If the same kind of work applies to MANY things — files, sources, angles, modules — write several steps that each take a slice and run at the same time, not one step that loops over all of them. One agent per route file beats one agent reading every route file.
+8. Prefer 3-7 steps. Before you answer, count how many run in the first stage: if the answer is one, you have drawn a chain, and a chain is the shape this is meant to replace. Go back and split the widest step.`,
     `Reply with JSON only, no prose and no code fence:
 {
   "nodes": [
-    {"id": "a", "title": "short name", "kind": "agent|verify|reduce", "prompt": "what this step should do", "dependsOn": ["id", ...], "tier": "cheap|smart"}
+    {"id": "a", "title": "short name", "kind": "agent|verify|reduce|route", "prompt": "what this step should do", "dependsOn": ["id", ...], "tier": "cheap|smart", "options": ["only for route"], "gate": {"node": "route id", "choice": "option"}}
   ],
   "assumptions": ["things you had to guess, one short line each"]
 }
@@ -290,12 +392,16 @@ export function readDraft (text) {
     // whole thing: a model that invents one id has still drawn a usable graph.
     dependsOn: (Array.isArray(n.dependsOn) ? n.dependsOn : []).map(String).filter(d => known.has(d) && d !== String(n.id)),
     reduceOp: n.kind === 'reduce' ? 'dedupe' : undefined,
+    options: n.options,
+    gate: n.gate && known.has(String(n.gate.node)) ? n.gate : null,
     useTools: n.kind !== 'reduce'
   })).filter(n => n.title)
 
   if (!nodes.length) return { ok: false, reason: 'None of the drafted steps had a name.' }
   const { error } = planLayers(nodes)
   if (error) return { ok: false, reason: error, nodes }
+  const bad = checkNodes(nodes)
+  if (bad) return { ok: false, reason: bad, nodes }
   const tiers = Object.fromEntries(raw.map(n => [String(n.id), n.tier === 'smart' ? 'smart' : 'cheap']))
   return {
     ok: true,

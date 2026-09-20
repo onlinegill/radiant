@@ -42,7 +42,14 @@ const server = http.createServer(async (req, res) => {
   peakInFlight = Math.max(peakInFlight, inFlight)
   await new Promise(r => setTimeout(r, delay))
   inFlight--
-  const answer = /FAILME/.test(job) ? '' : ('answer for ' + (job || '?'))
+  // ROUTE steps pick "big"; a FUMBLE step answers in prose the first time it is
+  // asked and in JSON the second; a FINDER lists two lines, and after it has
+  // been told what was already seen it finds nothing new.
+  let answer = /FAILME/.test(job) ? '' : ('answer for ' + (job || '?'))
+  if (/ROUTE/.test(job)) answer = 'I think this one is big.\n{"choice": "big", "reason": "lots of files"}'
+  if (/FUMBLE/.test(job)) answer = /could not be used/.test(asked) ? '{"verdict": "fine"}' : 'Sure! The verdict is fine.'
+  if (/FINDER/.test(job)) answer = /already turned up/.test(asked) ? '- bug one\n- bug two' : '- bug one\n- bug two'
+  if (/GROWER/.test(job)) answer = /bug three/.test(asked) ? '- bug one\n- bug three' : /already turned up/.test(asked) ? '- bug one\n- bug three' : '- bug one\n- bug two'
   res.writeHead(200, { 'content-type': 'text/event-stream' })
   res.write('data: ' + JSON.stringify({ choices: [{ index: 0, delta: { content: answer }, finish_reason: 'stop' }] }) + '\n\n')
   res.write('data: [DONE]\n\n')
@@ -123,6 +130,73 @@ const node = o => ({ kind: 'agent', prompt: '', dependsOn: [], fields: [], useTo
   ok('and the merge still runs with a hole in its input', run.nodes.m.state === 'done', run.nodes.m.error || '')
   ok('the run is not called a failure just because one node failed', run.state === 'done', run.state)
   ok('but it says how many did not finish', /1 of 3/.test(run.error || ''), run.error || '')
+}
+
+// ── a step starts when ITS inputs are in, not when its whole layer is ────────
+// a (slow) and b (fast) are both roots; c reads only b. Layer by layer, c would
+// wait for a. It must not: c should be done long before a is.
+{
+  const graph = {
+    id: 'graph-ready', title: 'No barrier', cwd: dir, concurrency: 4,
+    nodes: [node({ id: 'a', title: 'SLOW root' }), node({ id: 'b', title: 'fast root' }), node({ id: 'c', title: 'reads the fast one', dependsOn: ['b'] })]
+  }
+  const run = await runGraph(graph, deps)
+  const doneAt = id => new Date(run.nodes[id].finishedAt).getTime()
+  ok('the dependent of the fast root finishes before the slow root does', doneAt('c') < doneAt('a'),
+     `c at +${doneAt('c') - doneAt('a')}ms relative to a`)
+  ok('and everything still finishes', run.state === 'done' && Object.values(run.nodes).every(n => n.state === 'done'))
+}
+
+// ── a route step takes one branch and skips the other ───────────────────────
+{
+  const graph = {
+    id: 'graph-route', title: 'Big or small', cwd: dir, concurrency: 4,
+    nodes: [
+      node({ id: 'r', title: 'ROUTE it', kind: 'route', options: ['big', 'small'] }),
+      node({ id: 'big', title: 'full audit', gate: { node: 'r', choice: 'big' }, dependsOn: ['r'] }),
+      node({ id: 'small', title: 'quick look', gate: { node: 'r', choice: 'small' }, dependsOn: ['r'] }),
+      node({ id: 'm', title: 'Merge', dependsOn: ['big', 'small'] })
+    ]
+  }
+  const run = await runGraph(graph, deps)
+  ok('the route step decided', run.nodes.r.state === 'done' && run.nodes.r.data?.choice === 'big', JSON.stringify(run.nodes.r))
+  ok('the chosen branch ran', run.nodes.big.state === 'done')
+  ok('the other branch was skipped, not failed', run.nodes.small.state === 'skipped', run.nodes.small.state)
+  ok('the merge still ran and was told why the branch is missing', run.nodes.m.state === 'done' &&
+     /was skipped/.test([...sessions.values()].find(s => s.title.endsWith('Merge') && s.messages[0].text.includes('Big or small'))?.messages[0].text || ''))
+  ok('a skipped branch is not counted as a failure', run.state === 'done' && !run.error, run.error || '')
+}
+
+// ── a contract miss gets one retry with the reason ──────────────────────────
+{
+  const graph = {
+    id: 'graph-retry', title: 'Fumble once', cwd: dir, concurrency: 1,
+    nodes: [node({ id: 'f', title: 'FUMBLE the shape', fields: ['verdict'] })]
+  }
+  const run = await runGraph(graph, deps)
+  ok('prose the first time, JSON the second → done', run.nodes.f.state === 'done' && run.nodes.f.data?.verdict === 'fine', JSON.stringify(run.nodes.f))
+  ok('and the run records that it retried', run.nodes.f.retried === true)
+  const sess = [...sessions.values()].find(s => s.title.endsWith('FUMBLE the shape'))
+  ok('the reason was sent back to the model verbatim', sess.messages.some(m => m.role === 'user' && /could not be used: Expected JSON/.test(m.text)))
+}
+
+// ── loop until dry, under the cap ───────────────────────────────────────────
+// Round 1 finds bug one and two; told what was seen, round 2 finds bug three;
+// round 3 finds nothing new; round 4 nothing new → dry after two → stop at 4
+// of a possible 5. Dedupe is against everything seen, so "bug one" coming back
+// every round never counts as new.
+{
+  const graph = {
+    id: 'graph-dry', title: 'Sweep', cwd: dir, concurrency: 2, repeat: { until: 'dry', maxRounds: 5, dryRounds: 2 },
+    nodes: [node({ id: 'g', title: 'GROWER finder' })]
+  }
+  const run = await runGraph(graph, deps)
+  ok('it ran more than one round', run.roundsRun >= 2, `rounds ${run.roundsRun}`)
+  ok('it stopped because it ran dry, not because it hit the cap', run.stoppedBecause === 'dry', run.stoppedBecause)
+  ok('it stopped before the cap', run.roundsRun < 5, `rounds ${run.roundsRun}`)
+  ok('found is every distinct line across rounds', run.found.join('|') === '- bug one|- bug two|- bug three', run.found.join('|'))
+  ok('later rounds were told what was already seen', [...sessions.values()].filter(s => s.title.endsWith('GROWER finder')).some(s => /already turned up/.test(s.messages[0].text)))
+  ok('the cap is honoured on the way in', (await import('../server/graph-rules.js')).normalizeRepeat({ until: 'dry', maxRounds: 50 }).maxRounds === 5)
 }
 
 // ── a graph cannot grant itself permission ──────────────────────────────────

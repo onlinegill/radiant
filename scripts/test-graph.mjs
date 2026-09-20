@@ -15,7 +15,7 @@ import http from 'node:http'
 
 const {
   planLayers, suspectEdges, normalizeNode, nodePrompt, readOutput, runReduce, toMermaid, inputBlock,
-  draftPrompt, readDraft
+  draftPrompt, readDraft, checkNodes, gateState, normalizeRepeat, newLines, lineKeys
 } = await import('../server/graph-rules.js')
 
 let pass = 0, fail = 0
@@ -196,6 +196,40 @@ const N = o => normalizeNode(o)
     { id: 'b', title: 'B', kind: 'agent', dependsOn: ['a'] }] }))
   ok('a circular draft is refused', !cyc.ok && /circle/i.test(cyc.reason))
   ok('and the reason is specific enough to hand back to the model', (cyc.reason || '').length > 20)
+}
+
+// ── route steps and gates ────────────────────────────────────────────────────
+{
+  const r = normalizeNode({ id: 'r', title: 'Size it', kind: 'route', options: 'big, small, big' })
+  ok('route options are split and deduped', r.options.join() === 'big,small', r.options.join())
+  const g = normalizeNode({ id: 'g', title: 'Full audit', gate: { node: 'r', choice: 'big' } })
+  ok('a gated step reads its route step even if the edge was not ticked', g.dependsOn.includes('r'))
+  ok('a route with one option is refused', /fewer than two/.test(checkNodes([normalizeNode({ id: 'r', title: 'x', kind: 'route', options: ['one'] })]) || ''))
+  ok('a gate on a non-route step is refused', /not a route step/.test(checkNodes([normalizeNode({ id: 'a', title: 'A' }), normalizeNode({ id: 'b', title: 'B', gate: { node: 'a', choice: 'x' } })]) || ''))
+  ok('a gate on a choice the route does not offer is refused', /not one of its options/.test(checkNodes([r, normalizeNode({ id: 'g', title: 'G', gate: { node: 'r', choice: 'huge' } })]) || ''))
+  ok('a good route and gate pass', checkNodes([r, g]) === null)
+  const out = readOutput(r, 'Thinking...\n{"choice": "BIG", "reason": "many files"}')
+  ok('a route answer is matched to an option regardless of case', out.ok && out.data.choice === 'big' && /many files/.test(out.output), JSON.stringify(out))
+  ok('a route answer outside the options is a contract miss with the options named', !readOutput(r, '{"choice":"huge"}').ok && /"big", "small"/.test(readOutput(r, '{"choice":"huge"}').reason))
+  ok('the gate is pending until the route runs', gateState(g, { r: { state: 'running' } }).state === 'pending')
+  ok('open on the matching choice', gateState(g, { r: { state: 'done', data: { choice: 'big' } } }).state === 'open')
+  ok('closed on the other choice, saying which', /chose "small"/.test(gateState(g, { r: { state: 'done', data: { choice: 'small' } } }).why))
+  ok('closed when the route failed', gateState(g, { r: { state: 'failed', title: 'Size it' } }).state === 'closed')
+  ok('the prompt tells a route step its options', /Pick exactly one of: "big", "small"/.test(nodePrompt({ title: 't' }, r, {})))
+  ok('the drawing labels a gated edge with its choice', /-- "big" -->/.test(toMermaid({ nodes: [r, g] })))
+  ok('a skipped input is named as skipped, not as failed', /was skipped/.test(inputBlock(g, { r: { state: 'skipped', title: 'Size it', error: 'x' } })))
+}
+
+// ── repeat until dry: the cap and the dedupe ────────────────────────────────
+{
+  ok('no repeat unless asked', normalizeRepeat(null) === null && normalizeRepeat({}) === null)
+  const rp = normalizeRepeat({ until: 'dry', maxRounds: 99, dryRounds: 0 })
+  ok('rounds are capped at five', rp.maxRounds === 5, JSON.stringify(rp))
+  ok('dry rounds default to two', rp.dryRounds === 2)
+  const seen = new Set(lineKeys('- Bug one\n* bug TWO'))
+  ok('a line seen in another form is not new', newLines('1. bug one\n- Bug three', seen).join('|') === '- Bug three', newLines('1. bug one\n- Bug three', seen).join('|'))
+  ok('the prompt carries what was seen', /Do NOT report any of it again/.test(nodePrompt({ title: 't' }, normalizeNode({ id: 'a', title: 'A' }), {}, ['bug one'])))
+  ok('but not to a reduce step', !/Do NOT report/.test(nodePrompt({ title: 't' }, normalizeNode({ id: 'a', title: 'A', kind: 'reduce' }), {}, ['bug one'])))
 }
 
 console.log(results.join('\n'))

@@ -32,7 +32,7 @@ import {
   normalizeGoal, hasGoalCheck, goalPrompt, resetSteps,
   normalizeSchedule, nextRunAt, isDue, afterRun
 } from './loop-rules.js'
-import { normalizeNode, planLayers, suspectEdges, toMermaid, draftPrompt, readDraft, DEFAULT_CONCURRENCY } from './graph-rules.js'
+import { normalizeNode, planLayers, suspectEdges, toMermaid, draftPrompt, readDraft, DEFAULT_CONCURRENCY, checkNodes, normalizeRepeat } from './graph-rules.js'
 import { runGraph, isRunning, liveRun, stopGraph } from './graph-run.js'
 
 const PORT = Number(process.env.RADIANT_PORT || 5834)
@@ -2627,6 +2627,8 @@ app.post('/api/graphs', (req, res) => {
   if (!nodes.length) return res.status(400).json({ error: 'A graph needs at least one step.' })
   const { error } = planLayers(nodes)
   if (error) return res.status(400).json({ error })
+  const bad = checkNodes(nodes)
+  if (bad) return res.status(400).json({ error: bad })
   res.json(saveGraph({
     id: GRAPH_ID(),
     title,
@@ -2638,6 +2640,8 @@ app.post('/api/graphs', (req, res) => {
     // shell commands at once with nobody watching. It is a real capability and
     // it is a deliberate choice, never a default.
     autoApprove: b.autoApprove === true,
+    // Loop until dry, capped — see MAX_ROUNDS in graph-rules.js for why.
+    repeat: normalizeRepeat(b.repeat),
     nodes,
     run: null,
     createdAt: new Date().toISOString()
@@ -2655,12 +2659,15 @@ app.patch('/api/graphs/:id', (req, res) => {
   if (b.projectId !== undefined) g.projectId = b.projectId || null
   if (b.concurrency !== undefined) g.concurrency = Number(b.concurrency) || DEFAULT_CONCURRENCY
   if (b.autoApprove !== undefined) g.autoApprove = b.autoApprove === true
+  if (b.repeat !== undefined) g.repeat = normalizeRepeat(b.repeat)
   if (Array.isArray(b.nodes)) {
     const byId = new Map(g.nodes.map(n => [n.id, n]))
     const nodes = b.nodes.map(n => normalizeNode(n, byId.get(n.id))).filter(n => n.title)
     if (!nodes.length) return res.status(400).json({ error: 'A graph needs at least one step.' })
     const { error } = planLayers(nodes)
     if (error) return res.status(400).json({ error })
+    const bad = checkNodes(nodes)
+    if (bad) return res.status(400).json({ error: bad })
     g.nodes = nodes
   }
   res.json(saveGraph(g))

@@ -3256,6 +3256,11 @@ html[data-window-chrome='native'] .brand { padding-top: 12px; }
 .gb-kinds { display: flex; gap: 4px; margin-right: auto; }
 .gb-node-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .gb-reduce { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gb-route { display: flex; flex-direction: column; gap: 6px; }
+/* "only when <route> chooses <option>": two selects on one line */
+.gb-gate { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gb-gate select { width: auto; min-width: 12ch; }
+.gb-rounds { margin: 0; font-size: 11px; color: var(--text-faint); line-height: 1.45; }
 
 /* The dependency list is the real control on this screen — everything unticked
    runs at the same time as this step. */
@@ -3289,6 +3294,7 @@ html[data-window-chrome='native'] .brand { padding-top: 12px; }
 .gb-run-state { flex: none; width: 62px; font-size: 10.5px; color: var(--text-faint); padding-top: 1px; }
 .gb-run-node.is-done .gb-run-state { color: var(--ok, oklch(0.72 0.15 155)); }
 .gb-run-node.is-failed .gb-run-state, .gb-run-node.is-running .gb-run-state { color: var(--accent); }
+.gb-run-node.is-skipped { opacity: 0.6; }
 .gb-run-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .gb-run-main b { font-size: 12.5px; font-weight: 600; color: var(--text); }
 .gb-run-kind { font-size: 11px; color: var(--text-faint); }

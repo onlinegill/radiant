@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import os from 'os'
 import { runTurn } from './providers.js'
-import { planLayers, nodePrompt, readOutput, runReduce, DEFAULT_CONCURRENCY, MAX_CONCURRENCY } from './graph-rules.js'
+import { planLayers, checkNodes, nodePrompt, readOutput, runReduce, gateState, leafIds, newLines, lineKeys, normalizeRepeat, DEFAULT_CONCURRENCY, MAX_CONCURRENCY } from './graph-rules.js'
 
 /**
  * The runner. This is the part Radiant could not do before.
@@ -44,7 +44,7 @@ export function stopGraph (id) {
 }
 
 /** One node's turn, in its own session, with nothing else in its context. */
-async function runNode ({ graph, node, results, deps, signal }) {
+async function runNode ({ graph, node, results, deps, signal, seen }) {
   const { loadConfig, saveSession, agentsStore, getProject, credFor } = deps
   const config = loadConfig()
   const project = graph.projectId ? getProject(graph.projectId) : null
@@ -71,7 +71,7 @@ async function runNode ({ graph, node, results, deps, signal }) {
   }
   if (!session.model) return { state: 'failed', error: 'No model is set for this step, and there is no default to fall back on.' }
 
-  const prompt = nodePrompt(graph, node, results)
+  const prompt = nodePrompt(graph, node, results, seen)
   session.messages.push({ role: 'user', text: prompt })
   saveSession(session)
 
@@ -81,25 +81,39 @@ async function runNode ({ graph, node, results, deps, signal }) {
   let text = ''
   let refused = null
   const timeout = setTimeout(() => { try { signal.__nodeAbort?.() } catch {} }, MAX_NODE_MS)
+  const turn = () => runTurn({
+    provider: cred.provider,
+    model: session.model,
+    apiKey: cred.apiKey,
+    getAccessToken: cred.getAccessToken,
+    getAccountId: cred.getAccountId,
+    session,
+    useTools: session.useTools,
+    computerControl: false,
+    persona: agent?.persona || '',
+    skills: [],
+    emit: ev => { if (ev.type === 'text_delta') text += ev.text },
+    // See the header: a graph cannot ask. It refuses and says what it wanted.
+    requestApproval: graph.autoApprove
+      ? null
+      : call => { refused = call.name; return Promise.resolve(false) },
+    signal
+  })
+  let parsed
+  let retried = false
   try {
-    await runTurn({
-      provider: cred.provider,
-      model: session.model,
-      apiKey: cred.apiKey,
-      getAccessToken: cred.getAccessToken,
-      getAccountId: cred.getAccountId,
-      session,
-      useTools: session.useTools,
-      computerControl: false,
-      persona: agent?.persona || '',
-      skills: [],
-      emit: ev => { if (ev.type === 'text_delta') text += ev.text },
-      // See the header: a graph cannot ask. It refuses and says what it wanted.
-      requestApproval: graph.autoApprove
-        ? null
-        : call => { refused = call.name; return Promise.resolve(false) },
-      signal
-    })
+    await turn()
+    parsed = readOutput(node, text)
+    // ⚠️ VALIDATE, THEN RETRY ONCE — the contract is the point of the node, and
+    // a model that fenced its JSON or dropped a key is one sentence away from
+    // right. The reason goes back to it verbatim; a second miss is a failure.
+    if (!parsed.ok && text.trim() && !refused && !signal.aborted && (node.fields.length || node.kind === 'route')) {
+      retried = true
+      session.messages.push({ role: 'user', text: `Your answer could not be used: ${parsed.reason} Reply again, and this time with the JSON only.` })
+      text = ''
+      await turn()
+      parsed = readOutput(node, text)
+    }
   } catch (e) {
     clearTimeout(timeout)
     if (signal.aborted) return { state: 'failed', error: 'Stopped.', sessionId: session.id }
@@ -120,76 +134,121 @@ async function runNode ({ graph, node, results, deps, signal }) {
     }
   }
 
-  const parsed = readOutput(node, text)
-  if (!parsed.ok) return { state: 'failed', error: parsed.reason, sessionId: session.id, output: text.slice(0, 2000) }
-  return { state: 'done', output: parsed.output, data: parsed.data, sessionId: session.id }
-}
-
-/** Run at most `limit` of these at once. */
-async function pool (items, limit, fn) {
-  const out = new Array(items.length)
-  let i = 0
-  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
-    while (i < items.length) {
-      const at = i++
-      out[at] = await fn(items[at], at)
-    }
-  })
-  await Promise.all(workers)
-  return out
+  if (!parsed.ok) return { state: 'failed', error: parsed.reason, sessionId: session.id, output: text.slice(0, 2000), retried }
+  return { state: 'done', output: parsed.output, data: parsed.data, sessionId: session.id, retried }
 }
 
 /**
  * Run a whole graph. Resolves with the finished run; never throws for a node's
  * sake.
+ *
+ * ⚠️ A STEP STARTS WHEN ITS OWN INPUTS ARE IN, NOT WHEN ITS WHOLE LAYER IS. The
+ * first version ran the graph layer by layer, which made every layer a barrier:
+ * one slow step in layer one held back every step in layer two, including the
+ * ones that never read it. Barrier latency is wasted time, and a barrier is
+ * only earned by a step that genuinely needs everything before it — and that
+ * step already says so, in its edges. planLayers still decides whether the
+ * graph can run at all (a circle cannot); the order comes from readiness.
+ *
  * @param {(run) => void} onProgress called after every node so the UI can watch
  */
 export async function runGraph (graph, deps, onProgress = () => {}) {
-  const { layers, error } = planLayers(graph.nodes)
-  if (error) return { state: 'failed', error, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), nodes: {} }
+  const { error } = planLayers(graph.nodes)
+  const bad = error || checkNodes(graph.nodes)
+  if (bad) return { state: 'failed', error: bad, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), nodes: {} }
 
   const controller = new AbortController()
+  const repeat = normalizeRepeat(graph.repeat)
+  const freshNodes = () => Object.fromEntries(graph.nodes.map(n => [n.id, { title: n.title, kind: n.kind, state: 'waiting' }]))
   const run = {
     state: 'running',
     startedAt: new Date().toISOString(),
     finishedAt: null,
     error: null,
-    nodes: Object.fromEntries(graph.nodes.map(n => [n.id, { title: n.title, kind: n.kind, state: 'waiting' }]))
+    nodes: freshNodes(),
+    ...(repeat ? { rounds: [], found: [] } : {})
   }
   running.set(graph.id, { controller, run })
   const limit = Math.min(MAX_CONCURRENCY, Math.max(1, graph.concurrency || DEFAULT_CONCURRENCY))
   const byId = new Map(graph.nodes.map(n => [n.id, n]))
+  const leaves = leafIds(graph.nodes)
 
-  try {
-    for (const layer of layers) {
-      if (controller.signal.aborted) break
-      // Everything in a layer starts together. This is the fan-out.
-      await pool(layer, limit, async id => {
-        if (controller.signal.aborted) return
+  const runOnce = (seenLines) => new Promise(resolve => {
+    const pending = new Set(graph.nodes.map(n => n.id))
+    const finished = id => ['done', 'failed', 'skipped'].includes(run.nodes[id]?.state)
+    let active = 0
+    const settle = (id, r, started) => {
+      run.nodes[id] = { ...run.nodes[id], ...r, ms: Date.now() - started, finishedAt: new Date().toISOString() }
+      onProgress(run)
+    }
+    const tick = () => {
+      if (controller.signal.aborted) pending.clear()
+      for (const id of [...pending]) {
         const node = byId.get(id)
+        if (!node.dependsOn.every(finished)) continue
+        const gate = gateState(node, run.nodes)
+        if (gate.state === 'closed') {
+          // The branch nobody chose. Not a failure: it was never meant to run.
+          pending.delete(id)
+          run.nodes[id] = { ...run.nodes[id], state: 'skipped', error: gate.why }
+          onProgress(run)
+          continue
+        }
+        if (active >= limit) break
+        pending.delete(id)
+        active++
         const started = Date.now()
         run.nodes[id] = { ...run.nodes[id], state: 'running', startedAt: new Date().toISOString() }
         onProgress(run)
-
-        let r
-        if (node.kind === 'reduce') {
+        const job = node.kind === 'reduce'
           // No model, no session, no wait.
-          const red = runReduce(node, run.nodes)
-          r = red.ok ? { state: 'done', output: red.output } : { state: 'failed', error: red.reason }
-        } else {
-          r = await runNode({ graph, node, results: run.nodes, deps, signal: controller.signal })
+          ? Promise.resolve().then(() => { const red = runReduce(node, run.nodes); return red.ok ? { state: 'done', output: red.output } : { state: 'failed', error: red.reason } })
+          : runNode({ graph, node, results: run.nodes, deps, signal: controller.signal, seen: seenLines })
+        job.then(r => settle(id, r, started), e => settle(id, { state: 'failed', error: e.message }, started))
+          .finally(() => { active--; tick() })
+      }
+      if (!pending.size && active === 0) resolve()
+    }
+    tick()
+  })
+
+  try {
+    if (!repeat) {
+      await runOnce(null)
+    } else {
+      // Loop until dry, under the cap. What counts as "found" is what comes out
+      // of the leaves — the steps nothing else reads — and it is deduped against
+      // EVERYTHING seen, not against what survived.
+      const seen = new Set()
+      let dry = 0
+      for (let round = 1; round <= repeat.maxRounds; round++) {
+        if (round > 1) run.nodes = freshNodes()
+        await runOnce([...run.found])
+        if (controller.signal.aborted) break
+        const fresh = []
+        for (const id of leaves) {
+          const r = run.nodes[id]
+          if (r?.state !== 'done') continue
+          for (const l of newLines(r.output, seen)) fresh.push(l)
+          for (const k of lineKeys(r.output)) seen.add(k)
         }
-        run.nodes[id] = { ...run.nodes[id], ...r, ms: Date.now() - started, finishedAt: new Date().toISOString() }
+        run.found.push(...fresh)
+        dry = fresh.length ? 0 : dry + 1
+        run.rounds.push({ round, newCount: fresh.length, nodes: run.nodes })
         onProgress(run)
-      })
+        if (dry >= repeat.dryRounds) break
+      }
+      run.roundsRun = run.rounds.length
+      run.stoppedBecause = controller.signal.aborted ? 'stopped' : dry >= repeat.dryRounds ? 'dry' : 'cap'
     }
     if (controller.signal.aborted) { run.state = 'stopped' } else {
       const failed = Object.values(run.nodes).filter(n => n.state === 'failed')
+      const ran = Object.values(run.nodes).filter(n => n.state !== 'skipped')
       // ⚠️ SOME FAILURES ARE FINE. The run is only a failure when NOTHING
       // finished; otherwise it is a result with holes in it, which is what
-      // containing failure at the node is for.
-      run.state = failed.length === graph.nodes.length ? 'failed' : 'done'
-      if (failed.length) run.error = `${failed.length} of ${graph.nodes.length} steps did not finish.`
+      // containing failure at the node is for. A skipped branch is neither.
+      run.state = ran.length && failed.length === ran.length ? 'failed' : 'done'
+      if (failed.length) run.error = `${failed.length} of ${ran.length} steps did not finish.`
     }
   } finally {
     run.finishedAt = new Date().toISOString()

@@ -23,14 +23,15 @@ import PathPicker from './PathPicker.jsx'
 const KINDS = [
   { id: 'agent', label: 'Work', hint: 'An agent does one bounded job.' },
   { id: 'verify', label: 'Check', hint: 'A skeptic that tries to disprove what came in, and drops what it cannot support.' },
-  { id: 'reduce', label: 'Combine', hint: 'Plain code — joins or de-duplicates what came in. No model, no cost.' }
+  { id: 'reduce', label: 'Combine', hint: 'Plain code — joins or de-duplicates what came in. No model, no cost.' },
+  { id: 'route', label: 'Decide', hint: 'Picks one of a few ways forward. Other steps can be set to run only for one of its choices.' }
 ]
 
 const STATE_LOOK = {
-  waiting: 'Waiting', running: 'Running', done: 'Done', failed: 'Failed'
+  waiting: 'Waiting', running: 'Running', done: 'Done', failed: 'Failed', skipped: 'Skipped'
 }
 
-const blankNode = () => ({ title: '', kind: 'agent', prompt: '', dependsOn: [], model: null, provider: null, agentId: null, fields: [], reduceOp: 'concat', useTools: true })
+const blankNode = () => ({ title: '', kind: 'agent', prompt: '', dependsOn: [], model: null, provider: null, agentId: null, fields: [], reduceOp: 'concat', options: [], gate: null, useTools: true })
 
 // ⚠️ THE DIAMOND IS THE ONLY TOPOLOGY WORTH MEMORISING, so it is the one the
 // New button starts you with: independent work fans out, a skeptic sits on the
@@ -57,6 +58,9 @@ function NodeEditor ({ node: raw, index, all, agents, pickable, onChange, onRemo
   const set = p => onChange({ ...node, ...p })
   const who = { model: node.agentId ? (agents.find(a => a.id === node.agentId)?.name || null) : node.model, provider: node.agentId ? 'agent' : node.provider }
   const others = all.filter(n => n.id !== node.id && n.title.trim())
+  // The route steps this one could be gated on — everything but itself.
+  const routes = others.filter(n => n.kind === 'route' && (n.options || []).length >= 2)
+  const gateRoute = node.gate ? routes.find(r => r.id === node.gate.node) : null
   return (
     <div className='gb-node'>
       <div className='gb-node-head'>
@@ -84,6 +88,21 @@ function NodeEditor ({ node: raw, index, all, agents, pickable, onChange, onRemo
           support. Give it a different model from the step that produced the work — an agent asked to check
           its own answer will pass it.
         </p>
+      )}
+      {node.kind === 'route' && (
+        <div className='gb-route'>
+          <textarea className='lp-input lp-area' rows={2} placeholder='What is it deciding? (optional)'
+            value={node.prompt} onChange={e => set({ prompt: e.target.value })} aria-label={`Step ${index + 1} detail`} />
+          <input className='lp-input' placeholder='Its choices, separated by commas — e.g. big, small'
+            value={(node.options || []).join(', ')}
+            onChange={e => set({ options: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })}
+            aria-label={`Step ${index + 1} choices`} />
+          <span className='lp-field-hint'>
+            It reads what it depends on and picks exactly one of these. Set another step to “only when” one
+            of them and it runs for that choice and is skipped for the others — the agent decides, the graph
+            does the branching, the same way every time.
+          </span>
+        </div>
       )}
       {node.kind === 'reduce' && (
         <div className='gb-reduce'>
@@ -122,6 +141,27 @@ function NodeEditor ({ node: raw, index, all, agents, pickable, onChange, onRemo
           that is the whole speed-up.
         </span>
       </div>
+
+      {routes.length > 0 && node.kind !== 'route' && (
+        <div className='gb-gate'>
+          <span className='lp-field-label'>Only when</span>
+          <select className='lp-input' value={node.gate ? node.gate.node : ''} aria-label={`Step ${index + 1} runs only when`}
+            onChange={e => {
+              const r = routes.find(x => x.id === e.target.value)
+              // A gated step reads its route step; tick the edge so the screen says what the server will do.
+              set({ gate: r ? { node: r.id, choice: r.options[0] } : null, dependsOn: r && !node.dependsOn.includes(r.id) ? [...node.dependsOn, r.id] : node.dependsOn })
+            }}>
+            <option value=''>Always</option>
+            {routes.map(r => <option key={r.id} value={r.id}>{r.title} chooses…</option>)}
+          </select>
+          {gateRoute && (
+            <select className='lp-input' value={node.gate.choice} aria-label={`Step ${index + 1} runs only for this choice`}
+              onChange={e => set({ gate: { node: gateRoute.id, choice: e.target.value } })}>
+              {gateRoute.options.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          )}
+        </div>
+      )}
 
       {node.kind !== 'reduce' && (
         <div className='gb-node-foot'>
@@ -204,7 +244,7 @@ export default function GraphBoard ({
   ], [agents, models])
 
   const startDraft = () => {
-    setDraft({ title: '', detail: '', cwd: defaultCwd || '', concurrency: 4, autoApprove: false, nodes: DIAMOND() })
+    setDraft({ title: '', detail: '', cwd: defaultCwd || '', concurrency: 4, autoApprove: false, repeat: false, nodes: DIAMOND() })
     setEditingId(null); setHow('describe'); setGoal(''); setAssumptions([]); setComposing(true)
   }
 
@@ -232,14 +272,14 @@ export default function GraphBoard ({
     } catch (e) { onError?.(e.message) } finally { setDrafting(false) }
   }
   const editGraph = g => {
-    setDraft({ title: g.title, detail: g.detail || '', cwd: g.cwd || '', concurrency: g.concurrency || 4, autoApprove: Boolean(g.autoApprove), nodes: g.nodes.map(n => ({ ...n })) })
+    setDraft({ title: g.title, detail: g.detail || '', cwd: g.cwd || '', concurrency: g.concurrency || 4, autoApprove: Boolean(g.autoApprove), repeat: Boolean(g.repeat), nodes: g.nodes.map(n => ({ ...n })) })
     setEditingId(g.id); setHow('build'); setAssumptions([]); setComposing(true)
   }
 
   const save = async () => {
     const nodes = draft.nodes.filter(n => n.title.trim())
     if (!draft.title.trim() || !nodes.length) return
-    const body = { title: draft.title.trim(), detail: draft.detail.trim(), cwd: draft.cwd.trim() || null, concurrency: draft.concurrency, autoApprove: draft.autoApprove, nodes }
+    const body = { title: draft.title.trim(), detail: draft.detail.trim(), cwd: draft.cwd.trim() || null, concurrency: draft.concurrency, autoApprove: draft.autoApprove, repeat: draft.repeat ? { until: 'dry' } : null, nodes }
     try {
       const g = editingId ? await api.patchGraph(editingId, body) : await api.createGraph(body)
       setComposing(false); setEditingId(null); setOpenId(g.id); refresh()
@@ -390,6 +430,13 @@ export default function GraphBoard ({
                   running shell commands, at once, with nobody watching. */}
               <span>Let this graph act without asking <i>— several agents may run commands at the same time, with nobody watching. Off means a step that needs permission fails instead.</i></span>
             </label>
+            <label className='gb-auto'>
+              <input type='checkbox' checked={Boolean(draft.repeat)}
+                onChange={e => setDraft(d => ({ ...d, repeat: e.target.checked }))} />
+              {/* ⚠️ THE CAP IS SAID ON SCREEN. A loop with no ceiling is how a
+                  five-hour usage window vanished in thirty-five minutes. */}
+              <span>Keep going until nothing new turns up <i>— runs the whole graph again, telling every step what earlier rounds already found, and stops after two rounds in a row add nothing. Never more than five rounds.</i></span>
+            </label>
             <button className='rx-btn rx-btn-go' onClick={save} disabled={!draft.title.trim() || !draft.nodes.some(n => n.title.trim())}>
               {editingId ? 'Save changes' : 'Create graph'}
             </button>
@@ -456,6 +503,14 @@ export default function GraphBoard ({
                   ))}
                   <div className='gb-canvas'><div ref={host} className='gv-mermaid' /></div>
 
+                  {r?.rounds && (
+                    <p className='gb-rounds'>
+                      {r.rounds.length} round{r.rounds.length === 1 ? '' : 's'}
+                      {r.stoppedBecause === 'dry' ? ' — stopped because nothing new turned up' : r.stoppedBecause === 'cap' ? ' — stopped at the five-round limit' : r.stoppedBecause === 'stopped' ? ' — stopped by you' : ''}
+                      {r.rounds.map(x => ` · round ${x.round}: ${x.newCount} new`).join('')}
+                      {r.found?.length ? ` · ${r.found.length} distinct lines found in all` : ''}
+                    </p>
+                  )}
                   <ol className='gb-nodes'>
                     {g.nodes.map(n => {
                       const st = r?.nodes?.[n.id]
@@ -467,6 +522,8 @@ export default function GraphBoard ({
                             <span className='gb-run-kind'>
                               {KINDS.find(k => k.id === n.kind)?.label}
                               {(n.dependsOn || []).length ? ` · reads ${n.dependsOn.length}` : ' · reads nothing, so it starts immediately'}
+                              {n.gate ? ` · only when “${g.nodes.find(x => x.id === n.gate.node)?.title || '?'}” chooses “${n.gate.choice}”` : ''}
+                              {st?.retried ? ' · asked twice for the right shape' : ''}
                               {st?.ms ? ` · ${(st.ms / 1000).toFixed(1)}s` : ''}
                             </span>
                             {st?.error && <span className='gb-run-error'>{st.error}</span>}
