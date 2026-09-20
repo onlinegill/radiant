@@ -323,17 +323,19 @@ ok('with the record cleared', !(back.removedAgents || []).includes('agent-financ
   // is a SECOND segmented control stacked above the brand, which is what
   // .view-tab was; that is asserted above.
   ok('and the sidebar still renders that class', /sidebar-switch/.test(sb))
-  // Two rows now: Chat/Agents on top, Task/Loop/Graph below.
-  ok('the switcher has both rows', (sb.match(/'sidebar-switch'/g) || []).length === 2,
+  // ⚠️ ONE SEGMENTED ROW NOW, NOT TWO. Chat/Agents stayed a switch; Task, Loop
+  // and Graph moved into a single Tools menu (a GlideSelect), Tony's ask. What
+  // must NOT come back is a second control stacked above the brand (.view-tab,
+  // asserted gone above) OR a second segmented row of background-run tabs.
+  ok('there is exactly one segmented switch', (sb.match(/'sidebar-switch'/g) || []).length === 1,
      String((sb.match(/'sidebar-switch'/g) || []).length))
-  // ⚠️ THE PILL'S WIDTH HAS TO FOLLOW THE ROW IT IS IN. Two tabs on top and
-  // three below; a hardcoded third drew a pill two-thirds the width of the
-  // button it was meant to sit under.
-  ok('the pill sizes itself from the number of tabs', /--tab-n/.test(tcss) && !/\/ 3\)\s*;/.test(
-    tcss.slice(tcss.indexOf('.sidebar-switch::before'), tcss.indexOf('.sidebar-switch::before') + 400)))
-  ok('and each row sets it', /--tab-n':\s*2/.test(sb) && /--tab-n':\s*3/.test(sb))
-  // The row you are not in must not draw a selection.
-  ok('the row with no selection hides its pill',
+  ok('the three run kinds are one Tools menu, not tabs', /sidebar-tools/.test(sb) && /placeholder='Tools'/.test(sb))
+  ok('and the menu carries all three', /value: 'tasks'/.test(sb) && /value: 'loops'/.test(sb) && /value: 'graph'/.test(sb))
+  // The one remaining switch still sizes its pill from its tab count and hides
+  // it when a Tools section (not chat) is the one you are in.
+  ok('the pill sizes itself from the number of tabs', /--tab-n/.test(tcss))
+  ok('the switch sets its tab count', /--tab-n':\s*2/.test(sb))
+  ok('the switch hides its pill when you are in a Tools section',
      /\.sidebar-switch\.is-off::before/.test(tcss) && /is-off/.test(sb))
 }
 

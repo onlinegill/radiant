@@ -16,7 +16,7 @@ import { Icon } from './Icons.jsx'
 
 const ROW = 30, GAP = 1, PAD = 4
 
-export default function GlideSelect ({ options = [], value, onChange, ariaLabel = 'Select', placeholder = 'Select…', menuWidth = 190, className = '' }) {
+export default function GlideSelect ({ options = [], value, onChange, ariaLabel = 'Select', placeholder = 'Select…', menuWidth = 190, className = '', triggerIcon = null }) {
   const items = options
   const selected = items.findIndex(it => it.value === value)
   const [phase, setPhase] = useState('closed')       // closed | open | closing
@@ -109,6 +109,7 @@ export default function GlideSelect ({ options = [], value, onChange, ariaLabel 
         onClick={() => (phase === 'open' ? close('pop') : open(false))}
         onKeyDown={onKey}
       >
+        {(current?.icon || triggerIcon) && <span className='glide-ico' aria-hidden>{current?.icon || triggerIcon}</span>}
         <span className='glide-value'>{current ? current.label : placeholder}</span>
         {!current?.badge && totalBadge ? <span className='glide-badge'>{totalBadge}</span> : null}
         <span className='glide-chevron'><Icon.chevronDown size={8} /></span>
@@ -128,6 +129,7 @@ export default function GlideSelect ({ options = [], value, onChange, ariaLabel 
               onMouseEnter={() => setActive(i)}
               onClick={() => pick(i)}
             >
+              {it.icon && <span className='glide-ico' aria-hidden>{it.icon}</span>}
               <span className='glide-label'>{it.label}</span>
               {it.badge ? <span className='glide-badge'>{it.badge}</span> : null}
               {it.tag && <span className='glide-tag'>{it.tag}</span>}

@@ -477,7 +477,7 @@ code, pre, .mono { font-family: var(--font-mono); }
    you are in carries a pill. */
 .sidebar-tabs { display: flex; flex-direction: column; gap: 4px; margin: 0 12px 8px; }
 .sidebar-switch { display: flex; gap: 3px; padding: 3px; background: var(--bg-input); border-radius: 9px; }
-.sidebar-switch button { flex: 1; padding: 5px; border: none; border-radius: 6px; background: none; color: var(--text-muted); font-size: 12px; font-weight: 500; }
+.sidebar-switch button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px; border: none; border-radius: 6px; background: none; color: var(--text-muted); font-size: 12px; font-weight: 500; }
 /* ⚠️ THE SELECTED TAB IS THE ONLY THING SAYING WHICH VIEW YOU ARE IN, so it gets
    the accent — the same thing that marks "current" everywhere else in the app.
    It was --bg-raised on a --bg-input track, which is a near-white chip on a white
@@ -1423,6 +1423,16 @@ code, pre, .mono { font-family: var(--font-mono); }
 .glide-tick { display: inline-flex; color: var(--accent-hot); }
 .glide-badge { display: inline-block; min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--bg, #fff); font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .glide-menu, .glide-pill { transition: none; } }
+/* The Tools menu sits in the tab area and reads as a sibling of the Chat/Agents
+   switch: full width, the same track surface, left-aligned like a menu. */
+.glide.sidebar-tools { display: block; }
+.sidebar-tools .glide-trigger { width: 100%; height: 30px; justify-content: flex-start; border: none; border-radius: 9px; background: var(--bg-input); color: var(--text-muted); font-size: 12px; }
+.sidebar-tools .glide-trigger:hover, .sidebar-tools .glide-trigger[aria-expanded='true'] { color: var(--text); }
+.sidebar-tools .glide-value { flex: 1; text-align: left; }
+/* accent while a tool section is open, exactly like the selected switch tab */
+.sidebar-tools.is-active .glide-trigger { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.glide-ico { display: inline-flex; align-items: center; color: currentColor; flex: none; }
+
 .right-tab-badge { display: inline-block; margin-left: 6px; min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--bg, #fff); font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600; }
 
 /* the Preview tab: an address bar, the things the chat produced, and a frame */

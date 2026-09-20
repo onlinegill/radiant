@@ -133,10 +133,24 @@ async function swallowedControls () {
   })
 }
 
+// Chat is a switch button; Task/Loop/Graph now live in the Tools menu, so open
+// it and pick the row rather than clicking a tab that no longer exists.
+const goTo = async tab => {
+  if (tab === 'Chat') {
+    const btn = page.locator('.sidebar-switch button:text-is("Chat")').first()
+    if (!(await btn.count())) return false
+    await btn.click(); return true
+  }
+  const trigger = page.locator('.sidebar-tools .glide-trigger').first()
+  if (!(await trigger.count())) return false
+  await trigger.click()
+  await page.waitForTimeout(120)
+  const row = page.locator(`.glide-row:has-text("${tab}")`).first()
+  if (!(await row.count())) return false
+  await row.click(); return true
+}
 for (const tab of TABS) {
-  const btn = page.locator(`.sidebar-switch button:text-is("${tab}")`).first()
-  if (!(await btn.count())) { ok(`the ${tab} tab exists to be checked`, false); continue }
-  await btn.click()
+  if (!(await goTo(tab))) { ok(`the ${tab} tab exists to be checked`, false); continue }
   await page.waitForTimeout(250)
   ok(`the window can be dragged on the ${tab} tab`, await grabbable())
   const bad = await swallowedControls()

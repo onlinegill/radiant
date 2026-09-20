@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icons.jsx'
+import GlideSelect from './GlideSelect.jsx'
 import HoldButton from './HoldButton.jsx'
 import { glyphColor } from '../theme.js'
 import { AgentGlyph } from './AgentIcons.jsx'
@@ -396,24 +397,31 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
           style={{ '--tab-n': 2, '--tab-i': view === 'bots' ? 1 : 0 }}
         >
           <button className={section === 'chat' && view === 'chats' ? 'on' : ''}
-            onClick={() => { onSection?.('chat'); setView('chats') }}>Chat</button>
+            onClick={() => { onSection?.('chat'); setView('chats') }}><Icon.chat size={13} /> Chat</button>
           <button className={section === 'chat' && view === 'bots' ? 'on' : ''}
-            onClick={() => { onSection?.('chat'); setView('bots') }}>Agents</button>
+            onClick={() => { onSection?.('chat'); setView('bots') }}><Icon.users size={13} /> Agents</button>
         </div>
         {/* What is being built: one job, a run of them, or the shape of what you
-            are building it in. Reading left to right, each is a layer up from
-            the last. */}
-        <div
-          className={'sidebar-switch' + (WORK.includes(section) ? '' : ' is-off')}
-          style={{ '--tab-n': 3, '--tab-i': Math.max(0, WORK.indexOf(section)) }}
-        >
-          <button className={section === 'tasks' ? 'on' : ''}
-            onClick={() => onSection?.('tasks')}>Task</button>
-          <button className={section === 'loops' ? 'on' : ''}
-            onClick={() => onSection?.('loops')}>Loop</button>
-          <button className={section === 'graph' ? 'on' : ''}
-            onClick={() => onSection?.('graph')}>Graph</button>
-        </div>
+            are building it in. Three background-run kinds under one menu rather
+            than three flat tabs — Tony: "put Task, Loop and Graph in a dropdown
+            like the sidebar menu". It reuses the same glide menu the right panel
+            uses, so it keeps its keyboard support and outside-click close; the
+            trigger wears the wrench until one is chosen, then that tool's own
+            icon and name, and turns accent while a tool section is open. */}
+        <GlideSelect
+          className={'sidebar-tools' + (WORK.includes(section) ? ' is-active' : '')}
+          ariaLabel='Tools'
+          placeholder='Tools'
+          menuWidth={width - 24}
+          triggerIcon={<Icon.wrench size={14} />}
+          value={WORK.includes(section) ? section : null}
+          onChange={v => onSection?.(v)}
+          options={[
+            { value: 'tasks', label: 'Task', icon: <Icon.checklist size={14} /> },
+            { value: 'loops', label: 'Loop', icon: <Icon.repeat size={14} /> },
+            { value: 'graph', label: 'Graph', icon: <Icon.graph size={14} /> }
+          ]}
+        />
       </div>
       {section === 'chat' && view === 'chats' && (
         <input className='session-search' placeholder='Search all sessions…' value={search}
