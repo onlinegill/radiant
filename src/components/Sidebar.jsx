@@ -401,18 +401,17 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
           <button className={section === 'chat' && view === 'bots' ? 'on' : ''}
             onClick={() => { onSection?.('chat'); setView('bots') }}><Icon.users size={13} /> Agents</button>
         </div>
-        {/* What is being built: one job, a run of them, or the shape of what you
-            are building it in. Three background-run kinds under one menu rather
-            than three flat tabs — Tony: "put Task, Loop and Graph in a dropdown
-            like the sidebar menu". It reuses the same glide menu the right panel
-            uses, so it keeps its keyboard support and outside-click close; the
-            trigger wears the wrench until one is chosen, then that tool's own
-            icon and name, and turns accent while a tool section is open. */}
+        {/* Task, Loop and Graph as one compact menu, sitting to the RIGHT of the
+            Chat/Agents switch on the same row — a full-width bar of its own read
+            as an odd empty span (Tony). It reuses the right panel's glide menu,
+            so keyboard support and outside-click close come for free; the trigger
+            wears the wrench until one is chosen, then that tool's icon and name,
+            and turns accent while a tool section is open. */}
         <GlideSelect
           className={'sidebar-tools' + (WORK.includes(section) ? ' is-active' : '')}
           ariaLabel='Tools'
           placeholder='Tools'
-          menuWidth={width - 24}
+          menuWidth={150}
           triggerIcon={<Icon.wrench size={14} />}
           value={WORK.includes(section) ? section : null}
           onChange={v => onSection?.(v)}

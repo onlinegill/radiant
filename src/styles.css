@@ -475,8 +475,8 @@ code, pre, .mono { font-family: var(--font-mono); }
 /* Two rows, one control. Where you are on top, what you are building below —
    they are different questions, so they get different tracks, and only the row
    you are in carries a pill. */
-.sidebar-tabs { display: flex; flex-direction: column; gap: 4px; margin: 0 12px 8px; }
-.sidebar-switch { display: flex; gap: 3px; padding: 3px; background: var(--bg-input); border-radius: 9px; }
+.sidebar-tabs { display: flex; align-items: center; gap: 6px; margin: 0 12px 8px; }
+.sidebar-switch { flex: 1; min-width: 0; display: flex; gap: 3px; padding: 3px; background: var(--bg-input); border-radius: 9px; }
 .sidebar-switch button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px; border: none; border-radius: 6px; background: none; color: var(--text-muted); font-size: 12px; font-weight: 500; }
 /* ⚠️ THE SELECTED TAB IS THE ONLY THING SAYING WHICH VIEW YOU ARE IN, so it gets
    the accent — the same thing that marks "current" everywhere else in the app.
@@ -1425,8 +1425,8 @@ code, pre, .mono { font-family: var(--font-mono); }
 @media (prefers-reduced-motion: reduce) { .glide-menu, .glide-pill { transition: none; } }
 /* The Tools menu sits in the tab area and reads as a sibling of the Chat/Agents
    switch: full width, the same track surface, left-aligned like a menu. */
-.glide.sidebar-tools { display: block; }
-.sidebar-tools .glide-trigger { width: 100%; height: 30px; justify-content: flex-start; border: none; border-radius: 9px; background: var(--bg-input); color: var(--text-muted); font-size: 12px; }
+.glide.sidebar-tools { flex: none; }
+.sidebar-tools .glide-trigger { height: 30px; padding: 0 9px 0 10px; border: none; border-radius: 9px; background: var(--bg-input); color: var(--text-muted); font-size: 12px; }
 .sidebar-tools .glide-trigger:hover, .sidebar-tools .glide-trigger[aria-expanded='true'] { color: var(--text); }
 .sidebar-tools .glide-value { flex: 1; text-align: left; }
 /* accent while a tool section is open, exactly like the selected switch tab */
