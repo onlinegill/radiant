@@ -359,7 +359,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
   const rowCtx = { agentOf, activeId, working, onOpen, projects, onMoveSession, onPin, onArchive, onDelete, edit }
 
   return (
-    <nav className='sidebar' style={{ width }}>
+    <nav className={'sidebar' + (width < 244 ? ' is-narrow' : '')} style={{ width }}>
       <div className='brand'>
         <div className={'logo-mark brand-mark' + (working ? ' working' : '')} aria-hidden />
         <span className='wordmark brand-word'>Radiant</span>
@@ -396,10 +396,10 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
           className={'sidebar-switch' + (section === 'chat' ? '' : ' is-off')}
           style={{ '--tab-n': 2, '--tab-i': view === 'bots' ? 1 : 0 }}
         >
-          <button className={section === 'chat' && view === 'chats' ? 'on' : ''}
-            onClick={() => { onSection?.('chat'); setView('chats') }}><Icon.chat size={13} /> Chat</button>
-          <button className={section === 'chat' && view === 'bots' ? 'on' : ''}
-            onClick={() => { onSection?.('chat'); setView('bots') }}><Icon.users size={13} /> Agents</button>
+          <button className={section === 'chat' && view === 'chats' ? 'on' : ''} title='Chat'
+            onClick={() => { onSection?.('chat'); setView('chats') }}><Icon.chat size={13} /><span className='tab-label'>Chat</span></button>
+          <button className={section === 'chat' && view === 'bots' ? 'on' : ''} title='Agents'
+            onClick={() => { onSection?.('chat'); setView('bots') }}><Icon.users size={13} /><span className='tab-label'>Agents</span></button>
         </div>
         {/* Task, Loop and Graph as one compact menu, sitting to the RIGHT of the
             Chat/Agents switch on the same row — a full-width bar of its own read

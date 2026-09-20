@@ -477,7 +477,8 @@ code, pre, .mono { font-family: var(--font-mono); }
    you are in carries a pill. */
 .sidebar-tabs { display: flex; align-items: center; gap: 6px; margin: 0 12px 8px; }
 .sidebar-switch { flex: 1; min-width: 0; display: flex; gap: 3px; padding: 3px; background: var(--bg-input); border-radius: 9px; }
-.sidebar-switch button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px; border: none; border-radius: 6px; background: none; color: var(--text-muted); font-size: 12px; font-weight: 500; }
+.sidebar-switch button { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px; border: none; border-radius: 6px; background: none; color: var(--text-muted); font-size: 12px; font-weight: 500; }
+.tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ⚠️ THE SELECTED TAB IS THE ONLY THING SAYING WHICH VIEW YOU ARE IN, so it gets
    the accent — the same thing that marks "current" everywhere else in the app.
    It was --bg-raised on a --bg-input track, which is a near-white chip on a white
@@ -1432,6 +1433,16 @@ code, pre, .mono { font-family: var(--font-mono); }
 /* accent while a tool section is open, exactly like the selected switch tab */
 .sidebar-tools.is-active .glide-trigger { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .glide-ico { display: inline-flex; align-items: center; color: currentColor; flex: none; }
+/* ⚠️ THE ROW MUST FIT AT MIN_W (190). Full labels + the Tools pill need ~240px;
+   below that the sidebar drops to icons only rather than letting the tabs
+   collide, which is what a narrowed nav used to do. Titles/aria-labels carry
+   the names for a screen reader and on hover. */
+.sidebar.is-narrow .tab-label { display: none; }
+.sidebar.is-narrow .sidebar-switch button { gap: 0; }
+.sidebar.is-narrow .sidebar-tools .glide-value { display: none; }
+.sidebar.is-narrow .sidebar-tools .glide-chevron { display: none; }
+.sidebar.is-narrow .sidebar-tools .glide-trigger { padding: 0 10px; }
+
 
 .right-tab-badge { display: inline-block; margin-left: 6px; min-width: 16px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--bg, #fff); font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600; }
 

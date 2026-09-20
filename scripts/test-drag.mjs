@@ -137,7 +137,8 @@ async function swallowedControls () {
 // it and pick the row rather than clicking a tab that no longer exists.
 const goTo = async tab => {
   if (tab === 'Chat') {
-    const btn = page.locator('.sidebar-switch button:text-is("Chat")').first()
+    // by title, not visible text: the label is hidden when the sidebar is narrow
+    const btn = page.locator('.sidebar-switch button[title="Chat"]').first()
     if (!(await btn.count())) return false
     await btn.click(); return true
   }
@@ -203,7 +204,7 @@ for (const tab of TABS) {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ provider: 'openrouter', model: 'moonshotai/kimi-k3' })
   }).catch(() => {})
-  await page.locator('.sidebar-switch button:text-is("Chat")').first().click().catch(() => {})
+  await page.locator('.sidebar-switch button[title="Chat"]').first().click().catch(() => {})
   await page.reload({ waitUntil: 'networkidle' })
   await page.locator('.session-item').first().click().catch(() => {})
   await page.waitForSelector('.composer-tools', { timeout: 8000 }).catch(() => {})
