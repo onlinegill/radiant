@@ -80,6 +80,17 @@ const MAX_TURN_TOKENS = Number(process.env.RADIANT_MAX_TURN_TOKENS || 12_000_000
 // Identical consecutive calls. Nudged at 3, 5 and 8 — and if it is STILL making
 // the same call after that, it is not going to stop on its own.
 const STUCK_AT = 12
+// ⚠️ THE IDENTICAL-CALL BREAKER ABOVE MISSES A THRASH. An agent stuck on a
+// broken build or a dependency mismatch does not repeat one command — it VARIES
+// it every round (install, reinstall, downgrade, `npm view`, trace) and fails
+// every time, so the signature changes each round and STUCK_AT never fires. One
+// such turn ran 194 rounds and spent 12M tokens before only the token ceiling
+// stopped it (Tony). So: watch a rolling window of recent shell commands, and
+// when almost all of them are FAILING, halt and surface it — a turn that cannot
+// get a command to succeed is not making progress, whatever it types next.
+const CMD_WINDOW = 16          // how many recent commands we look at
+const CMD_FAIL_HALT = 13       // this many failures in the window → stop
+const CMD_FAIL_NUDGE = 6       // this many of the last 8 → one reminder first
 
 // Split into a STABLE half (identical across turns unless the user explicitly
 // reconfigures the session — persona, skills, cwd, tool/plan/computer-control
@@ -925,6 +936,17 @@ function planBlocked (name) {
   return COMPUTER_TOOL_NAMES.has(name) && !COMPUTER_SAFE.has(name)
 }
 
+// Did this tool call run a shell command, and did that command fail? Only
+// run_command and a fused write/edit `then` actually run a shell; everything
+// else returns false so it does not count toward the thrash window.
+const CMD_FAIL_RX = /\[exit code [1-9]|\[command timed out|\[could not run it|npm ERR!|\bERESOLVE\b|\bELIFECYCLE\b|command not found|\bTraceback \(most recent|\bpanic:|\bfatal:|error TS\d|\bBuild failed\b|\bTest failed\b/i
+function commandOutcome (name, args, result) {
+  const ranShell = name === 'run_command' ||
+    ((name === 'write_file' || name === 'edit_file') && /\n--- then: /.test(String(result || '')))
+  if (!ranShell) return null              // not a command: does not count
+  return CMD_FAIL_RX.test(String(result || ''))   // true = failed
+}
+
 // Why a research subagent may not make this call — or null when it may. The
 // command allowlist is util.js's commandRisk, the same judgement Auto mode uses
 // to run a command without asking; a read that leaves the workspace is refused
@@ -1049,6 +1071,11 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // Counted by tool name instead of by arguments, and escalating to a refusal:
   // at some point the honest answer is that asking again is not an option.
   let askStreak = 0
+  // Recent shell-command outcomes (true = failed), newest last. Only real
+  // commands count — a read or a grep while debugging is not progress and not
+  // failure, so it neither fills nor clears this.
+  const cmdOutcomes = []
+  let thrashNudged = false
   const REPEAT_NUDGES = { 3: 'stop and re-read the last result — this exact call has produced the same output 3 times', 5: 'you are stuck in a loop (5 identical calls). Change your approach or explain what is blocking you', 8: 'STOP repeating this call (8 times). Do something different or tell the user you are blocked' }
   // per-session stats (folded into session.stats)
   // ⚠️ cachedIn IS THE DIFFERENCE BETWEEN A BILL AND A PANIC. An agentic turn
@@ -1396,6 +1423,32 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
         })
         emit({ type: 'done' })
         return
+      }
+      // thrash-breaker: a run of shell commands that keep failing (varying each
+      // time, so STUCK_AT never sees it) is a turn that cannot make progress.
+      const outcome = commandOutcome(call.name, call.args, part.result)
+      if (outcome !== null) {
+        cmdOutcomes.push(outcome)
+        if (cmdOutcomes.length > CMD_WINDOW) cmdOutcomes.shift()
+        const fails = cmdOutcomes.filter(Boolean).length
+        const last8Fails = cmdOutcomes.slice(-8).filter(Boolean).length
+        if (cmdOutcomes.length >= CMD_WINDOW && fails >= CMD_FAIL_HALT) {
+          emit({ type: 'tool_result', id: call.id, result: part.result, denied: !approved, hasImage: Boolean(part.resultImage) })
+          stats.toolMs += Date.now() - toolLoopStart
+          finishStats()
+          emit({
+            type: 'halt',
+            reason: 'stuck',
+            text: `The last ${cmdOutcomes.length} commands this turn mostly failed (${fails} of them), so the turn was stopped rather than keep trying variations that do not work — usually a broken build, a version mismatch, or a missing tool. Everything above is saved. It is worth looking at the last error yourself and telling it the fix, then pressing Continue.`
+          })
+          emit({ type: 'done' })
+          return
+        }
+        // one reminder before the halt, when failures start to pile up
+        if (!thrashNudged && cmdOutcomes.length >= 8 && last8Fails >= CMD_FAIL_NUDGE) {
+          thrashNudged = true
+          part.result = `[reminder: your recent commands keep failing. Stop trying variations — read the last error closely, and if you cannot get a command to succeed, say plainly what is broken and what would unblock it instead of trying again.]\n\n${part.result ?? ''}`
+        }
       }
       emit({ type: 'tool_result', id: call.id, result: part.result, denied: !approved, hasImage: Boolean(part.resultImage), ...(part.subagents ? { subagents: part.subagents } : {}) })
     }

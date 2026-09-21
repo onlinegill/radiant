@@ -55,6 +55,7 @@ run "graph rules"    node scripts/test-graph.mjs
 run "the graph runner" node scripts/test-graph-run.mjs
 run "research helpers" node scripts/test-research-live.mjs
 run "fusion and recall" node scripts/test-fusion-recall-live.mjs
+run "thrash breaker" node scripts/test-thrash-live.mjs
 run "sessions"       node scripts/test-sessions.mjs
 run "the running app" bash scripts/test-ui.sh
 printf '\n'
