@@ -631,13 +631,25 @@ function helperSays (cmd, target) {
 export function cloudStatus (dir) {
   const r = helperSays('ubiquity', dir)
   if (!r) return null
+  // ⚠️ THE FOLDER'S ERROR FLAG AGGREGATES ITS CHILDREN, AND ONE CHILD CHURNS.
+  // `.radiant-lock.*.json` is a heartbeat rewritten every 15s (see lock.js), so
+  // iCloud is perpetually mid-upload on it and flags a transient error — which
+  // lit "your setup is not reaching your other Macs" while config, sessions and
+  // skills were syncing perfectly. The banner is about the SETUP, so tie it to
+  // the setup: config.json. If the folder reports an error but config.json is
+  // clean, it is the heartbeat flapping, not your data, and we say nothing.
+  let error = r.error === 'yes'
+  if (error) {
+    const cfg = helperSays('ubiquity', path.join(dir, 'config.json'))
+    if (cfg && cfg.exists === 'true' && cfg.error !== 'yes') error = false
+  }
   return {
     exists: r.exists === 'true',
     ubiquitous: r.ubiquitous === 'true',
     uploaded: r.uploaded === 'true',
     uploading: r.uploading === 'true',
     excluded: r.excluded === 'true',
-    error: r.error === 'yes'
+    error
   }
 }
 

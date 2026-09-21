@@ -25,11 +25,31 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
-export const LOCK_NAME = '.radiant-lock.json'
+// ⚠️ ONE FILE PER MAC, NOT ONE FILE SHARED. A single `.radiant-lock.json`
+// rewritten every 15s by several Macs is exactly what iCloud cannot reconcile:
+// it forks "conflict copies" (`.radiant-lock.json 2.json`, …), which piled up to
+// 17 junk files in Tony's folder and kept the sync-error banner lit. Each Mac
+// now owns `.radiant-lock.<host>.json` and never writes any other, so no single
+// file ever has two authors and iCloud has nothing to fork. Detecting another
+// Mac becomes "is any OTHER host's file live", which is what we wanted anyway.
+export const LOCK_PREFIX = '.radiant-lock.'
+export const LOCK_SUFFIX = '.json'
+// The pre-per-host shared name, still recognised so old copies get cleaned up.
+export const LEGACY_LOCK_NAME = '.radiant-lock.json'
 export const BEAT_MS = 15_000
 export const STALE_MS = 90_000
 
-const lockPath = dir => path.join(dir, LOCK_NAME)
+// A hostname can hold spaces and punctuation ("Tony's Home MBP M4"); keep the
+// filename tame while staying stable per host.
+export function safeHost (host) {
+  return (String(host || '').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)) || 'mac'
+}
+export function lockFileFor (host) { return LOCK_PREFIX + safeHost(host) + LOCK_SUFFIX }
+const lockPath = (dir, host) => path.join(dir, lockFileFor(host))
+// A lock file that is not the legacy shared one and not a temp write-in-progress.
+function isLockFile (name) {
+  return name.startsWith(LOCK_PREFIX) && name.endsWith(LOCK_SUFFIX) && name !== LEGACY_LOCK_NAME && !name.includes('.tmp-')
+}
 
 /** What is written. Pure, so the shape is testable without a filesystem. */
 export function lockRecord (host = os.hostname(), pid = process.pid, now = Date.now()) {
@@ -65,25 +85,75 @@ export function deadOnThisMac (rec, host = os.hostname()) {
   try { process.kill(rec.pid, 0); return false } catch (e) { return e.code === 'ESRCH' }
 }
 
-export function readLock (dir) {
-  try { return JSON.parse(fs.readFileSync(lockPath(dir), 'utf8')) } catch { return null }
+/** One host's own record, or null. `host` defaults to this machine. */
+export function readLock (dir, host = os.hostname()) {
+  try { return JSON.parse(fs.readFileSync(lockPath(dir, host), 'utf8')) } catch { return null }
 }
 
-/** Write our claim. Atomic, for the same reason every other write here is. */
+/** Every live-or-dead lock record in the folder, one per Mac that has claimed it. */
+export function allLocks (dir) {
+  let names = []
+  try { names = fs.readdirSync(dir) } catch { return [] }
+  const out = []
+  for (const name of names) {
+    if (!isLockFile(name)) continue
+    try { out.push(JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'))) } catch { /* corrupt = ignore */ }
+  }
+  return out
+}
+
+/** Write our claim to OUR file only. Atomic, for the same reason every write here is. */
 export function writeLock (dir, rec) {
   try {
     fs.mkdirSync(dir, { recursive: true })
-    const tmp = lockPath(dir) + '.tmp-' + process.pid
+    const dest = lockPath(dir, rec.host)
+    const tmp = dest + '.tmp-' + process.pid
     fs.writeFileSync(tmp, JSON.stringify(rec, null, 2))
-    fs.renameSync(tmp, lockPath(dir))
+    fs.renameSync(tmp, dest)
     return true
   } catch { return false }
 }
 
+/**
+ * Another Mac (or a second window on this Mac) that is live right now, or null.
+ * Read BEFORE we overwrite our own file, so a second window on this Mac — which
+ * shares our file — is still visible. Another Mac's file is separate and seen
+ * either way.
+ */
+function contender (dir, { host, pid, now }) {
+  let best = null
+  for (const rec of allLocks(dir)) {
+    if (!rec || isStale(rec, now)) continue
+    if (rec.host !== host) { return { host: rec.host, since: rec.startedAt, beatAt: rec.beatAt } } // another Mac wins outright
+    // same host, our own shared file: only a DIFFERENT, still-running pid counts
+    if (rec.pid !== pid) { try { process.kill(rec.pid, 0); best = { host: rec.host, since: rec.startedAt, beatAt: rec.beatAt } } catch { /* dead: our own wreckage */ } }
+  }
+  return best
+}
+
+/**
+ * Remove the pre-per-host shared lock and any iCloud conflict copies it spawned.
+ * Safe: it only deletes the legacy shared name and files with iCloud's
+ * "<name> <n>.json" conflict suffix — never a valid per-host file, which has no
+ * such suffix. Idempotent; runs once at startup.
+ */
+export function sweepLegacyLocks (dir) {
+  let names = []
+  try { names = fs.readdirSync(dir) } catch { return 0 }
+  let n = 0
+  for (const name of names) {
+    const legacy = name === LEGACY_LOCK_NAME
+    const conflict = /^\.radiant-lock.* \d+\.json$/.test(name)   // iCloud fork: "… 2.json"
+    if (!legacy && !conflict) continue
+    try { fs.unlinkSync(path.join(dir, name)); n++ } catch { /* ignore */ }
+  }
+  return n
+}
+
 export function releaseLock (dir, host = os.hostname(), pid = process.pid) {
-  const rec = readLock(dir)
+  const rec = readLock(dir, host)
   if (rec && !isOurs(rec, host, pid)) return false   // never delete somebody else's
-  try { fs.unlinkSync(lockPath(dir)); return true } catch { return false }
+  try { fs.unlinkSync(lockPath(dir, host)); return true } catch { return false }
 }
 
 /**
@@ -93,19 +163,17 @@ export function releaseLock (dir, host = os.hostname(), pid = process.pid) {
  * UI has anything to say about.
  */
 export function claimLock (dir, { host = os.hostname(), pid = process.pid, now = Date.now() } = {}) {
-  const prev = readLock(dir)
-  const contested = Boolean(prev) && !isOurs(prev, host, pid) && !isStale(prev, now) && !deadOnThisMac(prev, host)
+  const holder = contender(dir, { host, pid, now })   // read before we write
   writeLock(dir, lockRecord(host, pid, now))
-  return { contested, holder: contested ? { host: prev.host, since: prev.startedAt, beatAt: prev.beatAt } : null }
+  return { contested: Boolean(holder), holder }
 }
 
-/** Keep our claim fresh, and notice if somebody else has taken over. */
+/** Keep our claim fresh, and notice if somebody else is sharing the folder. */
 export function beatLock (dir, { host = os.hostname(), pid = process.pid, now = Date.now() } = {}) {
-  const cur = readLock(dir)
-  // Somebody else wrote over us: they are live, and we are the second Mac now.
-  const contested = Boolean(cur) && !isOurs(cur, host, pid) && !isStale(cur, now)
-  writeLock(dir, { ...lockRecord(host, pid, now), startedAt: (isOurs(cur, host, pid) && cur.startedAt) || new Date(now).toISOString() })
-  return { contested, holder: contested ? { host: cur.host, since: cur.startedAt, beatAt: cur.beatAt } : null }
+  const mine = readLock(dir, host)
+  const holder = contender(dir, { host, pid, now })   // read before we overwrite our own file
+  writeLock(dir, { ...lockRecord(host, pid, now), startedAt: (isOurs(mine, host, pid) && mine.startedAt) || new Date(now).toISOString() })
+  return { contested: Boolean(holder), holder }
 }
 
 /**

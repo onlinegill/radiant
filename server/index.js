@@ -22,7 +22,7 @@ import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAcces
 import { checkForUpdate } from './updater.js'
 import { ollamaBin, hermesBin, SPAWN_ENV } from './ollama.js'
 import { commandRisk } from './util.js'
-import { claimLock, beatLock, releaseLock, describeHolder, BEAT_MS } from './lock.js'
+import { claimLock, beatLock, releaseLock, describeHolder, sweepLegacyLocks, BEAT_MS } from './lock.js'
 const LOCK_HOST = computerName()   // "Tony's Home MBP M4", not a DNS name
 import { IS_MAC, openCommand, chromeBinary, tailscaleBinary, defaultShell, cpuName, osVersion as osProductVersion, computerName } from './platform.js'
 import { listFacts, addFacts, addFactManual, deleteFact, clearFacts, relevantFacts } from './memory.js'
@@ -845,6 +845,7 @@ app.post('/api/chats/import', (req, res) => {
 // outcome than the race it prevents.
 let sharing = null
 function refreshLock (first) {
+  if (first) { const swept = sweepLegacyLocks(RADIANT_DIR); if (swept) console.log(`[radiant] cleared ${swept} old iCloud lock file(s)`) }
   const r = first ? claimLock(RADIANT_DIR, { host: LOCK_HOST }) : beatLock(RADIANT_DIR, { host: LOCK_HOST })
   const was = sharing?.host || null
   sharing = r.contested ? r.holder : null

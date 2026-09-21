@@ -769,8 +769,8 @@ export function ModelPicker ({ session, models, onPick, onRefresh, placeholder, 
               <span className='provider-tag'>{current?.providerName || session.provider}</span>
               <span className='model-name'>{session.model}</span>
             </>
-          : (placeholder || 'Pick a model')}
-        <span aria-hidden style={{ fontSize: 9 }}>▲</span>
+          : <span className='model-ph'>{placeholder || 'Pick a model'}</span>}
+        <span className='model-caret' aria-hidden>▲</span>
       </button>
       {open && (
         <div className='model-menu' id='model-bloom' role='listbox'>
@@ -1446,7 +1446,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
         <button
           className='cwd-chip'
           title={session.cwd}
-          data-tip={'Workspace folder — the agent reads &\nwrites here. Click to change.'} data-tip-below data-tip-end
+          data-tip={'Workspace folder — the agent reads and writes here. Click to change.'} data-tip-below data-tip-end
           onClick={async () => {
             const next = window.radiantNative?.pickFolder
               ? await window.radiantNative.pickFolder(session.cwd)
