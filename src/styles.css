@@ -1089,7 +1089,10 @@ code, pre, .mono { font-family: var(--font-mono); }
 .asked { margin: 8px 0; padding: 8px 12px; border-left: 2px solid var(--accent-dim); border-radius: 4px; }
 .asked-q { font-size: 13px; color: var(--text-muted); white-space: pre-wrap; margin-bottom: 6px; }
 .asked-a { font-size: 13px; white-space: pre-wrap; }
-.asked-you { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); margin-right: 8px; }
+.asked-from { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); margin-right: 8px; }
+/* the answer is a normal user bubble; it carries its own margins, so pull it
+   flush with the question rather than the .asked padding stacking on top */
+.asked-reply { margin: 6px 0 0; }
 .asked-none { color: var(--text-muted); font-style: italic; }
 .question-card .q { font-weight: 500; font-size: 13px; margin-bottom: 10px; white-space: pre-wrap; }
 .question-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }

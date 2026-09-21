@@ -60,7 +60,14 @@ const row = page.getByText('Asked and answered').first()
 if (await row.count()) { await row.click({ force: true }).catch(() => {}); await page.waitForTimeout(1000) }
 const text = await page.locator('body').innerText()
 ok('the question is on the page', /Where should I set it up\?/.test(text))
-ok('and the answer is on the page, as the user\'s', /You\s*Python at ~\/Projects\/x/i.test(text), text.slice(0, 400))
+ok('and the answer is on the page', /Python at ~\/Projects\/x/.test(text), text.slice(0, 400))
+// ⚠️ THE ANSWER IS THE USER'S VOICE, so it renders in the same right-aligned
+// bubble as a typed message — not inline in the agent's column (Tony: "why are
+// my responses inline like the agent's"). Assert the structure, not a label.
+const replyBubble = page.locator('.asked-reply.msg-user .bubble')
+ok('the answer renders as a right-aligned user bubble, like a typed message',
+   await replyBubble.count() >= 1 && /Python at ~\/Projects\/x/.test(await replyBubble.first().innerText()))
+ok('the question is labelled as the agent\'s', /Radiant asked/i.test(text))
 ok('it is NOT folded into the tool-call chips', !/2 tool calls/.test(text))
 // the unrelated command still folds as before
 ok('other tool calls still show as chips', await page.locator('.tool-chip, .tool-run').count() >= 1)

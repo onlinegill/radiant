@@ -267,11 +267,16 @@ function AskedAndAnswered ({ part }) {
   const question = part.args?.question || 'Which option?'
   const m = /^The user answered: ([\s\S]*?)(?:\n\n\[reminder:[\s\S]*)?$/.exec(String(part.result || ''))
   const answer = m ? m[1].trim() : null
+  // ⚠️ THE ANSWER IS THE USER'S VOICE — SHOW IT AS THEIRS. It used to sit inline
+  // in the agent's column tagged "You", which read as the agent talking to
+  // itself (Tony: "why are my responses inline like the agent's"). The question
+  // is the agent's, so it stays inline; the answer renders in the same
+  // right-aligned bubble as a typed message, so "you" always looks like you.
   return (
     <div className='asked'>
-      <div className='asked-q'>{question}</div>
+      <div className='asked-q'><span className='asked-from'>Radiant asked</span>{question}</div>
       {answer
-        ? <div className='asked-a'><span className='asked-you'>You</span>{answer}</div>
+        ? <div className='msg msg-user asked-reply'><div className='bubble'>{answer}</div></div>
         : <div className='asked-a asked-none'>{part.denied ? 'Not answered.' : String(part.result || 'Waiting for an answer…').slice(0, 200)}</div>}
     </div>
   )
