@@ -729,7 +729,7 @@ function UtilityModelBlock ({ config, onSettings }) {
 function TurnBudget ({ config, onSettings }) {
   const cur = Number.isFinite(Number(config?.settings?.turnTokenBudget)) ? Number(config.settings.turnTokenBudget) : 15_000_000
   const OPTIONS = [
-    { v: 5000000, label: '5M — cautious' },
+    { v: 5000000, label: '5M — cautious' },  // billable (real-cost) tokens
     { v: 15000000, label: '15M — default' },
     { v: 30000000, label: '30M — long builds' },
     { v: 0, label: 'No budget — run to completion' }
@@ -739,9 +739,10 @@ function TurnBudget ({ config, onSettings }) {
     <div style={{ marginTop: 14 }}>
       <div className='set-block-title' style={{ fontSize: 12 }}>Long builds</div>
       <p className='hint' style={{ marginTop: 2 }}>
-        A turn runs until the work is done — it is not cut off at a round count. The one limit is how much it
-        may spend before pausing to ask. It stops sooner on its own if it gets stuck (commands that keep
-        failing). Most tokens are served from cache, so the real cost is well under the number shown.
+        A turn runs until the work is done — it is not cut off at a round count. The one limit is real cost:
+        it pauses to ask only when the turn spends this much in tokens that actually cost money. Cache reads
+        — the bulk of a long turn — barely count, so an ordinary build finishes without ever pausing. It also
+        stops on its own if it gets stuck (commands that keep failing).
       </p>
       <label className='lp-pick' style={{ marginTop: 8 }}>
         <span>Pause and ask after</span>
@@ -3273,7 +3274,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
-      ['Long builds run to completion instead of stopping every so often', 'Radiant used to cut a turn off after a fixed number of tool steps, which meant building a whole app kept hitting a wall that looked like an error \u2014 you had to press Continue over and over. That is gone. A turn now runs until the work is actually done. The only limit is a spend budget you set (Settings \u2192 Models \u2192 Long builds): the turn pauses and asks when it reaches that number, so it is never a surprise and never an arbitrary stop. Most of what a long turn \u201cspends\u201d is served from cache, so the real cost is a fraction of the number shown. And if it genuinely gets stuck \u2014 commands that keep failing \u2014 it stops early and tells you what is broken, rather than grinding to the budget.'],
+      ['Long builds run to completion instead of stopping every so often', 'Radiant used to cut a turn off after a fixed number of tool steps, which meant building a whole app kept hitting a wall that looked like an error \u2014 you had to press Continue over and over. That is gone. A turn now runs until the work is actually done. The only limit is a spend budget you set (Settings \u2192 Models \u2192 Long builds), and it is measured by real cost \u2014 the tokens that actually cost money, not the raw total. A long turn re-reads the conversation from cache every step, and cache reads barely count, so an ordinary build finishes without ever pausing; the turn only stops to ask if it runs up genuine spend. And if it genuinely gets stuck \u2014 commands that keep failing \u2014 it stops early and tells you what is broken, rather than grinding to the budget.'],
       ['A turn that keeps hitting the same wall now stops early instead of burning through your usage', 'If an agent gets stuck on something a command cannot fix \u2014 a broken build, a package version mismatch, a missing tool \u2014 it used to keep trying variation after variation, sometimes for a very long time, because each attempt looked a little different from the last. Radiant now watches how the recent commands are going, and when almost all of them are failing it stops the turn, tells you it was stuck (usually a broken build or a version clash), and points you at the last error. It gives the agent one reminder to step back first, and it never stops a turn where commands are actually succeeding. Everything so far is saved, and Continue picks it up once you have told it the fix.'],
       ['Your answer to an agent\u2019s question now looks like yours', 'When an agent pauses to ask you something, your reply used to appear inline in the agent\u2019s own column, which made it read like the agent talking to itself. Your answer now shows in the same right-aligned bubble as a message you type, and the agent\u2019s question is labelled \u201cRadiant asked\u201d above it \u2014 so your voice always looks like your voice, wherever it appears.'],
       ['A false “iCloud isn\u2019t syncing” warning is gone, and the lock stops leaving junk behind', 'If you run Radiant on more than one Mac against an iCloud folder, you may have seen \u201ciCloud reported an error uploading this folder \u2014 your setup is not reaching your other Macs.\u201d In most cases that was a false alarm: it was set off by Radiant\u2019s own \u201cwho\u2019s using this folder\u201d marker, a tiny file it rewrites every few seconds, which iCloud is always in the middle of uploading. Your actual chats and settings were syncing fine. The warning now looks at your real data, so it only appears when something that matters is genuinely stuck. Radiant also used to share one marker file across all your Macs, which iCloud could not merge and kept forking into copies (\u201c\u2026 2.json\u201d, \u201c\u2026 3.json\u201d); each Mac now keeps its own, and Radiant clears out the old copies on startup.'],

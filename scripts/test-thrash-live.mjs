@@ -30,7 +30,7 @@ const prov = http.createServer((req, res) => {
     const chunk = o => res.write(`data: ${JSON.stringify(o)}\n\n`)
     if (step.tool) { chunk(toolCall(step.id, step.tool, step.args)); chunk({ choices: [{ delta: {}, finish_reason: 'tool_calls' }] }) }
     else { chunk({ choices: [{ delta: { content: step.text } }] }); chunk({ choices: [{ delta: {}, finish_reason: 'stop' }] }) }
-    chunk({ choices: [], usage: { prompt_tokens: 100, completion_tokens: 5 } })
+    chunk({ choices: [], usage: step.usage || { prompt_tokens: 100, completion_tokens: 5 } })
     res.write('data: [DONE]\n\n'); res.end()
   })
 })
@@ -95,6 +95,20 @@ try {
     ok(halt, 'a healthy turn pauses at the spend budget, not a round wall')
     ok(halt && /spend budget/i.test(halt.text) && /Continue/.test(halt.text), 'the pause names the budget and says Continue')
     ok(!r.events.some(e => e.type === 'halt' && e.reason === 'stuck'), 'a healthy turn is not called stuck')
+  }
+
+  // ── a cache-heavy build does NOT pause: real cost is what counts ─────────────
+  // Huge raw token counts, but 99.9% cache reads — billable cost stays tiny, so
+  // a modest budget is never reached even though the RAW total dwarfs it. This is
+  // the exact case that paused a working build before (15.1M raw, 92% cached).
+  await fetch(`http://127.0.0.1:${pr}/api/settings`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ turnTokenBudget: 5000 }) }).catch(() => {})
+  script = Array.from({ length: 30 }, (_, i) => ({ tool: 'run_command', id: 'ca' + i, args: { command: `echo ok ${i}` }, usage: { prompt_tokens: 200000, completion_tokens: 5, prompt_tokens_details: { cached_tokens: 199950 } } })).concat([{ text: 'built it, cheaply' }])
+  {
+    const r = await turn('a long, cache-heavy build')
+    ok(!r.events.some(e => e.type === 'halt' && e.reason === 'budget'), 'a cache-heavy build (huge raw tokens, tiny real cost) does not pause on budget')
+    ok(r.events.some(e => e.type === 'text_delta' && /built it, cheaply/.test(e.text)), 'and it runs to completion')
+    const st = r.events.filter(e => e.type === 'stats').pop()
+    ok(st && st.stats.inTokens > 5_000_000, `raw tokens far exceeded the budget (${st?.stats?.inTokens}) yet it did not pause`)
   }
 
   // ── budget 0 means run to completion (no pause) ──────────────────────────────

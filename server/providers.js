@@ -1109,10 +1109,20 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // chat had 29.8M tokens behind it against a 2M limit: permanently bricked, and
   // strictly worse than the round cap it replaced. Take the mark at the start
   // and measure the difference.
-  const tokensBefore = (stats.inTokens || 0) + (stats.outTokens || 0)
+  // ⚠️ BUDGET ON REAL COST, NOT RAW TOKENS. An agentic turn re-sends the whole
+  // conversation every round, and the provider serves almost all of it from
+  // cache — a real build ran to 15.1M tokens that was 92% CACHE READS, which
+  // cost about a tenth of fresh tokens. Budgeting on the raw 15.1M paused a
+  // cheap, working build at a frightening-looking number (Tony: "embarrassing").
+  // So the budget counts BILLABLE tokens: uncached input + output, the part that
+  // costs near full price. Cache reads — the bulk of a long turn — barely count,
+  // so a normal build finishes and only a genuinely expensive turn pauses.
+  const inBefore = stats.inTokens || 0
+  const outBefore = stats.outTokens || 0
+  const cachedBefore = stats.cachedIn || 0
+  const billableUsed = () => ((stats.inTokens - inBefore) - (stats.cachedIn - cachedBefore)) + (stats.outTokens - outBefore)
   // The real ceiling: a spend budget the user sets (Settings → Models → Long
-  // builds). 0 or negative means no budget — run to completion. Most of these
-  // tokens are served from cache, so the raw count is far larger than the cost.
+  // builds), measured in billable tokens. 0 or negative means no budget.
   const tokenBudget = Number.isFinite(turnTokenBudget) ? turnTokenBudget : DEFAULT_TURN_TOKENS
   // the window rides with usage so the gauge can draw a local model it has no table row for
   const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; stats.cacheWrite += ev.cacheWrite || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
@@ -1132,14 +1142,14 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
     // this does. A build runs to completion unless it reaches the number the
     // user set, then it pauses and asks — never a surprise, never a wall at an
     // arbitrary round count.
-    if (tokenBudget > 0 && (stats.inTokens + stats.outTokens) - tokensBefore > tokenBudget) {
-      const usedM = Math.round(((stats.inTokens + stats.outTokens) - tokensBefore) / 1e6 * 10) / 10
-      const cachedPct = stats.cachedIn && stats.inTokens ? Math.round(stats.cachedIn / stats.inTokens * 100) : 0
+    if (tokenBudget > 0 && billableUsed() > tokenBudget) {
+      const rawM = Math.round(((stats.inTokens + stats.outTokens) - (inBefore + outBefore)) / 1e6 * 10) / 10
+      const billM = Math.round(billableUsed() / 1e6 * 100) / 100
       finishStats()
       emit({
         type: 'halt',
         reason: 'budget',
-        text: `This turn reached your spend budget (${usedM}M tokens${cachedPct ? `, ${cachedPct}% of it served from cache, so the real cost is a fraction of that` : ''}). It paused here rather than keep spending without asking — nothing is lost. Press Continue to keep building, or raise the per-turn budget in Settings → Models → Long builds.`
+        text: `This turn reached your spend budget — about ${billM}M tokens of real cost (${rawM}M in total, but most of that was served from cache and barely costs anything). It paused rather than keep spending without asking; nothing is lost. Press Continue to keep going, or change the per-turn budget in Settings → Models → Long builds.`
       })
       emit({ type: 'done' })
       return
