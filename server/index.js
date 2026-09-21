@@ -3702,6 +3702,10 @@ ${r.error ? `(no answer: ${r.error})` : (r.answer || '(the subagent returned not
     memory,
     summarize,
     autoCompact: config.settings.autoCompact !== false,
+    // Per-turn spend budget (tokens). The turn runs to completion unless it
+    // reaches this, then it pauses and asks. undefined = the built-in default;
+    // 0 = no budget (run to completion). Settings → Models → Long builds.
+    turnTokenBudget: Number.isFinite(Number(config.settings.turnTokenBudget)) ? Number(config.settings.turnTokenBudget) : undefined,
     // How much of a local model's context Radiant will fill before it trims.
     // 0 means "use whatever Ollama loaded it with". See LOCAL_CONTEXT_DEFAULT.
     localContext: Number.isFinite(Number(config.settings.localContext)) ? Number(config.settings.localContext) : undefined,

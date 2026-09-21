@@ -83,6 +83,28 @@ try {
   const r3 = await turn('build with the odd failure')
   ok(!r3.events.some(e => e.type === 'halt' && e.reason === 'stuck'), 'occasional failures among successes do not halt')
   ok(r3.events.some(e => e.type === 'text_delta' && /finished/.test(e.text)), 'that turn finishes too')
+
+  // ── the spend budget pauses a long, HEALTHY turn (not a thrash) ─────────────
+  // Set a tiny budget, then feed many succeeding commands: the turn should pause
+  // with reason 'budget' — the round count never enters into it.
+  await fetch(`http://127.0.0.1:${pr}/api/settings`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ turnTokenBudget: 500 }) }).catch(() => {})
+  script = Array.from({ length: 40 }, (_, i) => ({ tool: 'run_command', id: 'bud' + i, args: { command: `echo ok ${i}` } })).concat([{ text: 'done' }])
+  {
+    const r = await turn('long healthy build')
+    const halt = r.events.find(e => e.type === 'halt' && e.reason === 'budget')
+    ok(halt, 'a healthy turn pauses at the spend budget, not a round wall')
+    ok(halt && /spend budget/i.test(halt.text) && /Continue/.test(halt.text), 'the pause names the budget and says Continue')
+    ok(!r.events.some(e => e.type === 'halt' && e.reason === 'stuck'), 'a healthy turn is not called stuck')
+  }
+
+  // ── budget 0 means run to completion (no pause) ──────────────────────────────
+  await fetch(`http://127.0.0.1:${pr}/api/settings`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ turnTokenBudget: 0 }) }).catch(() => {})
+  script = Array.from({ length: 6 }, (_, i) => ({ tool: 'run_command', id: 'z' + i, args: { command: `echo ok ${i}` } })).concat([{ text: 'all finished' }])
+  {
+    const r = await turn('short build, no budget')
+    ok(!r.events.some(e => e.type === 'halt' && e.reason === 'budget'), 'budget 0 never pauses for spend')
+    ok(r.events.some(e => e.type === 'text_delta' && /all finished/.test(e.text)), 'and it runs to completion')
+  }
 } finally {
   srv.kill(); prov.close(); await sleep(200)
   fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(ws, { recursive: true, force: true })

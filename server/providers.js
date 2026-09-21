@@ -64,7 +64,16 @@ import { voiceAsText } from './voice-text.js'
 //
 // So the backstop moves out of the way of real work, and the detector that
 // knows the difference between "working" and "stuck" gets teeth.
-const MAX_ROUNDS = 200
+//
+// ⚠️ AND 200 WAS STILL TOO LOW FOR A REAL BUILD. Other harnesses do not chop a
+// task at a round count at all — they run the loop to completion, compact the
+// context as they go, and stop only on a runaway signal or a spend budget. A
+// user scaffolding a whole app kept hitting this wall at 200 and it read as
+// failure (Tony: "how can a user build anything"). So this is now a far-out
+// backstop against a truly endless loop, NOT the thing that ends ordinary work:
+// the thrash-breaker stops the bad case, and the per-turn spend budget below is
+// the real ceiling on cost.
+const MAX_ROUNDS = Number(process.env.RADIANT_MAX_ROUNDS || 1000)
 
 // ⚠️ AND A REAL CEILING ON WHAT A TURN MAY SPEND, because 200 rounds of a
 // re-sent conversation is a bill, and a round count never measured the bill
@@ -75,7 +84,7 @@ const MAX_ROUNDS = 200
 // request, so 2M is fifteen rounds — it would have cut real work off all over
 // again, just with a different message. A backstop belongs far out of the way of
 // ordinary work; this one is for a turn that has genuinely run away.
-const MAX_TURN_TOKENS = Number(process.env.RADIANT_MAX_TURN_TOKENS || 12_000_000)
+const DEFAULT_TURN_TOKENS = Number(process.env.RADIANT_MAX_TURN_TOKENS || 15_000_000)
 
 // Identical consecutive calls. Nudged at 3, 5 and 8 — and if it is STILL making
 // the same call after that, it is not going to stop on its own.
@@ -962,7 +971,7 @@ function readOnlyRefusal (call, cwd) {
 }
 
 // ---------- the agent loop ----------
-export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, research, readOnly, maxRounds, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
+export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, research, readOnly, maxRounds, turnTokenBudget, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
   // ⚠️ NOT `session.cwd || os.homedir()`. A folder that is set and not here is
   // the case that broke every tool call in the chat — see usableCwd.
   const { dir: cwd, missing: strayCwd } = usableCwd(session.cwd)
@@ -1101,6 +1110,10 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // strictly worse than the round cap it replaced. Take the mark at the start
   // and measure the difference.
   const tokensBefore = (stats.inTokens || 0) + (stats.outTokens || 0)
+  // The real ceiling: a spend budget the user sets (Settings → Models → Long
+  // builds). 0 or negative means no budget — run to completion. Most of these
+  // tokens are served from cache, so the raw count is far larger than the cost.
+  const tokenBudget = Number.isFinite(turnTokenBudget) ? turnTokenBudget : DEFAULT_TURN_TOKENS
   // the window rides with usage so the gauge can draw a local model it has no table row for
   const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; stats.cacheWrite += ev.cacheWrite || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
   const finishStats = () => { session.stats = stats; emit({ type: 'stats', stats }) }
@@ -1115,13 +1128,18 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
     // Aborting returns cleanly rather than throwing: the partial answer is real
     // work and belongs in the transcript.
     if (signal?.aborted) { finishStats(); emit({ type: 'stopped' }); return }
-    // The economic backstop. A round count never measured cost; this does.
-    if ((stats.inTokens + stats.outTokens) - tokensBefore > MAX_TURN_TOKENS) {
+    // The real ceiling: the spend budget. A round count never measured cost;
+    // this does. A build runs to completion unless it reaches the number the
+    // user set, then it pauses and asks — never a surprise, never a wall at an
+    // arbitrary round count.
+    if (tokenBudget > 0 && (stats.inTokens + stats.outTokens) - tokensBefore > tokenBudget) {
+      const usedM = Math.round(((stats.inTokens + stats.outTokens) - tokensBefore) / 1e6 * 10) / 10
+      const cachedPct = stats.cachedIn && stats.inTokens ? Math.round(stats.cachedIn / stats.inTokens * 100) : 0
       finishStats()
       emit({
         type: 'halt',
         reason: 'budget',
-        text: `This turn has used ${Math.round(((stats.inTokens + stats.outTokens) - tokensBefore) / 1e6 * 10) / 10}M tokens and was stopped before it spent more. Everything above is saved; Continue starts a fresh turn from here, which also costs less because the conversation gets summarized.`
+        text: `This turn reached your spend budget (${usedM}M tokens${cachedPct ? `, ${cachedPct}% of it served from cache, so the real cost is a fraction of that` : ''}). It paused here rather than keep spending without asking — nothing is lost. Press Continue to keep building, or raise the per-turn budget in Settings → Models → Long builds.`
       })
       emit({ type: 'done' })
       return
@@ -1473,7 +1491,7 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
     try {
       const wrapUp = {
         role: 'user',
-        text: `You have used this turn's limit of ${MAX_ROUNDS} rounds of tool use and cannot call any more tools. Do not call a tool. In 2-4 plain sentences tell the user: what you were trying to do, what is actually finished, what is not, and what would unblock it. If you were stuck repeating something that did not work, say so and say why.`
+        text: `This is an unusually long turn (${MAX_ROUNDS} rounds of tool use) and it has reached the backstop. Do not call a tool. In 2-4 plain sentences tell the user what is finished, what is left, and what to say to keep going — Continue will resume.`
       }
       const msgs = [...session.messages, wrapUp]
       const args = {
@@ -1501,7 +1519,7 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   emit({
     type: 'halt',
     reason: 'rounds',
-    text: `This turn used its limit of ${MAX_ROUNDS} rounds of tool use and stopped. Nothing is lost — everything above is saved, and Continue picks it up from here.`
+    text: `This turn ran ${MAX_ROUNDS} rounds of tool use — the far-out backstop against an endless loop — and paused. Nothing is lost; Continue picks it up. If a build legitimately needs this many steps it is fine to keep going.`
   })
   emit({ type: 'done' })
 }
