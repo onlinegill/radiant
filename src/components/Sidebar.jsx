@@ -477,7 +477,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
                 <div className='bot-group' key={project.id}>
                   <div className='bot-head'>
                     <button className='bot-head-toggle' onClick={() => toggleGroup(project.id)} title={isCollapsed ? 'Show chats' : 'Hide chats'}>
-                      <span className='bot-head-caret'>{rows.length ? (isCollapsed ? '▸' : '▾') : ''}</span>
+                      <span className={'bot-head-caret' + (isCollapsed ? ' is-collapsed' : '')}>{rows.length ? <Icon.chevronDown size={10} /> : null}</span>
                       <span className='bot-head-icon' style={{ color: glyphColor(project.hue, 0.7, 0.16) }}><Icon.folder size={14} /></span>
                       {editing?.kind === 'project' && editing.id === project.id
                         ? <InlineEdit placeholder='Project name…' edit={edit} />
@@ -531,7 +531,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
               <div className='bot-group'>
                 <div className='bot-head'>
                   <button className='bot-head-toggle' onClick={() => toggleGroup('__loose')} title={collapsed.__loose ? 'Show chats' : 'Hide chats'}>
-                    <span className='bot-head-caret'>{collapsed.__loose ? '▸' : '▾'}</span>
+                    <span className={'bot-head-caret' + (collapsed.__loose ? ' is-collapsed' : '')}><Icon.chevronDown size={10} /></span>
                     <span className='bot-head-name'>No project</span>
                     <span className='bot-head-count'>{loose.length}</span>
                   </button>
@@ -553,7 +553,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
               <div className='bot-group'>
                 <div className='bot-head'>
                   <button className='bot-head-toggle' onClick={() => setShowArchive(v => !v)} title={showArchive ? 'Hide archived' : 'Show archived'}>
-                    <span className='bot-head-caret'>{showArchive ? '▾' : '▸'}</span>
+                    <span className={'bot-head-caret' + (showArchive ? '' : ' is-collapsed')}><Icon.chevronDown size={10} /></span>
                     <span className='bot-head-name' style={{ color: 'var(--text-faint)' }}>Archived</span>
                     <span className='bot-head-count'>{archived.length}</span>
                   </button>
@@ -576,7 +576,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
               <div className='bot-group'>
                 <div className='bot-head'>
                   <button className='bot-head-toggle' onClick={() => toggleGroup(a.id)} title={isCollapsed ? 'Show sessions' : 'Hide sessions'}>
-                    <span className='bot-head-caret'>{own.length ? (isCollapsed ? '▸' : '▾') : ''}</span>
+                    <span className={'bot-head-caret' + (isCollapsed ? ' is-collapsed' : '')}>{own.length ? <Icon.chevronDown size={10} /> : null}</span>
                     <span className='bot-head-icon' style={isImported(a) ? undefined : { color: glyphColor(a.hue, 0.7, 0.16) }}><AgentGlyph agent={a} size={16} /></span>
                     <span className='bot-head-name'>{a.name}</span>
                     <span className='bot-head-count'>{own.length}</span>

@@ -507,7 +507,11 @@ code, pre, .mono { font-family: var(--font-mono); }
 .bot-head { display: flex; align-items: center; gap: 4px; padding: 6px 10px 4px; }
 .bot-head-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; background: none; border: none; padding: 2px 0; cursor: pointer; }
 .bot-head-toggle:hover .bot-head-name { color: var(--accent); }
-.bot-head-caret { width: 10px; font-size: 9px; color: var(--text-faint); display: inline-flex; justify-content: center; }
+.bot-head-caret { width: 12px; color: var(--text-faint); display: inline-flex; align-items: center; justify-content: center; transition: transform .15s ease; }
+/* down when open, rotated to point right when collapsed — the same chevron the
+   Tools menu and the glide menus use, instead of the old ▸/▾ text glyphs */
+.bot-head-caret.is-collapsed { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .bot-head-caret { transition: none; } }
 .bot-head-icon { display: inline-flex; }
 /* ⚠️ AT LEAST AS LARGE AS THE ROWS IT CONTAINS. This was 12px while a chat
    title inside it is 13px, so the shelf label was smaller than its own
