@@ -1309,7 +1309,12 @@ code, pre, .mono { font-family: var(--font-mono); }
   padding: 6px; gap: 0;
   /* the dictate button is an .attach-btn, which is a fixed 28px grid cell — it
      has to become a flex row that can grow like the toggles do */
-  width: auto; min-width: 28px; display: inline-flex; align-items: center;
+  width: auto; min-width: 28px; height: 28px; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: center;
+  /* ⚠️ SAME BOX AS EVERY OTHER COMPOSER BUTTON. The toggles rendered 1px taller
+     (29 vs 28) with a 13px icon in a 15px row — smaller and misaligned beside
+     Attach/Design (Tony). Fixed height + border-box lines them up; the icons are
+     now 15px like the rest, so the row reads as one set. */
 }
 /* ⚠️ THE MOTION BLOCK FURTHER DOWN SETS transition ON .pill-toggle TOO, and it
    comes later in the file, so a plain .pill-toggle rule here loses — the label

@@ -1822,7 +1822,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                 onClick={onToggleTools}
                 data-tip={'Agent tools: read/write files and run\ncommands in the workspace folder.\nClick to turn ' + (toolsOn ? 'off' : 'on') + '.'}
               >
-                <Icon.wrench size={13} />
+                <Icon.wrench size={15} />
                 <span className='pill-label'>tools {toolsOn ? 'on' : 'off'}</span>
               </button>
               <button
@@ -1830,7 +1830,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                 onClick={onToggleComputer}
                 data-tip={'Computer control: the model drives the browser\nand desktop of ' + (onAnotherMac ? serverHost : `this ${deviceNoun(platform)}`) + '.\nNeeds a vision model + the desktop permissions\nin Settings \u2192 Automation.\nClick to turn ' + (session.computerControl ? 'off' : 'on')}
               >
-                <Icon.monitor size={13} />
+                <Icon.monitor size={15} />
                 <span className='pill-label'>computer {session.computerControl ? 'on' : 'off'}
                   {onAnotherMac && session.computerControl && ` · ${serverHost}`}</span>
               </button>
@@ -1839,7 +1839,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                 onClick={onTogglePlan}
                 data-tip={'Plan mode: the agent researches and proposes a\nplan for your approval before changing anything.\nClick to turn ' + (session.planMode ? 'off' : 'on') + '.'}
               >
-                <Icon.clipboard size={13} />
+                <Icon.clipboard size={15} />
                 <span className='pill-label'>plan {session.planMode ? 'on' : 'off'}</span>
               </button>
               {/* ⚠️ THIS HIDES THE REASONING, IT DOES NOT STOP IT. The model still
@@ -1852,7 +1852,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                 onClick={onToggleThinking}
                 data-tip={'Thinking: show the model\u2019s reasoning as it works.\nThis only hides it \u2014 the model still thinks, and you\nare still billed for it. Set how hard it thinks in\nthe model picker.\nClick to turn ' + (showThinking ? 'off' : 'on') + '.'}
               >
-                <Icon.bulb size={13} />
+                <Icon.bulb size={15} />
                 <span className='pill-label'>thinking {showThinking ? 'on' : 'off'}</span>
               </button>
                 
@@ -1861,7 +1861,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                 onClick={onCycleApproval}
                 data-tip={'Permissions — what the agent may do without asking:\n• Ask each: confirm every command (safest)\n• Auto: run low-risk commands, ask for risky ones\n• Allow all: never ask (fastest, least safe)\nClick to cycle.'}
               >
-                {approvalMode === 'off' ? <Icon.unlock size={13} /> : approvalMode === 'auto' ? <Icon.zap size={13} /> : <Icon.hand size={13} />}
+                {approvalMode === 'off' ? <Icon.unlock size={15} /> : approvalMode === 'auto' ? <Icon.zap size={15} /> : <Icon.hand size={15} />}
                 <span className='pill-label'>{approvalMode === 'off' ? 'allow all' : approvalMode === 'auto' ? 'auto approve' : 'ask each'}</span>
               </button>
             </div>
