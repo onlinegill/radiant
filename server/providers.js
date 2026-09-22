@@ -114,7 +114,7 @@ const CMD_FAIL_NUDGE = 6       // this many of the last 8 → one reminder first
 // + "Multi-turn conversations". A stable-half change (e.g. the user flips
 // planMode or edits skills) is a one-time cache miss, not a per-turn one — that
 // tradeoff is deliberate, not the bug this split fixes.
-function systemPrompt (cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory, readOnly) {
+function systemPrompt (cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory, readOnly, projectRules) {
   const personaText = persona ? `\n\n${persona}` : ''
   const planText = planMode
     ? '\n\nPLAN MODE IS ON. Do NOT edit files, create files, or run mutating commands yet. Research the codebase (read/list/grep only), think through the approach, then present a concrete step-by-step plan by calling the exit_plan_mode tool with your plan in markdown. Only after the user approves the plan will you be able to make changes.'
@@ -122,11 +122,15 @@ function systemPrompt (cwd, useTools, model, computerControl, skills, persona, p
   const skillText = (skills && skills.length)
     ? `\n\nActive skills (follow these):\n${skills.map(s => `• ${s.name}: ${s.content}${s.dir && resolveSkillDir(s.dir) ? `\n  Skill folder: ${resolveSkillDir(s.dir)}` : ''}`).join('\n')}`
     : ''
+  // The workspace's own standing instructions (AGENTS.md/CLAUDE.md/.clinerules).
+  const rulesText = (projectRules && projectRules.text)
+    ? `\n\nProject rules — the standing instructions for this workspace, from ${projectRules.files.join(', ')}. Follow them for work in this project:\n${projectRules.text}${projectRules.truncated ? '\n\n[the rules were longer than fits here and were trimmed; read the file in full if you need the rest]' : ''}`
+    : ''
   const stable = `You are a coding agent running inside Radiant, a local coding harness on the user's ${os.type() === 'Darwin' ? 'Mac' : os.type()} (${os.platform()} ${os.release()}). Radiant is the app, not you: you are the model "${model}". If asked what model you are, answer with your actual model name and maker.${personaText}
 Workspace directory: ${cwd}
 ${useTools && readOnly ? 'You have tools to read files and to run read-only shell commands (ls, cat, grep, find, git log/show/diff, wc…) in the workspace. You cannot write, edit, delete or install anything, and a command that would is refused. Read what the question needs and no more.' : useTools ? 'You have tools to read, write, and edit files and to run shell commands in the workspace. Use them to investigate before answering and to make changes when asked. Prefer edit_file for small changes and write_file for new files. After making changes, verify them when practical (run the code, run tests) — and when you already know the command you will run right after an edit, pass it as that edit\'s `then` so both come back at once. A trimmed earlier result can be read back exactly with recall.' : 'Tools are disabled for this conversation; answer from knowledge and the conversation only.'}${computerControl ? `
 You can also control the computer. browser_* tools drive an automated browser; screen_* tools control the whole desktop. ALWAYS take a screenshot first (browser_screenshot / screen_screenshot) and look at it before clicking or typing — click coordinates are pixel positions read from the most recent screenshot. Work in small steps: screenshot, act, screenshot again to confirm. Prefer browser_* for web tasks.` : ''}
-Be direct and concise. Use markdown; fence code blocks with a language tag. When you finish a task, summarize what changed in a sentence or two.${planText}${skillText}`
+Be direct and concise. Use markdown; fence code blocks with a language tag. When you finish a task, summarize what changed in a sentence or two.${planText}${rulesText}${skillText}`
 
   const planAddendumText = planAddendum ? `\n\n${planAddendum}` : ''
   const memoryText = (memory && memory.length)
@@ -971,11 +975,11 @@ function readOnlyRefusal (call, cwd) {
 }
 
 // ---------- the agent loop ----------
-export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, research, readOnly, maxRounds, turnTokenBudget, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
+export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, getAccessToken, getAccountId, session, useTools, computerControl, skills, persona, planAddendum, memory, agentId, groupSpeakerId, groupNames, mcpTools, callMcp, askAgent, peerAgents, research, readOnly, maxRounds, turnTokenBudget, projectRules, planMode, onPlanExit, effort, summarize, autoCompact, localContext, autoApproveComputer, cachingEnabled, cacheTtl, emit, requestApproval, requestUserChoice, signal }) {
   // ⚠️ NOT `session.cwd || os.homedir()`. A folder that is set and not here is
   // the case that broke every tool call in the chat — see usableCwd.
   const { dir: cwd, missing: strayCwd } = usableCwd(session.cwd)
-  const system = systemPrompt(cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory, readOnly)
+  const system = systemPrompt(cwd, useTools, model, computerControl, skills, persona, planMode, planAddendum, memory, readOnly, projectRules)
   // proactive compaction before a very long turn
   if (autoCompact && summarize && estimateTokens(session.messages) > PROACTIVE_TOKENS) {
     await compactSession(session, 4, summarize, emit)

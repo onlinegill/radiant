@@ -91,6 +91,51 @@ export function usableCwd (cwd) {
   return { dir, missing: cwd || null }
 }
 
+// ── project rules: the workspace's own conventions, loaded into every turn ────
+//
+// ⚠️ EVERY OTHER CODING AGENT DOES THIS AND RADIANT DID NOT. Cline reads
+// .clinerules, Cursor .cursorrules, Claude Code CLAUDE.md — the repo's own
+// standing instructions, pulled into context so the agent follows the project's
+// conventions without being told each time. Radiant working in ~/Projects/radiant
+// did not even load Radiant's OWN AGENTS.md. This walks from the workspace up to
+// the git root (or a few levels), gathers the known rules files nearest-first,
+// and caps the total so a giant one cannot swallow the window.
+export const RULES_FILES = ['.clinerules', 'AGENTS.md', 'CLAUDE.md', '.cursorrules', '.radiantrules']
+const RULES_CAP = 12000
+
+export function loadProjectRules (cwd) {
+  const dir = usableCwd(cwd).dir
+  if (!dir || dir === os.homedir()) return null   // no project folder = nothing to load
+  const found = []
+  let d = dir
+  for (let hop = 0; hop < 6; hop++) {
+    for (const name of RULES_FILES) {
+      const fp = path.join(d, name)
+      try {
+        if (fs.existsSync(fp) && fs.statSync(fp).isFile()) {
+          const text = fs.readFileSync(fp, 'utf8')
+          if (text.trim()) found.push({ file: hop === 0 ? name : path.relative(dir, fp), text })
+        }
+      } catch { /* unreadable = skip */ }
+    }
+    let gitHere = false
+    try { gitHere = fs.existsSync(path.join(d, '.git')) } catch {}
+    const parent = path.dirname(d)
+    if (gitHere || parent === d) break   // stop at the repo root or the filesystem root
+    d = parent
+  }
+  if (!found.length) return null
+  let text = ''
+  const files = []
+  for (const f of found) {
+    if (text.length >= RULES_CAP) break
+    files.push(f.file)
+    text += `${text ? '\n\n' : ''}## ${f.file}\n${f.text.slice(0, RULES_CAP - text.length)}`
+  }
+  const total = found.reduce((n, f) => n + f.text.length, 0)
+  return { text: text.trim(), files, truncated: total > RULES_CAP }
+}
+
 function resolveDataDir () {
   // An explicit env var wins — it is how the test harness and a sandboxed run
   // get their own directory without touching a real one.

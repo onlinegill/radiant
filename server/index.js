@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url'
 import { WebSocketServer } from 'ws'
 import pty from 'node-pty'
 import { execSync, spawn } from 'child_process'
-import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, loadConfig, saveConfig as writeConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession } from './config.js'
+import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, loadConfig, saveConfig as writeConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession , loadProjectRules } from './config.js'
 import { runTurn, listModels } from './providers.js'
 import { checkVoiceRequest, liveSessionBody, createLiveSession, voiceKey, VOICE_ADDENDUM } from './voice.js'
 import { geminiVoiceKey, checkGeminiVoiceRequest, geminiSetupFrame, mintEphemeralToken, geminiLiveModel, GEMINI_WS_URL, GEMINI_LIVE_MODELS, GEMINI_LIVE_VOICES, GEMINI_RATE_IN_PER_MINUTE, GEMINI_RATE_OUT_PER_MINUTE } from './voice-gemini.js'
@@ -348,6 +348,7 @@ function hostAddresses () {
 
 // in-flight turn state
 const activeTurns = new Map() // sessionId -> { controller }
+const rulesNoticed = new Map() // sessionId -> the rules-file signature last announced, so it is said once
 const pendingApprovals = new Map() // callId -> resolve(bool)
 const pendingQuestions = new Map() // questionId -> resolve(answer string)
 
@@ -3690,6 +3691,20 @@ ${r.error ? `(no answer: ${r.error})` : (r.answer || '(the subagent returned not
     }
   }
 
+  // The workspace's own rules file(s), loaded into every turn unless turned off.
+  // Announced once per session (again only if the folder — and its rules — change),
+  // so it is not a per-turn line in the transcript.
+  const projectRules = (config.settings.projectRules !== false && session.useTools !== false && !session.group)
+    ? loadProjectRules(session.cwd)
+    : null
+  if (projectRules && projectRules.files.length) {
+    const sig = projectRules.files.join(',')
+    if (rulesNoticed.get(sessionId) !== sig) {
+      rulesNoticed.set(sessionId, sig)
+      emit({ type: 'notice', text: `Loaded this project's rules from ${projectRules.files.join(', ')} — the agent will follow them here.` })
+    }
+  }
+
   const common = {
     provider,
     model: turnModel,
@@ -3706,6 +3721,10 @@ ${r.error ? `(no answer: ${r.error})` : (r.answer || '(the subagent returned not
     // reaches this, then it pauses and asks. undefined = the built-in default;
     // 0 = no budget (run to completion). Settings → Models → Long builds.
     turnTokenBudget: Number.isFinite(Number(config.settings.turnTokenBudget)) ? Number(config.settings.turnTokenBudget) : undefined,
+    // The workspace's own rules file(s) — AGENTS.md/CLAUDE.md/.clinerules — loaded
+    // into the prompt so the agent follows the project's conventions. On unless
+    // turned off, and only when the chat has a real project folder.
+    projectRules,
     // How much of a local model's context Radiant will fill before it trims.
     // 0 means "use whatever Ollama loaded it with". See LOCAL_CONTEXT_DEFAULT.
     localContext: Number.isFinite(Number(config.settings.localContext)) ? Number(config.settings.localContext) : undefined,

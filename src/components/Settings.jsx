@@ -715,6 +715,14 @@ function UtilityModelBlock ({ config, onSettings }) {
         />
         <span>Let easy messages go to that cheap model <span className='desc'>— before each message, a quick decision says whether a fast model can answer it well (a short question, a one-line edit, “thanks, now commit”). If it is sure, the fast model answers in a couple of seconds; anything harder stays on the model you chose. The reply says which model answered. Never mid-task, in plan mode or in a group chat. With an OpenRouter key the decision is Jev’s (0.3 s); without one the cheap model judges (1–2 s); with neither, nothing changes.</span></span>
       </label>
+      <label className='check-row' style={{ marginTop: 12 }}>
+        <input
+          type='checkbox'
+          checked={config?.settings?.projectRules !== false}
+          onChange={e => onSettings({ projectRules: e.target.checked })}
+        />
+        <span>Follow a project\u2019s own rules file <span className='desc'>\u2014 when a chat is working in a folder that has an <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>.clinerules</code> or <code>.cursorrules</code> (in the folder or up at the repo root), Radiant loads it into the agent so it follows that project\u2019s conventions without being told each time. The chat says which file it loaded. Off means the agent ignores those files.</span></span>
+      </label>
       <TurnBudget config={config} onSettings={onSettings} />
     </div>
   )
@@ -3274,6 +3282,7 @@ const GUIDE = [
   {
     title: 'Chat & agents',
     items: [
+      ['Radiant follows a project\u2019s own rules file', 'If a chat is working in a folder that has an AGENTS.md, CLAUDE.md, .clinerules or .cursorrules \u2014 the standing instructions many projects keep for coding agents \u2014 Radiant now loads it and the agent follows those conventions without you repeating them. It looks in the folder and up at the repository root, and the chat tells you once which file it loaded. This is how other coding tools work; Radiant did not, so an agent building in a real repo missed the project\u2019s own guidance. Turn it off under Settings \u2192 Models \u2192 Background work if you\u2019d rather it ignore those files.'],
       ['The buttons under the message box line up', 'The toggle buttons on the right of the composer (computer, plan, thinking, permissions) had slightly smaller icons and sat a hair taller than Attach, Skills and Dictate beside them, so the row looked uneven. They are all the same size now.'],
       ['Long builds run to completion instead of stopping every so often', 'Radiant used to cut a turn off after a fixed number of tool steps, which meant building a whole app kept hitting a wall that looked like an error \u2014 you had to press Continue over and over. That is gone. A turn now runs until the work is actually done. The only limit is a spend budget you set (Settings \u2192 Models \u2192 Long builds), and it is measured by real cost \u2014 the tokens that actually cost money, not the raw total. A long turn re-reads the conversation from cache every step, and cache reads barely count, so an ordinary build finishes without ever pausing; the turn only stops to ask if it runs up genuine spend. And if it genuinely gets stuck \u2014 commands that keep failing \u2014 it stops early and tells you what is broken, rather than grinding to the budget.'],
       ['A turn that keeps hitting the same wall now stops early instead of burning through your usage', 'If an agent gets stuck on something a command cannot fix \u2014 a broken build, a package version mismatch, a missing tool \u2014 it used to keep trying variation after variation, sometimes for a very long time, because each attempt looked a little different from the last. Radiant now watches how the recent commands are going, and when almost all of them are failing it stops the turn, tells you it was stuck (usually a broken build or a version clash), and points you at the last error. It gives the agent one reminder to step back first, and it never stops a turn where commands are actually succeeding. Everything so far is saved, and Continue picks it up once you have told it the fix.'],
