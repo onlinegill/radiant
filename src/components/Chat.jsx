@@ -1735,11 +1735,17 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
           </div>
         )}
         {queued.length > 0 && (
-          <div className='queued-strip' title='Sends as one follow-up when the agent finishes this turn'>
+          <div className='queued-strip' title='These send as one follow-up when the agent finishes — or press Steer to interrupt it and send them now'>
             <span className='queued-label'>↳ Queued</span>
             {queued.map((q, i) => (
               <span key={i} className='queued-chip'>
                 <span className='queued-text'>{q.text || `${q.attachments?.length || 0} attachment(s)`}</span>
+                {/* ⚠️ STEER = SEND NOW, NOT WAIT. A queued message only reaches the
+                    agent after it finishes the turn — but sometimes you can see it
+                    going the wrong way and want to redirect it now. Steer stops the
+                    turn, which drains the queue immediately, so your message becomes
+                    the next thing it acts on. (Tony asked for this next to the chip.) */}
+                <button className='queued-steer' onClick={() => onStop?.()} title='Steer — stop the agent now and send your queued message(s)'>steer</button>
                 <button className='queued-x' onClick={() => setQueued(list => list.filter((_, j) => j !== i))} title='Remove'>✕</button>
               </span>
             ))}
