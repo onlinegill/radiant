@@ -23,6 +23,7 @@ import { checkForUpdate } from './updater.js'
 import { ollamaBin, hermesBin, SPAWN_ENV } from './ollama.js'
 import { commandRisk } from './util.js'
 import { claimLock, beatLock, releaseLock, describeHolder, sweepLegacyLocks, BEAT_MS } from './lock.js'
+import { prStatus } from './pr.js'
 const LOCK_HOST = computerName()   // "Tony's Home MBP M4", not a DNS name
 import { IS_MAC, openCommand, chromeBinary, tailscaleBinary, defaultShell, cpuName, osVersion as osProductVersion, computerName } from './platform.js'
 import { listFacts, addFacts, addFactManual, deleteFact, clearFacts, relevantFacts } from './memory.js'
@@ -861,6 +862,12 @@ for (const sig of ['exit', 'SIGINT', 'SIGTERM']) {
 }
 
 app.get('/api/data-dir', (req, res) => res.json({ ...dataDirStatus(), sharing, sharingText: describeHolder(sharing, LOCK_HOST) }))
+
+// The current branch's PR + CI, for the row above the composer. Read-only; hides
+// itself when there is nothing to show. cwd comes from the chat's workspace.
+app.get('/api/pr', async (req, res) => {
+  try { res.json(await prStatus(req.query.cwd || null)) } catch (e) { res.json({ show: false, reason: 'error' }) }
+})
 
 // Repair an iCloud folder macOS never adopted. See repairCloudFolder — the old
 // folder is kept, and any doubt rolls the whole thing back.

@@ -1103,6 +1103,68 @@ function VoiceCaptions ({ rows = [] }) {
   )
 }
 
+// The current branch's GitHub PR, above the composer — Cline's desktop idea.
+// Read-only: it shows the PR, its merge state, its size and CI, opens links in
+// the browser, and offers Create PR (which opens GitHub's compare page). It
+// polls every 30s and on window focus, and renders nothing when there is
+// nothing to show (no PR, default branch, no gh, not a GitHub repo).
+function PrRow ({ cwd, sessionId }) {
+  const [pr, setPr] = useState(null)
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    setPr(null); setOpen(false)
+    if (!cwd) return
+    let alive = true
+    const load = () => api.getPr(cwd).then(r => { if (alive) setPr(r) }).catch(() => { if (alive) setPr(null) })
+    load()
+    const t = setInterval(load, 30000)
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => { alive = false; clearInterval(t); window.removeEventListener('focus', onFocus) }
+  }, [cwd, sessionId])
+  if (!pr || !pr.show) return null
+  const openUrl = u => u && window.open(u, '_blank', 'noopener')
+  if (!pr.hasPr) {
+    return (
+      <div className='pr-row'>
+        <span className='pr-branch'><Icon.branch size={12} /> {pr.branch}</span>
+        <span className='pr-none'>no pull request</span>
+        {pr.compareUrl && <button className='pr-create' onClick={() => openUrl(pr.compareUrl)}>Create PR</button>}
+      </div>
+    )
+  }
+  const p = pr.pr
+  const mergeWord = { ready: 'mergeable', blocked: 'blocked', behind: 'behind', unknown: '' }[p.mergeTone] || ''
+  const fails = pr.checks.filter(c => c.state === 'fail').length
+  const pend = pr.checks.filter(c => c.state === 'pending').length
+  const ciWord = pr.ciState === 'pass' ? 'checks passed'
+    : pr.ciState === 'fail' ? `${fails} check${fails === 1 ? '' : 's'} failed`
+      : pr.ciState === 'pending' ? `${pend} running` : ''
+  return (
+    <div className='pr-row'>
+      <button className='pr-num' onClick={() => openUrl(p.url)} title={p.title}>
+        <Icon.branch size={12} /> PR #{p.number}{p.isDraft ? ' · draft' : ''}
+      </button>
+      {mergeWord && <span className={'pr-merge is-' + p.mergeTone}>{mergeWord}</span>}
+      <span className='pr-diff'><span className='pr-add'>+{p.additions}</span> <span className='pr-del'>{'−'}{p.deletions}</span></span>
+      {pr.ciState !== 'none' && (
+        <button className={'pr-ci is-' + pr.ciState} onClick={() => setOpen(o => !o)} aria-expanded={open}>
+          <span className='pr-ci-dot' aria-hidden />{ciWord}{pr.checks.length ? ` ${open ? '\u25be' : '\u25b8'}` : ''}
+        </button>
+      )}
+      {open && pr.checks.length > 0 && (
+        <div className='pr-checks'>
+          {pr.checks.map((c, i) => (
+            <button key={i} className={'pr-check is-' + c.state} onClick={() => openUrl(c.url)} disabled={!c.url} title={c.url || ''}>
+              <span className='pr-ci-dot' aria-hidden />{c.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Chat ({ session, live, todos = [], stats, approval, question, onAnswer, usage, error, models, agents = [], recipes = [], onSend, onStop, onApproval, onPickModel, onToggleTools, onToggleComputer, onTogglePlan, onSetCwd, onNew, onNewGroup, onTruncate, onRefreshModels, skillSuggestion, onReviewSkill, onDismissSuggestion, onOpenLibrary, rightOpen, onToggleRight, onMenu, approvalMode = 'ask', onCycleApproval, onFork, onFollowUp, onSessionReplaced, skills = [], onAddSkill, onRemoveSkill, serverHost, platform, onSetEffort, showThinking = true, onToggleThinking, voice = null, onToggleVoice }) {
   // ⚠️ TOOLS RUN ON THE SERVER'S MAC. Computer control is the one where that is
   // dangerous rather than merely surprising: the mouse that moves, the keys that
@@ -1621,6 +1683,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
           <button className='skill-suggest-x' onClick={onDismissSuggestion} title='Not now'>✕</button>
         </div>
       )}
+      <PrRow cwd={session.cwd} sessionId={session.id} />
       <div className='composer'>
         {/* ⚠️ THE CALL SAYS WHERE THE AUDIO GOES. While a voice session is up the
             microphone is streaming to OpenAI at their per-minute rate; the strip
