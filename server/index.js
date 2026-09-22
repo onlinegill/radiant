@@ -4098,19 +4098,34 @@ wss.on('connection', (ws, req) => {
 
 // Resolves with the bound port once listening; falls back to a random free
 // port if the default is taken (e.g. a dev instance is already running).
+// ⚠️ THE FALLBACK PORTS MUST BE THE ONES THE EXTENSION PROBES. When 5834 is busy
+// (a dev instance, a second copy), the server used to fall back to listen(0) — a
+// RANDOM port. But the Chrome extension can only look for Radiant on a fixed list
+// (extension/sw.js DEFAULT_PORTS), so a random port meant the extension could
+// never find the app: it showed "Not connected" forever and the agent quietly
+// used its own browser instead. So walk the SAME list the extension probes, and
+// only fall to a random port as a last resort (the app still runs; the extension
+// just will not find that one). Keep this array equal to sw.js's; test-ext-ports
+// fails if they drift.
+export const EXT_PORTS = [5834, 5934, 5835, 5836, 5837]
 export const ready = new Promise((resolve, reject) => {
   // ⚠️ RECORD THE PORT WE ACTUALLY GOT. The same-origin allowlist above compares
   // against it, so a fallback bind that left boundPort at 5834 would lock the
   // app's own window out of its own server.
   const up = () => { boundPort = server.address().port; resolve(boundPort) }
-  server.once('error', err => {
-    if (err.code === 'EADDRINUSE') {
-      server.listen(0, BIND_HOST, up)
-    } else {
-      reject(err)
-    }
-  })
-  server.listen(PORT, BIND_HOST, up)
+  // An explicit RADIANT_PORT (dev, tests) is honoured as-is; only the default
+  // 5834 walks the shared list, because that is the one the extension hunts for.
+  const candidates = PORT === 5834 ? EXT_PORTS : [PORT]
+  const tryAt = i => {
+    server.removeAllListeners('error')
+    server.once('error', err => {
+      if (err.code !== 'EADDRINUSE') return reject(err)
+      if (i + 1 < candidates.length) tryAt(i + 1)
+      else { server.removeAllListeners('error'); server.once('error', reject); server.listen(0, BIND_HOST, up) }
+    })
+    server.listen(candidates[i], BIND_HOST, up)
+  }
+  tryAt(0)
 })
 // ⚠️ SET UP THE AWAY-FROM-HOME ADDRESS AT BOOT, not only when the checkbox is
 // flipped. Tony's bottom line: "i would like people using their iphone away from
