@@ -1129,7 +1129,11 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // builds), measured in billable tokens. 0 or negative means no budget.
   const tokenBudget = Number.isFinite(turnTokenBudget) ? turnTokenBudget : DEFAULT_TURN_TOKENS
   // the window rides with usage so the gauge can draw a local model it has no table row for
-  const emitS = ev => { if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; stats.cacheWrite += ev.cacheWrite || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
+  // ⚠️ WHAT THIS ROUND HAS STREAMED SO FAR, kept here and not only inside the
+  // round: Stop aborts the fetch, the round throws before it returns its parts,
+  // and the reply the user just watched arrive vanished on reload.
+  let roundText = ''
+  const emitS = ev => { if (ev.type === 'text_delta') roundText += ev.text || ''; if (ev.type === 'usage') { stats.inTokens += ev.input || 0; stats.outTokens += ev.output || 0; stats.cachedIn += ev.cacheRead || 0; stats.cacheWrite += ev.cacheWrite || 0; if (ev.input) lastPrompt = ev.input; if (window_) ev = { ...ev, window: window_ } } emit(ev) }
   const finishStats = () => { session.stats = stats; emit({ type: 'stats', stats }) }
   const roundCap = Math.min(maxRounds || MAX_ROUNDS, MAX_ROUNDS)
   for (let round = 0; round < roundCap; round++) {
@@ -1187,6 +1191,7 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
     }
     let result
     const roundStart = Date.now()
+    roundText = ''
     try {
       // a saved voice conversation reads as user text; toAnthropic would choke on its role
       const reqMsgs = foldOldToolResults(voiceAsText(groupSpeakerId ? groupFlatten(session.messages, groupSpeakerId, groupNames || {}) : session.messages), { hard: hardFold })
@@ -1220,6 +1225,11 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
           : await openaiRound({ ...args, messages: toOpenAI(reqMsgs, nudge ? `${system.full}\n\n${nudge}` : system.full) })
       stats.llmMs += Date.now() - roundStart
     } catch (e) {
+      // Stopped mid-reply: keep what already streamed, end like any other Stop.
+      if (signal?.aborted) {
+        if (roundText.trim()) assistant.parts.push({ type: 'text', text: roundText })
+        finishStats(); emit({ type: 'stopped' }); return
+      }
       // Model doesn't support tools (common with local models) -> retry once without them.
       if (toolsEnabled && round === 0 && /tool/i.test(e.message) && /support|invalid|unknown|400/i.test(e.message)) {
         toolsEnabled = false

@@ -29,7 +29,10 @@ import { planLayers, checkNodes, nodePrompt, readOutput, runReduce, gateState, l
  * there is a gap.
  */
 
-const MAX_NODE_MS = 10 * 60 * 1000
+// ⚠️ A REAL CEILING, NOT A NOTE. Model calls have no network timeout on purpose
+// (server/net.js), so a stalled model hangs a node — and its graph — for good.
+// This used to call a method that does not exist on AbortSignal and did nothing.
+const maxNodeMs = () => Number(process.env.RADIANT_GRAPH_NODE_MS) || 10 * 60 * 1000
 
 // Live runs, so a second Run press does not start a second copy of the same graph.
 const running = new Map()   // graphId -> { controller, run }
@@ -44,6 +47,8 @@ export function stopGraph (id) {
 }
 
 /** One node's turn, in its own session, with nothing else in its context. */
+const timedOut = () => `This step ran longer than ${Math.round(maxNodeMs() / 60000) || 1} minutes and was stopped, so the rest of the graph could finish.`
+
 async function runNode ({ graph, node, results, deps, signal, seen }) {
   const { loadConfig, saveSession, agentsStore, getProject, credFor } = deps
   const config = loadConfig()
@@ -80,7 +85,7 @@ async function runNode ({ graph, node, results, deps, signal, seen }) {
 
   let text = ''
   let refused = null
-  const timeout = setTimeout(() => { try { signal.__nodeAbort?.() } catch {} }, MAX_NODE_MS)
+  const nodeSignal = AbortSignal.any([signal, AbortSignal.timeout(maxNodeMs())])
   const turn = () => runTurn({
     provider: cred.provider,
     model: session.model,
@@ -97,7 +102,7 @@ async function runNode ({ graph, node, results, deps, signal, seen }) {
     requestApproval: graph.autoApprove
       ? null
       : call => { refused = call.name; return Promise.resolve(false) },
-    signal
+    signal: nodeSignal
   })
   let parsed
   let retried = false
@@ -107,7 +112,7 @@ async function runNode ({ graph, node, results, deps, signal, seen }) {
     // ⚠️ VALIDATE, THEN RETRY ONCE — the contract is the point of the node, and
     // a model that fenced its JSON or dropped a key is one sentence away from
     // right. The reason goes back to it verbatim; a second miss is a failure.
-    if (!parsed.ok && text.trim() && !refused && !signal.aborted && (node.fields.length || node.kind === 'route')) {
+    if (!parsed.ok && text.trim() && !refused && !nodeSignal.aborted && (node.fields.length || node.kind === 'route')) {
       retried = true
       session.messages.push({ role: 'user', text: `Your answer could not be used: ${parsed.reason} Reply again, and this time with the JSON only.` })
       text = ''
@@ -115,16 +120,16 @@ async function runNode ({ graph, node, results, deps, signal, seen }) {
       parsed = readOutput(node, text)
     }
   } catch (e) {
-    clearTimeout(timeout)
     if (signal.aborted) return { state: 'failed', error: 'Stopped.', sessionId: session.id }
+    if (nodeSignal.aborted) return { state: 'failed', error: timedOut(), sessionId: session.id }
     return { state: 'failed', error: e.message, sessionId: session.id }
   }
-  clearTimeout(timeout)
 
   // ⚠️ SAVE THE TRANSCRIPT WHATEVER HAPPENED. A node you cannot open is a node
   // you cannot debug, and "it failed" with no conversation behind it is the
   // thing that makes a parallel run feel like a black box.
   try { saveSession(session) } catch {}
+  if (nodeSignal.aborted && !signal.aborted) return { state: 'failed', error: timedOut(), sessionId: session.id }
 
   if (refused && !text.trim()) {
     return {

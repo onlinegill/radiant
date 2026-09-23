@@ -37,6 +37,7 @@ const server = http.createServer(async (req, res) => {
   // too — because the failing node's title was quoted inside it. That is the
   // fan-in working correctly and the fixture reading it wrong.
   const job = asked.match(/Your job, and only this: ([^\n]+)/)?.[1] || ''
+  if (/HANG/.test(job)) return // a model that never answers
   const delay = /SLOW/.test(job) ? 900 : 30
   inFlight++
   peakInFlight = Math.max(peakInFlight, inFlight)
@@ -220,6 +221,24 @@ const node = o => ({ kind: 'agent', prompt: '', dependsOn: [], fields: [], useTo
   ok('and no node was run', Object.keys(run.nodes).length === 0)
 }
 
+// ── a node that hangs is stopped at the ceiling, and the graph finishes ─────
+// ⚠️ The ceiling used to call a method that does not exist, so a stalled model
+// held its node — and the whole graph — open forever.
+{
+  process.env.RADIANT_GRAPH_NODE_MS = '1500'
+  const graph = {
+    id: 'graph-hang', title: 'One stuck node', cwd: dir, concurrency: 4,
+    nodes: [node({ id: 'good', title: 'Good angle' }), node({ id: 'stuck', title: 'HANG angle' })]
+  }
+  const t = Date.now()
+  const run = await Promise.race([runGraph(graph, deps), new Promise(r => setTimeout(() => r(null), 8000))])
+  delete process.env.RADIANT_GRAPH_NODE_MS
+  ok('a graph with a hung node still finishes', run !== null, `still running after ${Date.now() - t}ms`)
+  ok('the hung node fails and says it ran too long', run?.nodes.stuck.state === 'failed' && /ran longer than/.test(run.nodes.stuck.error || ''), run?.nodes.stuck.error || '')
+  ok('the other node is unaffected', run?.nodes.good.state === 'done')
+}
+
+server.closeAllConnections?.()
 server.close()
 rmSync(dir, { recursive: true, force: true })
 console.log(results.join('\n'))

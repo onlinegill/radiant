@@ -116,6 +116,38 @@ const { runTool } = await import('../server/tools.js')
      all.slice(0, 3).join('|') === 'sleep 3|echo two|echo three', `first three: ${all.slice(0, 3).join(', ')}`)
 }
 
+// ── Stop mid-reply keeps what already streamed ─────────────────────────────
+// ⚠️ The round kept its text in a local array and threw on abort before
+// returning it, so the reply the user had just watched stream in was gone on
+// reload. A stub that sends half a sentence, then stalls until Stop.
+{
+  const http = await import('node:http')
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'content-type': 'text/event-stream' })
+    res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Half of a reply' } }] })}\n\n`)
+    req.on('close', () => res.end()) // never finishes on its own
+  })
+  await new Promise(r => server.listen(0, '127.0.0.1', r))
+  const { runTurn } = await import('../server/providers.js')
+  const ctl = new AbortController()
+  const session = { cwd: dir, messages: [{ role: 'user', text: 'go' }] }
+  let stopped = false
+  await runTurn({
+    provider: { id: 'stub', type: 'openai', baseUrl: `http://127.0.0.1:${server.address().port}` },
+    model: 'stub', apiKey: 'x', session, useTools: false, computerControl: false, skills: [], persona: '',
+    emit: ev => {
+      if (ev.type === 'text_delta') setTimeout(() => ctl.abort(), 100)
+      if (ev.type === 'stopped') stopped = true
+    },
+    requestApproval: null, signal: ctl.signal
+  })
+  server.close()
+  const last = session.messages[session.messages.length - 1]
+  ok('Stop mid-reply ends as a stop, not an error', stopped)
+  ok('and the half-streamed text is saved in the transcript',
+     last?.role === 'assistant' && last.parts?.some(p => p.type === 'text' && /Half of a reply/.test(p.text)), JSON.stringify(last).slice(0, 160))
+}
+
 rmSync(dir, { recursive: true, force: true })
 console.log(`\n${pass}/${pass + fail} passed  ·  Stop stops the tools, not just the next model call`)
 process.exit(fail ? 1 : 0)

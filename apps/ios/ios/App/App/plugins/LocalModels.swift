@@ -465,11 +465,25 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("radiant-custom-models.json")
     }
-    private lazy var custom: [RemoteCatalog.Row] = {
+    /// ⚠️ BEHIND A LOCK, like `jobs`. Capacitor runs plugin calls off the main
+    /// thread and can run two at once: adding a model from search while the app
+    /// comes back to the front (which lists models) read and wrote this array
+    /// at the same moment — a lost entry, or a crash on exclusive access.
+    private let customLock = NSLock()
+    private lazy var _custom: [RemoteCatalog.Row] = {
         guard let data = try? Data(contentsOf: customURL),
               let rows = try? JSONDecoder().decode([RemoteCatalog.Row].self, from: data) else { return [] }
         return rows
     }()
+    private var custom: [RemoteCatalog.Row] {
+        customLock.lock(); defer { customLock.unlock() }
+        return _custom
+    }
+    /// Change the list and save it as one step, so two changes cannot interleave.
+    private func withCustom<T>(_ body: (inout [RemoteCatalog.Row]) -> T) -> T {
+        customLock.lock(); defer { customLock.unlock() }
+        return body(&_custom)
+    }
     /// Persist the person's own finds. Returns false if it could not.
     ///
     /// ⚠️ APPLICATION SUPPORT DOES NOT EXIST ON iOS UNTIL YOU MAKE IT, and this
@@ -483,11 +497,11 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
     /// then "did you remove bonsai from my phone?" — nothing was removed; it
     /// was never saved.
     @discardableResult
-    private func saveCustom() -> Bool {
+    private func saveCustom(_ rows: [RemoteCatalog.Row]) -> Bool {
         let dir = customURL.deletingLastPathComponent()
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let data = try JSONEncoder().encode(custom)
+            let data = try JSONEncoder().encode(rows)
             try data.write(to: customURL, options: .atomic)
             return true
         } catch {
@@ -510,13 +524,17 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         let row = RemoteCatalog.Row(id: id, name: name, maker: call.getString("maker") ?? repo.components(separatedBy: "/")[0],
                                     blurb: call.getString("blurb") ?? "", gb: call.getDouble("gb") ?? 0, repo: repo,
                                     stop: call.getString("stop"), vision: call.getBool("vision") ?? false, video: false)
-        custom.removeAll { $0.id == id || $0.repo == repo }
-        custom.append(row)
         // ⚠️ AND IT MUST NOT CLAIM SUCCESS IT DID NOT HAVE. Resolving here
         // regardless is what let a model download, work for one session and
         // then disappear, with nothing anywhere saying why.
-        guard saveCustom() else {
-            custom.removeAll { $0.id == id }
+        let saved = withCustom { list -> Bool in
+            list.removeAll { $0.id == id || $0.repo == repo }
+            list.append(row)
+            if saveCustom(list) { return true }
+            list.removeAll { $0.id == id }
+            return false
+        }
+        guard saved else {
             return call.reject("The model could not be saved to this device, so it would disappear when Radiant restarts.")
         }
         call.resolve(["id": id])
@@ -527,8 +545,10 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         if loaded?.id == id { loaded = nil }
         if let dir = cacheDir(for: row.repo) { try? FileManager.default.removeItem(at: dir) }
         forget(id)
-        custom.removeAll { $0.id == id }
-        saveCustom()
+        withCustom { list in
+            list.removeAll { $0.id == id }
+            saveCustom(list)
+        }
         call.resolve()
     }
 

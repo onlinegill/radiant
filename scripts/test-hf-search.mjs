@@ -89,8 +89,8 @@ const lm = fs.readFileSync('apps/ios/ios/App/App/plugins/LocalModels.swift', 'ut
 ok(/createDirectory\(at: dir, withIntermediateDirectories: true\)/.test(lm),
    'saveCustom creates Application Support before writing into it')
 ok(!/try\? data\.write\(to: customURL/.test(lm), 'and no longer swallows the write failure')
-ok(/private func saveCustom\(\) -> Bool/.test(lm), 'it reports whether it succeeded')
-ok(/guard saveCustom\(\) else/.test(lm), 'and addCustom refuses rather than claiming a save it did not make')
+ok(/private func saveCustom\(_ rows: \[RemoteCatalog\.Row\]\) -> Bool/.test(lm), 'it reports whether it succeeded')
+ok(/if saveCustom\(list\) \{ return true \}[\s\S]*?guard saved else/.test(lm), 'and addCustom refuses rather than claiming a save it did not make')
 ok(/could not be saved to this device/.test(lm), 'with a reason a person can act on')
 
 console.log(`\n${pass}/${pass + fail} passed  ·  a Hugging Face model is qualified before a byte is downloaded`)

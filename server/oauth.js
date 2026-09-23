@@ -293,27 +293,43 @@ async function refreshNous (tok) {
   return { access: j.access_token, refresh: j.refresh_token || tok.refresh, expires: Date.now() + (j.expires_in ? j.expires_in * 1000 : 300_000) }
 }
 
+// ⚠️ ONE REFRESH PER PROVIDER AT A TIME. Refresh tokens are single-use (Nous
+// says so outright; OpenAI rotates too), and parallel graph nodes or a chat plus
+// its title call each found the token expired and each refreshed with the same
+// refresh token — the second was refused and reported "session expired" though
+// nothing had. Concurrent callers now share one refresh, and a caller holding an
+// older copy of the config gets the token already minted instead of spending a
+// dead refresh token.
+const refreshing = new Map() // providerId -> Promise<fresh token record>
+const minted = new Map()     // providerId -> newest token record this process got
+
 // returns a valid access token, refreshing in-place on config if near expiry
 export async function validAccessToken (providerId, config, saveConfig) {
   const tok = config.oauth?.[providerId]
   if (!tok) return null
-  // Copilot: re-mint the short-lived Copilot token from the stored GitHub token.
-  if (providerId === 'copilot') {
-    if (tok.expires - Date.now() > 120_000) return tok.access
-    const cop = await exchangeCopilot(tok.github)
-    config.oauth.copilot = { github: tok.github, access: cop.token, expires: cop.expires }
-    saveConfig(config)
-    return cop.token
-  }
-  // Nous invoke JWTs are short-lived; refresh with a wider skew and its own flow.
-  const skew = providerId === 'nousresearch' ? 130_000 : 60_000
+  // Copilot re-mints from the GitHub token; Nous invoke JWTs are short-lived.
+  const skew = providerId === 'copilot' ? 120_000 : providerId === 'nousresearch' ? 130_000 : 60_000
   if (tok.expires - Date.now() > skew) return tok.access
-  const fresh = providerId === 'nousresearch'
-    ? await refreshNous(tok)
-    : OAUTH_PROVIDERS[providerId]?.mode === 'device'
-      ? await refreshDevice(providerId, tok)
-      : await refreshToken(providerId, tok)
+  const newer = minted.get(providerId)
+  if (newer && newer.expires > tok.expires && newer.expires - Date.now() > skew) { config.oauth[providerId] = newer; return newer.access }
+  let job = refreshing.get(providerId)
+  if (!job) {
+    job = (async () => {
+      const fresh = providerId === 'copilot'
+        ? await exchangeCopilot(tok.github).then(cop => ({ github: tok.github, access: cop.token, expires: cop.expires }))
+        : providerId === 'nousresearch'
+          ? await refreshNous(tok)
+          : OAUTH_PROVIDERS[providerId]?.mode === 'device'
+            ? await refreshDevice(providerId, tok)
+            : await refreshToken(providerId, tok)
+      minted.set(providerId, fresh)
+      config.oauth[providerId] = fresh
+      saveConfig(config)
+      return fresh
+    })().finally(() => refreshing.delete(providerId))
+    refreshing.set(providerId, job)
+  }
+  const fresh = await job
   config.oauth[providerId] = fresh
-  saveConfig(config)
   return fresh.access
 }

@@ -3226,6 +3226,12 @@ app.post('/api/chat', async (req, res) => {
   const session = loadSession(sessionId)
   if (!session) return res.status(404).json({ error: 'session not found' })
   if (activeTurns.has(sessionId)) return res.status(409).json({ error: 'a turn is already running' })
+  // ⚠️ CLAIM THE CHAT NOW, not after the skill and MCP choices below. Those
+  // wait on the network, and a second send in that gap (phone and Mac on one
+  // chat, or a retried request) also passed the check above — two turns ran on
+  // two copies of the chat and the last save erased the other's whole turn.
+  const controller = new AbortController()
+  activeTurns.set(sessionId, { controller })
 
   // agent (persona + its skills) plus globally-enabled skills
   const agent = session.agentId ? agentsStore.get(session.agentId) : null
@@ -3249,8 +3255,6 @@ app.post('/api/chat', async (req, res) => {
       emit({ type: 'title', title: session.title })
     }
     saveTurnSession(session)
-    const controller = new AbortController()
-    activeTurns.set(sessionId, { controller })
     res.on('close', () => { if (!res.writableEnded) controller.abort() })
     const stopHeartbeat = startHeartbeat(res)
     const assistant = { role: 'assistant', parts: [] }
@@ -3274,12 +3278,12 @@ app.post('/api/chat', async (req, res) => {
   }
 
   let provider = config.providers.find(p => p.id === session.provider)
-  if (!provider) return res.status(400).json({ error: 'Pick a model first — no provider set on this session.' })
+  if (!provider) { activeTurns.delete(sessionId); return res.status(400).json({ error: 'Pick a model first — no provider set on this session.' }) }
   // Qwen's OAuth token names the API host to use; honour it over the default.
   if (provider.id === 'qwen' && config.oauth.qwen?.apiBase) provider = { ...provider, baseUrl: config.oauth.qwen.apiBase }
   const apiKey = config.keys[provider.id]
   const hasOAuth = Boolean(config.oauth[provider.id])
-  if (provider.auth === 'key' && !apiKey && !hasOAuth) return res.status(400).json({ error: `No API key or subscription sign-in for ${provider.name}. Add one in Settings.` })
+  if (provider.auth === 'key' && !apiKey && !hasOAuth) { activeTurns.delete(sessionId); return res.status(400).json({ error: `No API key or subscription sign-in for ${provider.name}. Add one in Settings.` }) }
 
   // agent (persona + its skills, resolved above) plus globally-enabled skills
   const allSkills = skillsStore.list()
@@ -3373,8 +3377,6 @@ app.post('/api/chat', async (req, res) => {
   }
   saveTurnSession(session)
 
-  const controller = new AbortController()
-  activeTurns.set(sessionId, { controller })
   // res 'close' fires on client disconnect (req 'close' fires once the body is
   // consumed in modern Node, which would abort the turn immediately)
   res.on('close', () => { if (!res.writableEnded) controller.abort() })
