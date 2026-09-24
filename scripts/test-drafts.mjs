@@ -109,6 +109,16 @@ ok(/onDraftChange=\{onDraftChange\}/.test(screen) && /saveDraft\(id, text\)/.tes
     ok('a partial opening tag at the end is held back', t('Sure<thi').text === 'Sure' && !t('Sure<thi').thinking)
     ok('text with no block is untouched', t('plain answer').text === 'plain answer')
     ok('text after the block keeps its own paragraphs', t('<think>a</think>\n\nOne\n\nTwo').text === 'One\n\nTwo')
+    // DeepSeek R1's template opens the block in the PROMPT: only the close arrives.
+    ok('a close with no open hides the reasoning before it', t('the user wants 391\n</think>\n\nIt is 391.').text === 'It is 391.')
+    ok('and the stray tag never shows', !t('reasoning</think>answer').text.includes('think'))
+  }
+  {
+    const o = (raw, final = false) => visibleText(raw, { opened: true, final })
+    ok('a known thinker is hidden from its first word, not flashed', o('the user wants').text === '' && o('the user wants').thinking)
+    ok('and shows only the answer once it closes', o('the user wants</think>\n391.').text === '391.')
+    ok('a known thinker that never closes still shows its whole reply at the end', o('Just 391.', true).text === 'Just 391.')
+    ok('a known thinker that writes its own open tag works too', o('<think>x</think>Hi').text === 'Hi')
   }
 }
 

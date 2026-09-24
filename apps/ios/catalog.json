@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated": "2026-09-10T21:54:01Z",
+  "generated": "2026-09-24T03:29:26Z",
   "models": [
     {
       "id": "gemma3-270m",
@@ -9,6 +9,8 @@
       "blurb": "The smallest model here. Instant, for simple rewrites.",
       "gb": 0.19,
       "repo": "mlx-community/gemma-3-270m-it-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<end_of_turn>"
     },
     {
@@ -18,6 +20,8 @@
       "blurb": "Trained for its quantization, so it holds up small. Steady writer.",
       "gb": 0.77,
       "repo": "mlx-community/gemma-3-1b-it-qat-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<end_of_turn>"
     },
     {
@@ -26,7 +30,9 @@
       "maker": "Google",
       "blurb": "The older generation, still a dependable everyday model.",
       "gb": 1.49,
-      "repo": "mlx-community/gemma-2-2b-it-4bit"
+      "repo": "mlx-community/gemma-2-2b-it-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "gemma3n-e2b",
@@ -35,6 +41,8 @@
       "blurb": "Built for on-device use. Good general knowledge.",
       "gb": 2.55,
       "repo": "mlx-community/gemma-3n-E2B-it-lm-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<end_of_turn>"
     },
     {
@@ -44,6 +52,8 @@
       "blurb": "Strong at long answers and summarizing.",
       "gb": 3.03,
       "repo": "mlx-community/gemma-3-4b-it-qat-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<end_of_turn>"
     },
     {
@@ -53,6 +63,8 @@
       "blurb": "Google's newest, in the build they made for phones.",
       "gb": 3.58,
       "repo": "mlx-community/gemma-4-e2b-it-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<turn|>"
     },
     {
@@ -62,6 +74,8 @@
       "blurb": "The larger on-device Gemma. Wants room.",
       "gb": 3.9,
       "repo": "mlx-community/gemma-3n-E4B-it-lm-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<end_of_turn>"
     },
     {
@@ -71,6 +85,8 @@
       "blurb": "Google's phone flagship, and one of the best here.",
       "gb": 5.18,
       "repo": "mlx-community/gemma-4-e4b-it-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<turn|>"
     },
     {
@@ -79,7 +95,31 @@
       "maker": "Google",
       "blurb": "Desktop-class. Only a 12 GB iPhone gets near it.",
       "gb": 5.22,
-      "repo": "mlx-community/gemma-2-9b-it-4bit"
+      "repo": "mlx-community/gemma-2-9b-it-4bit",
+      "vision": false,
+      "video": false
+    },
+    {
+      "id": "qwen3.5-0.8b",
+      "name": "Qwen 3.5 0.8B",
+      "maker": "Alibaba",
+      "blurb": "Newest Qwen, small enough to answer instantly.",
+      "gb": 0.65,
+      "repo": "mlx-community/Qwen3.5-0.8B-MLX-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
+    },
+    {
+      "id": "qwen2.5-coder-7b",
+      "name": "Qwen 2.5 Coder 7B",
+      "maker": "Alibaba",
+      "blurb": "Writes and explains code.",
+      "gb": 4.3,
+      "repo": "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
     },
     {
       "id": "qwen3-0.6b",
@@ -88,6 +128,8 @@
       "blurb": "Tiny and instant. Quick questions and rewriting.",
       "gb": 0.35,
       "repo": "mlx-community/Qwen3-0.6B-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -97,6 +139,8 @@
       "blurb": "The proven older generation. Reliable, well understood.",
       "gb": 0.88,
       "repo": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -106,6 +150,8 @@
       "blurb": "The best all-rounder on any recent iPhone.",
       "gb": 0.98,
       "repo": "mlx-community/Qwen3-1.7B-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -115,7 +161,8 @@
       "blurb": "Apple's own. The quickest way to ask about a picture.",
       "gb": 1.27,
       "repo": "mlx-community/FastVLM-0.5B-bf16",
-      "vision": true
+      "vision": true,
+      "video": false
     },
     {
       "id": "qwen2-vl-2b",
@@ -124,7 +171,8 @@
       "blurb": "Reads screenshots, receipts and handwriting well for its size.",
       "gb": 1.26,
       "repo": "mlx-community/Qwen2-VL-2B-Instruct-4bit",
-      "vision": true
+      "vision": true,
+      "video": false
     },
     {
       "id": "lfm2-vl-1.6b",
@@ -133,7 +181,8 @@
       "blurb": "Built for phones. Fast at describing what is in a photo.",
       "gb": 1.47,
       "repo": "mlx-community/LFM2-VL-1.6B-4bit",
-      "vision": true
+      "vision": true,
+      "video": false
     },
     {
       "id": "qwen2.5-vl-3b",
@@ -142,7 +191,8 @@
       "blurb": "Good at charts and dense text. The 3 VL below is its successor.",
       "gb": 3.09,
       "repo": "mlx-community/Qwen2.5-VL-3B-Instruct-4bit",
-      "vision": true
+      "vision": true,
+      "video": false
     },
     {
       "id": "qwen3-vl-2b",
@@ -151,7 +201,8 @@
       "blurb": "The newer generation of Qwen's picture models, in the size that fits any iPhone.",
       "gb": 1.78,
       "repo": "mlx-community/Qwen3-VL-2B-Instruct-4bit",
-      "vision": true
+      "vision": true,
+      "video": false
     },
     {
       "id": "qwen3-vl-4b",
@@ -160,7 +211,8 @@
       "blurb": "The most capable of the picture models here. Reads screenshots, documents and charts.",
       "gb": 3.09,
       "repo": "mlx-community/Qwen3-VL-4B-Instruct-4bit",
-      "vision": true
+      "vision": true,
+      "video": false
     },
     {
       "id": "smolvlm2-video",
@@ -178,7 +230,9 @@
       "maker": "Alibaba",
       "blurb": "More knowledge than the 1.5B, same steady behavior.",
       "gb": 1.75,
-      "repo": "mlx-community/Qwen2.5-3B-Instruct-4bit"
+      "repo": "mlx-community/Qwen2.5-3B-Instruct-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "qwen3.5-2b",
@@ -187,6 +241,8 @@
       "blurb": "Newest generation. Sharper reasoning for its size.",
       "gb": 1.75,
       "repo": "mlx-community/Qwen3.5-2B-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -195,7 +251,9 @@
       "maker": "Alibaba",
       "blurb": "Tuned for writing and explaining code. Small enough to keep around.",
       "gb": 1.74,
-      "repo": "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit"
+      "repo": "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "qwen3-4b",
@@ -203,7 +261,9 @@
       "maker": "Alibaba",
       "blurb": "Noticeably smarter, and good at code.",
       "gb": 2.28,
-      "repo": "mlx-community/Qwen3-4B-Instruct-2507-4bit"
+      "repo": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "qwen3.5-4b",
@@ -211,7 +271,9 @@
       "maker": "Alibaba",
       "blurb": "The most capable all-rounder that still fits a phone.",
       "gb": 3.06,
-      "repo": "mlx-community/Qwen3.5-4B-MLX-4bit"
+      "repo": "mlx-community/Qwen3.5-4B-MLX-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "qwen3-8b",
@@ -220,6 +282,8 @@
       "blurb": "Desktop-class reasoning. Needs a 12 GB iPhone.",
       "gb": 4.62,
       "repo": "mlx-community/Qwen3-8B-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -229,6 +293,8 @@
       "blurb": "Small and fast. Fine for short answers.",
       "gb": 0.71,
       "repo": "mlx-community/Llama-3.2-1B-Instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|eot_id|>"
     },
     {
@@ -238,6 +304,8 @@
       "blurb": "Strong at everyday writing and rewriting.",
       "gb": 1.82,
       "repo": "mlx-community/Llama-3.2-3B-Instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|eot_id|>"
     },
     {
@@ -247,6 +315,8 @@
       "blurb": "The full-size Llama. Only for the largest iPhones.",
       "gb": 4.53,
       "repo": "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|eot_id|>"
     },
     {
@@ -255,7 +325,9 @@
       "maker": "Mistral",
       "blurb": "Mistral's larger phone model. Needs a 12 GB iPhone or an iPad.",
       "gb": 5.6,
-      "repo": "mlx-community/Ministral-3-8B-Instruct-2512-4bit"
+      "repo": "mlx-community/Ministral-3-8B-Instruct-2512-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "ministral3-3b",
@@ -263,7 +335,9 @@
       "maker": "Mistral",
       "blurb": "Mistral's edge model. Fluent, and good in French.",
       "gb": 2.78,
-      "repo": "mlx-community/Ministral-3-3B-Instruct-2512-4bit"
+      "repo": "mlx-community/Ministral-3-3B-Instruct-2512-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "mistral-7b",
@@ -271,7 +345,9 @@
       "maker": "Mistral",
       "blurb": "The classic. Even-handed and hard to trip up.",
       "gb": 4.08,
-      "repo": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
+      "repo": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "mistral-nemo",
@@ -279,7 +355,9 @@
       "maker": "Mistral",
       "blurb": "Large and multilingual. Past what any iPhone can hold.",
       "gb": 6.91,
-      "repo": "mlx-community/Mistral-Nemo-Instruct-2407-4bit"
+      "repo": "mlx-community/Mistral-Nemo-Instruct-2407-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "bitnet-2b",
@@ -287,7 +365,9 @@
       "maker": "Microsoft",
       "blurb": "An experiment: barely over one bit per weight. Tiny for its size.",
       "gb": 0.72,
-      "repo": "mlx-community/bitnet-b1.58-2B-4T-4bit"
+      "repo": "mlx-community/bitnet-b1.58-2B-4T-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "phi3.5-mini",
@@ -296,6 +376,8 @@
       "blurb": "Trained on textbook-style data. Careful and precise.",
       "gb": 2.15,
       "repo": "mlx-community/Phi-3.5-mini-instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|end|>"
     },
     {
@@ -305,7 +387,31 @@
       "blurb": "Punches above its size at math and code.",
       "gb": 2.18,
       "repo": "mlx-community/Phi-4-mini-instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|end|>"
+    },
+    {
+      "id": "granite4.2-3b",
+      "name": "Granite 4.2 3B",
+      "maker": "IBM",
+      "blurb": "Steady all-rounder from IBM's newest family.",
+      "gb": 2.07,
+      "repo": "ibm-granite/granite-4.2-3b-q4-mlx",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
+    },
+    {
+      "id": "granite4.2-8b",
+      "name": "Granite 4.2 8B",
+      "maker": "IBM",
+      "blurb": "Larger Granite for careful answers and documents.",
+      "gb": 4.95,
+      "repo": "ibm-granite/granite-4.2-8b-q4-mlx",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
     },
     {
       "id": "granite4-micro",
@@ -313,7 +419,9 @@
       "maker": "IBM",
       "blurb": "Built for work: summarizing, extraction, tool use.",
       "gb": 1.81,
-      "repo": "mlx-community/granite-4.0-h-micro-4bit"
+      "repo": "mlx-community/granite-4.0-h-micro-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "granite4.1-3b",
@@ -321,7 +429,9 @@
       "maker": "IBM",
       "blurb": "IBM's newest small model. Business documents and data.",
       "gb": 1.82,
-      "repo": "mlx-community/granite-4.1-3b-mxfp4"
+      "repo": "mlx-community/granite-4.1-3b-mxfp4",
+      "vision": false,
+      "video": false
     },
     {
       "id": "granite4-tiny",
@@ -329,7 +439,31 @@
       "maker": "IBM",
       "blurb": "The larger Granite. Long documents, if you have the room.",
       "gb": 3.92,
-      "repo": "mlx-community/granite-4.0-h-tiny-4bit"
+      "repo": "mlx-community/granite-4.0-h-tiny-4bit",
+      "vision": false,
+      "video": false
+    },
+    {
+      "id": "lfm2.5-vl-3b",
+      "name": "LFM2.5 VL 3B",
+      "maker": "Liquid AI",
+      "blurb": "Describes photos and reads what is in them.",
+      "gb": 2.39,
+      "repo": "LiquidAI/LFM2.5-VL-3B-MLX-4bit",
+      "vision": true,
+      "video": false,
+      "stop": "<|im_end|>"
+    },
+    {
+      "id": "lfm2.5-8b-a1b",
+      "name": "LFM2.5 8B A1B",
+      "maker": "Liquid AI",
+      "blurb": "Big-model knowledge at small-model speed.",
+      "gb": 4.85,
+      "repo": "LiquidAI/LFM2.5-8B-A1B-MLX-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
     },
     {
       "id": "lfm2-350m",
@@ -337,7 +471,9 @@
       "maker": "Liquid AI",
       "blurb": "The lightest model here. Runs on anything, answers instantly.",
       "gb": 0.2,
-      "repo": "mlx-community/LFM2-350M-4bit"
+      "repo": "mlx-community/LFM2-350M-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "lfm2.5-1.2b",
@@ -345,7 +481,9 @@
       "maker": "Liquid AI",
       "blurb": "Designed for phones. Fastest of the genuinely capable ones.",
       "gb": 0.66,
-      "repo": "mlx-community/LFM2.5-1.2B-Instruct-4bit"
+      "repo": "mlx-community/LFM2.5-1.2B-Instruct-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "lfm2.5-2.6b",
@@ -353,7 +491,9 @@
       "maker": "Liquid AI",
       "blurb": "Still quick, and noticeably more able.",
       "gb": 1.45,
-      "repo": "mlx-community/LFM2.5-2.6B-mxfp4"
+      "repo": "mlx-community/LFM2.5-2.6B-mxfp4",
+      "vision": false,
+      "video": false
     },
     {
       "id": "lfm2-8b-a1b",
@@ -361,7 +501,9 @@
       "maker": "Liquid AI",
       "blurb": "Only part of it runs per word, so it is faster than its size.",
       "gb": 4.18,
-      "repo": "mlx-community/LFM2-8B-A1B-3bit-MLX"
+      "repo": "mlx-community/LFM2-8B-A1B-3bit-MLX",
+      "vision": false,
+      "video": false
     },
     {
       "id": "deepseek-r1-1.5b",
@@ -369,7 +511,10 @@
       "maker": "DeepSeek",
       "blurb": "Thinks before it answers. Slower, better at problems.",
       "gb": 1.01,
-      "repo": "mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit"
+      "repo": "mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit",
+      "vision": false,
+      "video": false,
+      "thinks": true
     },
     {
       "id": "deepseek-r1-7b",
@@ -377,7 +522,10 @@
       "maker": "DeepSeek",
       "blurb": "The same reasoning, with far more knowledge behind it.",
       "gb": 4.3,
-      "repo": "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit"
+      "repo": "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
+      "vision": false,
+      "video": false,
+      "thinks": true
     },
     {
       "id": "smollm2-360m",
@@ -385,7 +533,9 @@
       "maker": "Hugging Face",
       "blurb": "Very small, and honest about it. Good for quick tasks.",
       "gb": 0.73,
-      "repo": "mlx-community/SmolLM2-360M-Instruct"
+      "repo": "mlx-community/SmolLM2-360M-Instruct",
+      "vision": false,
+      "video": false
     },
     {
       "id": "smollm3-3b",
@@ -393,15 +543,9 @@
       "maker": "Hugging Face",
       "blurb": "Open training data end to end. Strong at chat.",
       "gb": 1.75,
-      "repo": "mlx-community/SmolLM3-3B-4bit"
-    },
-    {
-      "id": "nemotron3-4b",
-      "name": "Nemotron 3 Nano 4B",
-      "maker": "NVIDIA",
-      "blurb": "Built for reasoning and calling tools.",
-      "gb": 2.25,
-      "repo": "mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit"
+      "repo": "mlx-community/SmolLM3-3B-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "exaone4-1.2b",
@@ -409,7 +553,9 @@
       "maker": "LG",
       "blurb": "Small, and unusually good at following instructions.",
       "gb": 0.73,
-      "repo": "mlx-community/exaone-4.0-1.2b-4bit"
+      "repo": "mlx-community/exaone-4.0-1.2b-4bit",
+      "vision": false,
+      "video": false
     },
     {
       "id": "olmo3-7b",
@@ -418,6 +564,8 @@
       "blurb": "Fully open: data, code, weights. A research favorite.",
       "gb": 4.12,
       "repo": "mlx-community/Olmo-3-7B-Instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -427,6 +575,8 @@
       "blurb": "Tiny, with a long memory for its size.",
       "gb": 0.3,
       "repo": "mlx-community/Falcon-H1-0.5B-Instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -436,6 +586,8 @@
       "blurb": "Handles long inputs better than most at this size.",
       "gb": 0.88,
       "repo": "mlx-community/Falcon-H1-1.5B-Instruct-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -445,6 +597,52 @@
       "blurb": "The largest Falcon that still suits a phone.",
       "gb": 1.78,
       "repo": "mlx-community/Falcon-H1-3B-Instruct-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
+    },
+    {
+      "id": "minicpm5-1b",
+      "name": "MiniCPM 5 1B",
+      "maker": "OpenBMB",
+      "blurb": "Tiny and quick, and surprisingly capable.",
+      "gb": 0.62,
+      "repo": "mlx-community/MiniCPM5-1B-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
+    },
+    {
+      "id": "minicpm5-2b",
+      "name": "MiniCPM 5 2B",
+      "maker": "OpenBMB",
+      "blurb": "Small, fast, and good at everyday questions.",
+      "gb": 1.43,
+      "repo": "openbmb/MiniCPM5-2B-MLX",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>"
+    },
+    {
+      "id": "glm4-9b",
+      "name": "GLM 4 9B",
+      "maker": "Zhipu AI",
+      "blurb": "Capable all-rounder, good at writing and code.",
+      "gb": 5.31,
+      "repo": "mlx-community/GLM-4-9B-0414-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|user|>"
+    },
+    {
+      "id": "nanbeige4.2-3b",
+      "name": "Nanbeige 4.2 3B",
+      "maker": "Nanbeige",
+      "blurb": "Small model that reasons well for its size.",
+      "gb": 3.32,
+      "repo": "mlx-community/Nanbeige4.2-3B-OptiQ-4bit",
+      "vision": false,
+      "video": false,
       "stop": "<|im_end|>"
     },
     {
@@ -453,7 +651,73 @@
       "maker": "OpenAI",
       "blurb": "OpenAI's open model. Listed so you can see the ceiling.",
       "gb": 12.1,
-      "repo": "mlx-community/gpt-oss-20b-MXFP4-Q8"
+      "repo": "mlx-community/gpt-oss-20b-MXFP4-Q8",
+      "vision": false,
+      "video": false
+    }
+  ],
+  "gated": [
+    {
+      "id": "qwen3-4b-thinking",
+      "name": "Qwen 3 4B Thinking",
+      "maker": "Alibaba",
+      "blurb": "Works through math and logic before it answers.",
+      "gb": 2.28,
+      "repo": "mlx-community/Qwen3-4B-Thinking-2507-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>",
+      "thinks": true,
+      "minBuild": 28
+    },
+    {
+      "id": "lfm2.5-1.2b-thinking",
+      "name": "LFM2.5 1.2B Thinking",
+      "maker": "Liquid AI",
+      "blurb": "A tiny model that reasons before it answers.",
+      "gb": 0.66,
+      "repo": "LiquidAI/LFM2.5-1.2B-Thinking-MLX-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>",
+      "thinks": true,
+      "minBuild": 28
+    },
+    {
+      "id": "deepseek-r1-0528-8b",
+      "name": "DeepSeek R1 0528 8B",
+      "maker": "DeepSeek",
+      "blurb": "Thinks step by step. Newer and stronger than R1 7B.",
+      "gb": 4.62,
+      "repo": "mlx-community/DeepSeek-R1-0528-Qwen3-8B-4bit",
+      "vision": false,
+      "video": false,
+      "thinks": true,
+      "minBuild": 28
+    },
+    {
+      "id": "nemotron3-4b",
+      "name": "Nemotron 3 Nano 4B",
+      "maker": "NVIDIA",
+      "blurb": "Built for reasoning and calling tools.",
+      "gb": 2.25,
+      "repo": "mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit",
+      "vision": false,
+      "video": false,
+      "minBuild": 28
+    },
+    {
+      "id": "jamba-reasoning-3b",
+      "name": "Jamba Reasoning 3B",
+      "maker": "AI21 Labs",
+      "blurb": "Fast reasoner that handles long documents.",
+      "gb": 1.75,
+      "repo": "mlx-community/AI21-Jamba-Reasoning-3B-4bit",
+      "vision": false,
+      "video": false,
+      "stop": "<|im_end|>",
+      "thinks": true,
+      "minBuild": 28
     }
   ]
 }

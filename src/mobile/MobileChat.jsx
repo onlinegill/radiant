@@ -686,7 +686,7 @@ export default function MobileChat ({
       // phone off 120Hz inside a hundred tokens, and per-token fades jitter.
       // The node shows the folded text — thinking blocks removed — so its data
       // is set from the buffer rather than appended.
-      const vis = visibleText(bufRef.current)
+      const vis = visibleText(bufRef.current, { opened: r.opened })
       const node = liveNode.current?.firstChild
       if (node && node.data !== vis.text) node.data = vis.text
       if (vis.thinking !== Boolean(r.thinking)) {
@@ -706,7 +706,8 @@ export default function MobileChat ({
       }
     }
 
-    const onDone = () => finish(visibleText(bufRef.current).text.trim(), null)
+    const shown = () => visibleText(bufRef.current, { opened: run.current?.opened, final: true }).text.trim()
+    const onDone = () => finish(shown(), null)
 
     const onFailed = e => {
       const r = run.current
@@ -717,9 +718,9 @@ export default function MobileChat ({
       // on the first one, so there is no later real failure to miss. Deliberately
       // not a wall-clock window: a busy bridge can easily miss 400ms, and the
       // whole point of the rule is that a cancel never turns red.
-      if (r.stoppedAt) return finish(visibleText(bufRef.current).text.trim(), null)
+      if (r.stoppedAt) return finish(shown(), null)
       haptics.notification?.('ERROR')
-      finish(visibleText(bufRef.current).text.trim(), e?.message || 'Generation failed.')
+      finish(shown(), e?.message || 'Generation failed.')
     }
 
     // Both sources, one set of handlers — the transcript does not care whether
@@ -794,7 +795,7 @@ export default function MobileChat ({
     setPhoto(null)
     multiline.current = false
     bufRef.current = ''
-    run.current = { turnId: 'a' + stamp, chunks: 0, firstAt: 0, stoppedAt: 0, done: false, raf: 0 }
+    run.current = { turnId: 'a' + stamp, chunks: 0, firstAt: 0, stoppedAt: 0, done: false, raf: 0, opened: Boolean(model?.thinks) }
     if (model && !model.apple && !model.cloud) run.current.native = { modelId: model.id, skillKey }
     // Rest coverage until the wait is real: the gauge animates only for
     // operations longer than 400ms, so dead air below that shows nothing.
@@ -1023,7 +1024,7 @@ export default function MobileChat ({
                   // the finished turn replaces it. Seeding also self-heals if
                   // this node is ever remounted mid-stream.
                   if (node && !node.firstChild) {
-                    node.appendChild(document.createTextNode(visibleText(bufRef.current).text))
+                    node.appendChild(document.createTextNode(visibleText(bufRef.current, { opened: run.current?.opened }).text))
                   }
                 }}
               />

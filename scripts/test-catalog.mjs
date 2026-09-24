@@ -29,7 +29,11 @@ is('grouped into shelves', groups.length > 8, true)
 is('no shelf is empty', groups.every(g => g.models.length > 0), true)
 is('every model lands in exactly one shelf',
   groups.reduce((n, g) => n + g.models.length, 0), rows.length)
-is('biggest shelf first', groups[0].models.length >= groups[groups.length - 1].models.length, true)
+const collate = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
+const sorted = xs => xs.every((x, i) => i === 0 || collate.compare(xs[i - 1], x) <= 0)
+is('makers are A to Z', sorted(groups.map(g => g.maker)), true)
+is('models are A to Z inside each maker', groups.every(g => sorted(g.models.map(m => m.name))), true)
+is('numbers sort as numbers, not text', byMaker([{ maker: 'Q', name: 'Qwen 3 8B' }, { maker: 'Q', name: 'Qwen 3 1.7B' }, { maker: 'Q', name: 'Qwen 3 14B' }])[0].models.map(m => m.name).join(', '), 'Qwen 3 1.7B, Qwen 3 8B, Qwen 3 14B')
 
 // The list must span far enough that the verdict means something: on a phone
 // budget, some run and some do not. A list where everything fits makes the

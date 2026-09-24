@@ -11,6 +11,7 @@ run "keyboard offset" node scripts/test-keyboard-offset.mjs
 run "cloud repair"   node scripts/test-cloud-repair.mjs
 run "model catalog"  node scripts/test-catalog.mjs
 run "catalog vs HF"  node scripts/test-catalog-live.mjs
+run "published list" bash scripts/test-remote-catalog.sh
 run "HF search"      node scripts/test-hf-search.mjs
 run "read me"        node scripts/test-readme.mjs
 run "window drag"    node scripts/test-drag.mjs

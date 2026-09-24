@@ -109,11 +109,19 @@ def main():
         if not repo:
             missing.append((rid, cfg.strip()[:50]))
             continue
+        # ⚠️ EVERY KEY, EVERY ROW. Builds before 28 decode a row with Swift's
+        # synthesized decoder, which REQUIRES maker, blurb, gb, vision and video
+        # despite their defaults. Writing vision only when true made every text
+        # model's row throw, the whole document fail, and every phone fall back
+        # to its built-in list — the published catalogue reached nobody.
         row = {'id': rid, 'name': name, 'maker': maker or '', 'blurb': blurb or '',
-               'gb': float(gb), 'repo': repo}
+               'gb': float(gb), 'repo': repo, 'vision': vision, 'video': video}
         if stop: row['stop'] = stop
-        if vision: row['vision'] = True
-        if video: row['video'] = True
+        if re.search(r'thinks:\s*true', chunk): row['thinks'] = True
+        # A row that needs a newer app (e.g. an engine fix) is published in
+        # `gated`, which builds before 28 do not read at all.
+        mb = re.search(r'minBuild:\s*(\d+)', chunk)
+        if mb: row['minBuild'] = int(mb.group(1))
         rows.append(row)
 
     # ⚠️ AN EMPTY CATALOGUE IS A BUG, NEVER AN ANSWER.
@@ -132,8 +140,9 @@ def main():
 
     doc = {'schema': 1,
            'generated': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-           'models': rows}
+           'models': [r for r in rows if 'minBuild' not in r],
+           'gated': [r for r in rows if 'minBuild' in r]}
     OUT.write_text(json.dumps(doc, indent=2) + '\n')
-    print(f'  {OUT} — {len(rows)} models, {OUT.stat().st_size // 1024} KB')
+    print(f'  {OUT} — {len(doc["models"])} models + {len(doc["gated"])} for newer builds, {OUT.stat().st_size // 1024} KB')
 
 main()

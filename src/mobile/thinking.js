@@ -5,7 +5,23 @@
 // as it arrives: an open <think> hides everything until its close, and the
 // byline says "thinking" meanwhile. A tag split across two chunks is the
 // case that bites — hence the trailing-partial-tag hold-back.
-export function visibleText (raw) {
+//
+// ⚠️ AND SOME TEMPLATES OPEN THE BLOCK FOR THE MODEL. DeepSeek R1's ends the
+// prompt with "<think>\n", so the reply carries only the CLOSE: reasoning, then
+// "</think>", then the answer — and all of it showed, stray tag included. So a
+// close with no open before it hides everything ahead of it; and a model known
+// to think that way (`opened`, from its row's `thinks`) is hidden from the
+// first word, so the reasoning never flashes past. If such a reply ends with
+// no close at all (`final`), it is shown whole — an answer must never vanish
+// because a model skipped thinking this once.
+export function visibleText (raw, { opened = false, final = false } = {}) {
+  const close0 = raw.indexOf('</think>')
+  const open0 = raw.indexOf('<think>')
+  if (close0 !== -1 && (open0 === -1 || close0 < open0)) {
+    raw = raw.slice(close0 + 8).replace(/^\n+/, '')
+  } else if (opened && close0 === -1 && open0 === -1 && !final) {
+    return { text: '', thinking: true }
+  }
   let out = ''
   let i = 0
   let thinking = false

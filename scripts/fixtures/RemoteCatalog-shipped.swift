@@ -1,3 +1,6 @@
+// FROZEN: RemoteCatalog.swift exactly as App Store 1.1 (build 21) through build 27
+// shipped it. scripts/test-remote-catalog.sh proves the published list still
+// decodes with it. Never edit; delete once no supported build runs it.
 import Foundation
 
 /// The model list, fetched instead of frozen into the binary.
@@ -31,28 +34,13 @@ enum RemoteCatalog {
         var stop: String? = nil
         var vision: Bool = false
         var video: Bool = false
-        /// Opens its thinking in the prompt; see LocalModels.Entry.thinks.
-        var thinks: Bool = false
-        /// Only builds this new or newer may offer the row. Lives on rows in
-        /// `gated`, never in `models`.
-        var minBuild: Int? = nil
     }
 
     struct Document: Codable {
         let schema: Int
         var generated: String = ""
         let models: [Row]
-        /// ⚠️ ROWS AN OLDER APP MUST NOT SEE. A model that needs a newer engine
-        /// — Nemotron 3 Nano 4B needs the NemotronH fix first shipped in build
-        /// 28 — would download 2 GB on an older build and then fail to load.
-        /// Older builds do not know this key, so they skip the whole array;
-        /// newer ones take each row whose minBuild they meet.
-        var gated: [Row]? = nil
     }
-
-    /// This app's build number (CFBundleVersion); 0 when it cannot be read,
-    /// which offers no gated row at all.
-    static var build: Int { Int(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "") ?? 0 }
 
     // MARK: - the pure part, which is where the mistakes live
 
@@ -64,13 +52,12 @@ enum RemoteCatalog {
     /// times on this app — flatlining at 2%, starting at 100%, showing nothing, and
     /// calling a stopped download finished — and every one was arithmetic. A zero
     /// here would divide by zero on a phone, remotely, for everybody at once.
-    static func decode(_ data: Data, build: Int = RemoteCatalog.build) -> [Row]? {
+    static func decode(_ data: Data) -> [Row]? {
         guard let doc = try? JSONDecoder().decode(Document.self, from: data) else { return nil }
         guard doc.schema == 1 else { return nil }   // a newer schema is not ours to guess at
         var seen = Set<String>()
         var out: [Row] = []
-        let unlocked = (doc.gated ?? []).filter { row in (row.minBuild ?? Int.max) <= build }
-        for row in doc.models + unlocked {
+        for row in doc.models {
             guard !row.id.isEmpty, !row.name.isEmpty, !row.repo.isEmpty else { continue }
             guard row.gb > 0, row.gb < 200 else { continue }   // 200 GB is not a phone model
             guard row.repo.contains("/"), !row.repo.hasPrefix("/") else { continue }
@@ -96,41 +83,5 @@ enum RemoteCatalog {
         let publishedSet = Set(published)
         let rescued = builtIn.filter { !publishedSet.contains($0) && onDisk.contains($0) }
         return published + rescued
-    }
-}
-
-// In extensions, so Row and Document keep their memberwise initializers
-// (addCustom builds a Row by hand).
-extension RemoteCatalog.Row {
-    /// ⚠️ WRITTEN OUT BY HAND BECAUSE THE SYNTHESIZED ONE IGNORES THE DEFAULTS
-    /// ABOVE. Swift's generated decoder requires every non-optional key, so a
-    /// row without `vision` — every text model, since the exporter writes it
-    /// only when true — threw, the whole document failed, and every phone
-    /// silently fell back to the built-in list. The published catalogue
-    /// never reached a single phone until build 28. Only id, name and repo
-    /// are required now; everything else falls back to its default.
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
-        name = try c.decode(String.self, forKey: .name)
-        repo = try c.decode(String.self, forKey: .repo)
-        maker = try c.decodeIfPresent(String.self, forKey: .maker) ?? ""
-        blurb = try c.decodeIfPresent(String.self, forKey: .blurb) ?? ""
-        gb = try c.decodeIfPresent(Double.self, forKey: .gb) ?? 0
-        stop = try c.decodeIfPresent(String.self, forKey: .stop)
-        vision = try c.decodeIfPresent(Bool.self, forKey: .vision) ?? false
-        video = try c.decodeIfPresent(Bool.self, forKey: .video) ?? false
-        thinks = try c.decodeIfPresent(Bool.self, forKey: .thinks) ?? false
-        minBuild = try c.decodeIfPresent(Int.self, forKey: .minBuild)
-    }
-}
-
-extension RemoteCatalog.Document {
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        schema = try c.decode(Int.self, forKey: .schema)
-        generated = try c.decodeIfPresent(String.self, forKey: .generated) ?? ""
-        models = try c.decode([RemoteCatalog.Row].self, forKey: .models)
-        gated = try c.decodeIfPresent([RemoteCatalog.Row].self, forKey: .gated)
     }
 }

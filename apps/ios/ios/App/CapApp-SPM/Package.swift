@@ -15,7 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "7.6.8"),
-        .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", branch: "main"),
+        .package(url: "https://github.com/templetongroup/mlx-swift-lm.git", revision: "a57f40f66f8c071d3f1fc558b96d1162ca50ba05"),
         .package(url: "https://github.com/huggingface/swift-huggingface.git", branch: "main"),
         .package(url: "https://github.com/huggingface/swift-transformers.git", branch: "main"),
         .package(name: "CapacitorDevice", path: "../../../node_modules/@capacitor/device"),

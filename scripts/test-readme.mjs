@@ -105,7 +105,10 @@ is('and the app links to it', settingsSrc.includes('Privacy policy'), true)
 // fourteen, and "a dozen palettes" when there were fourteen, both found by
 // audit rather than by a test. Same defect, same week.
 const phoneGuide = readFileSync('src/mobile/ReadMeScreen.jsx', 'utf8')
-const catalog = JSON.parse(readFileSync('apps/ios/catalog.json', 'utf8')).models
+// The main list AND the rows gated to newer builds: this Read me ships inside
+// the newest build, which offers both.
+const catalogDoc = JSON.parse(readFileSync('apps/ios/catalog.json', 'utf8'))
+const catalog = [...catalogDoc.models, ...(catalogDoc.gated || [])]
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
 const TENS = { 40: 'forty', 50: 'fifty', 60: 'sixty', 70: 'seventy' }
 const spell = n => n <= 10 ? WORDS[n]

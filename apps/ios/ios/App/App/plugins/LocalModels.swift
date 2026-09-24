@@ -116,6 +116,14 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         var vision: Bool = false
         /// Reads short clips as well as stills.
         var video: Bool = false
+        /// Its template opens the thinking block in the prompt (DeepSeek R1),
+        /// so the reply carries only "</think>". The chat hides the reasoning
+        /// from the first word instead of waiting for a tag that never opens.
+        var thinks: Bool = false
+        /// The first build whose engine can load it. Read only by
+        /// scripts/catalog-export.py, which publishes such a row where older
+        /// builds cannot see it; this build already qualifies.
+        var minBuild: Int? = nil
     }
     /// ⚠️ SIZES ARE MEASURED, NOT ESTIMATED. Each is the summed blob size from
     /// huggingface.co/api/models/<id>?blobs=true, because the download progress
@@ -180,6 +188,15 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
               gb: 5.22, config: LLMRegistry.gemma_2_9b_it_4bit),
 
         // ---- Alibaba ----
+        Entry(id: "qwen3.5-0.8b", name: "Qwen 3.5 0.8B", maker: "Alibaba",
+              blurb: "Newest Qwen, small enough to answer instantly.",
+              gb: 0.65, config: rxRepo("mlx-community/Qwen3.5-0.8B-MLX-4bit", stop: "<|im_end|>")),
+        Entry(id: "qwen2.5-coder-7b", name: "Qwen 2.5 Coder 7B", maker: "Alibaba",
+              blurb: "Writes and explains code.",
+              gb: 4.3, config: rxRepo("mlx-community/Qwen2.5-Coder-7B-Instruct-4bit", stop: "<|im_end|>")),
+        Entry(id: "qwen3-4b-thinking", name: "Qwen 3 4B Thinking", maker: "Alibaba",
+              blurb: "Works through math and logic before it answers.",
+              gb: 2.28, config: rxRepo("mlx-community/Qwen3-4B-Thinking-2507-4bit", stop: "<|im_end|>"), thinks: true, minBuild: 28),
         Entry(id: "qwen3-0.6b", name: "Qwen 3 0.6B", maker: "Alibaba",
               blurb: "Tiny and instant. Quick questions and rewriting.",
               gb: 0.35, config: LLMRegistry.qwen3_0_6b_4bit),
@@ -271,6 +288,12 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
               gb: 2.18, config: rxRepo("mlx-community/Phi-4-mini-instruct-4bit", stop: "<|end|>")),
 
         // ---- IBM ----
+        Entry(id: "granite4.2-3b", name: "Granite 4.2 3B", maker: "IBM",
+              blurb: "Steady all-rounder from IBM's newest family.",
+              gb: 2.07, config: rxRepo("ibm-granite/granite-4.2-3b-q4-mlx", stop: "<|im_end|>")),
+        Entry(id: "granite4.2-8b", name: "Granite 4.2 8B", maker: "IBM",
+              blurb: "Larger Granite for careful answers and documents.",
+              gb: 4.95, config: rxRepo("ibm-granite/granite-4.2-8b-q4-mlx", stop: "<|im_end|>")),
         Entry(id: "granite4-micro", name: "Granite 4.0 Micro", maker: "IBM",
               blurb: "Built for work: summarizing, extraction, tool use.",
               gb: 1.81, config: rxRepo("mlx-community/granite-4.0-h-micro-4bit")),
@@ -282,6 +305,15 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
               gb: 3.92, config: rxRepo("mlx-community/granite-4.0-h-tiny-4bit")),
 
         // ---- Liquid AI ----
+        Entry(id: "lfm2.5-vl-3b", name: "LFM2.5 VL 3B", maker: "Liquid AI",
+              blurb: "Describes photos and reads what is in them.",
+              gb: 2.39, config: rxRepo("LiquidAI/LFM2.5-VL-3B-MLX-4bit", stop: "<|im_end|>"), vision: true),
+        Entry(id: "lfm2.5-8b-a1b", name: "LFM2.5 8B A1B", maker: "Liquid AI",
+              blurb: "Big-model knowledge at small-model speed.",
+              gb: 4.85, config: rxRepo("LiquidAI/LFM2.5-8B-A1B-MLX-4bit", stop: "<|im_end|>")),
+        Entry(id: "lfm2.5-1.2b-thinking", name: "LFM2.5 1.2B Thinking", maker: "Liquid AI",
+              blurb: "A tiny model that reasons before it answers.",
+              gb: 0.66, config: rxRepo("LiquidAI/LFM2.5-1.2B-Thinking-MLX-4bit", stop: "<|im_end|>"), thinks: true, minBuild: 28),
         Entry(id: "lfm2-350m", name: "LFM2 350M", maker: "Liquid AI",
               blurb: "The lightest model here. Runs on anything, answers instantly.",
               gb: 0.2, config: rxRepo("mlx-community/LFM2-350M-4bit")),
@@ -296,12 +328,15 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
               gb: 4.18, config: LLMRegistry.lfm2_8b_a1b_3bit_mlx),
 
         // ---- DeepSeek ----
+        Entry(id: "deepseek-r1-0528-8b", name: "DeepSeek R1 0528 8B", maker: "DeepSeek",
+              blurb: "Thinks step by step. Newer and stronger than R1 7B.",
+              gb: 4.62, config: rxRepo("mlx-community/DeepSeek-R1-0528-Qwen3-8B-4bit"), thinks: true, minBuild: 28),
         Entry(id: "deepseek-r1-1.5b", name: "DeepSeek R1 1.5B", maker: "DeepSeek",
               blurb: "Thinks before it answers. Slower, better at problems.",
-              gb: 1.01, config: rxRepo("mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit")),
+              gb: 1.01, config: rxRepo("mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit"), thinks: true),
         Entry(id: "deepseek-r1-7b", name: "DeepSeek R1 7B", maker: "DeepSeek",
               blurb: "The same reasoning, with far more knowledge behind it.",
-              gb: 4.3, config: LLMRegistry.deepSeekR1_7B_4bit),
+              gb: 4.3, config: LLMRegistry.deepSeekR1_7B_4bit, thinks: true),
 
         // ---- Hugging Face ----
         Entry(id: "smollm2-360m", name: "SmolLM2 360M", maker: "Hugging Face",
@@ -314,7 +349,10 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         // ---- NVIDIA ----
         Entry(id: "nemotron3-4b", name: "Nemotron 3 Nano 4B", maker: "NVIDIA",
               blurb: "Built for reasoning and calling tools.",
-              gb: 2.25, config: rxRepo("mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit")),
+              gb: 2.25, config: rxRepo("mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit"),
+              // Dense Nemotron-H: needs the NemotronH fix in our engine fork
+              // (ml-explore/mlx-swift-lm#635); builds before 28 cannot load it.
+              minBuild: 28),
 
         // ---- LG ----
         Entry(id: "exaone4-1.2b", name: "EXAONE 4.0 1.2B", maker: "LG",
@@ -336,6 +374,29 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         Entry(id: "falcon-h1-3b", name: "Falcon H1 3B", maker: "TII",
               blurb: "The largest Falcon that still suits a phone.",
               gb: 1.78, config: rxRepo("mlx-community/Falcon-H1-3B-Instruct-4bit", stop: "<|im_end|>")),
+
+        // ---- OpenBMB ----
+        Entry(id: "minicpm5-1b", name: "MiniCPM 5 1B", maker: "OpenBMB",
+              blurb: "Tiny and quick, and surprisingly capable.",
+              gb: 0.62, config: rxRepo("mlx-community/MiniCPM5-1B-4bit", stop: "<|im_end|>")),
+        Entry(id: "minicpm5-2b", name: "MiniCPM 5 2B", maker: "OpenBMB",
+              blurb: "Small, fast, and good at everyday questions.",
+              gb: 1.43, config: rxRepo("openbmb/MiniCPM5-2B-MLX", stop: "<|im_end|>")),
+
+        // ---- Zhipu AI ----
+        Entry(id: "glm4-9b", name: "GLM 4 9B", maker: "Zhipu AI",
+              blurb: "Capable all-rounder, good at writing and code.",
+              gb: 5.31, config: rxRepo("mlx-community/GLM-4-9B-0414-4bit", stop: "<|user|>")),
+
+        // ---- Nanbeige ----
+        Entry(id: "nanbeige4.2-3b", name: "Nanbeige 4.2 3B", maker: "Nanbeige",
+              blurb: "Small model that reasons well for its size.",
+              gb: 3.32, config: rxRepo("mlx-community/Nanbeige4.2-3B-OptiQ-4bit", stop: "<|im_end|>")),
+
+        // ---- AI21 Labs ----
+        Entry(id: "jamba-reasoning-3b", name: "Jamba Reasoning 3B", maker: "AI21 Labs",
+              blurb: "Fast reasoner that handles long documents.",
+              gb: 1.75, config: rxRepo("mlx-community/AI21-Jamba-Reasoning-3B-4bit", stop: "<|im_end|>"), thinks: true, minBuild: 28),
 
         // ---- OpenAI ----
         Entry(id: "gpt-oss-20b", name: "gpt-oss 20B", maker: "OpenAI",
@@ -512,7 +573,7 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
     private func customEntries() -> [Entry] {
         custom.map { r in
             Entry(id: r.id, name: r.name, maker: r.maker, blurb: r.blurb, gb: r.gb,
-                  config: rxRepo(r.repo, stop: r.stop), vision: r.vision, video: r.video)
+                  config: rxRepo(r.repo, stop: r.stop), vision: r.vision, video: r.video, thinks: r.thinks)
         }
     }
 
@@ -560,7 +621,7 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
             let onDisk = Set(catalog.filter { isOnDisk($0) }.map(\.id))
             rows = published.map { r in
                 Entry(id: r.id, name: r.name, maker: r.maker, blurb: r.blurb, gb: r.gb,
-                      config: rxRepo(r.repo, stop: r.stop), vision: r.vision, video: r.video)
+                      config: rxRepo(r.repo, stop: r.stop), vision: r.vision, video: r.video, thinks: r.thinks)
             }
             let publishedIDs = Set(published.map(\.id))
             rows += catalog.filter { !publishedIDs.contains($0.id) && onDisk.contains($0.id) }
@@ -577,7 +638,7 @@ public class LocalModels: CAPPlugin, CAPBridgedPlugin {
         call.resolve(["models": effectiveCatalog.map { [
             "id": $0.id, "name": $0.name, "maker": $0.maker, "blurb": $0.blurb,
             "sizeGB": $0.gb, "downloaded": isOnDisk($0),
-            "vision": $0.vision, "video": $0.video,
+            "vision": $0.vision, "video": $0.video, "thinks": $0.thinks,
             "custom": customIDs.contains($0.id), "repo": $0.config.name
         ] }])
     }

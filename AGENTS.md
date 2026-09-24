@@ -39,7 +39,9 @@ real blob total, or a 404. Do not copy catalog.json to the website by hand.
 **Before any future submission, run `npm run catalog:check`.** It fails any repo
 under ~1.2 bytes per parameter that declares no quantization — the Gemma 4
 defect, which shipped because the old check only asked whether MLX implemented
-the architecture.
+the architecture. It also builds every row's real config.json with the phone's
+engine (the pinned one, and for main-list rows the oldest one still on phones —
+App Store 1.1's), which is what would have stopped Nemotron 3 Nano 4B shipping.
 
 Radiant is Tony's own coding harness: an Electron app wrapping a local node
 server (`server/index.js`, port 5834) and a React UI (`src/`). It is a public,
@@ -199,6 +201,24 @@ It lists the devices that did not answer (off, asleep, not on this network)
 at the end; run it again when they are. Devices today: iPhone 17 Pro Max,
 iPad Pro 11, iPad mini (A17 Pro). All are on the paid team's profile, which
 lasts a year — not the seven days a free Apple ID gets.
+
+⚠️ **The MLX engine is OUR FORK, pinned to one commit.** `CapApp-SPM/Package.swift`
+takes `mlx-swift-lm` from `templetongroup/mlx-swift-lm` at `a57f40f` — Apple's
+`14414441` plus one fix: dense Nemotron-H checkpoints (Nemotron 3 Nano 4B) failed
+with "Failed to parse config.json" because the reader required MoE keys they do
+not have. Sent upstream as ml-explore/mlx-swift-lm#635. When that merges, move
+the pin back to ml-explore at a revision that contains it — never to `branch:
+"main"` unpinned — and run `npm run catalog:check`, which builds its engine check
+from whatever Package.resolved pins.
+
+⚠️ **Before build 28 no phone ever used the published model list.** The shipped
+reader (Swift's synthesized decoder) required `vision`/`video` on every row, the
+exporter wrote them only when true, and the whole document was rejected. The
+exporter now writes every key, build 28's reader tolerates missing ones, and
+`scripts/test-remote-catalog.sh` decodes the published list with BOTH the frozen
+old reader (`scripts/fixtures/RemoteCatalog-shipped.swift`) and the current one.
+A row that needs a newer app goes in `gated` with `minBuild` (set `minBuild:` on
+its Swift `Entry`); builds before 28 never read `gated`.
 
 ⚠️ `npx cap sync ios` REWRITES `CapApp-SPM/Package.swift` and drops the MLX and
 HuggingFace packages (TG-221); the next build fails with "unable to resolve
