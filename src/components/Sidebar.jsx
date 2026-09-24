@@ -208,7 +208,7 @@ function SessionRow ({ s, showAgent = true, ctx }) {
               behind a ✕, which every interface on earth uses for delete — so the
               one control that keeps your chat looked like the one that destroys
               it. Tony: "To me an X means delete." A box with an arrow going in
-              archives; a bin, and only inside the archive, deletes. */}
+              archives; a bin deletes, and only when held. */}
           {s.archived
             ? <>
                 <button data-tip='Restore from archive' data-tip-below title='Restore from archive' aria-label={`Restore "${s.title}" from the archive`}
@@ -228,8 +228,21 @@ function SessionRow ({ s, showAgent = true, ctx }) {
                   onConfirm={() => onDelete(s.id)}
                 ><Icon.trash size={13} /></HoldButton>
               </>
-            : <button data-tip='Archive' data-tip-below title='Archive' aria-label={`Archive "${s.title}"`}
-                onClick={e => { e.stopPropagation(); onArchive(s.id, true) }}><Icon.archive size={13} /></button>}
+            : <>
+                <button data-tip='Archive' data-tip-below title='Archive' aria-label={`Archive "${s.title}"`}
+                  onClick={e => { e.stopPropagation(); onArchive(s.id, true) }}><Icon.archive size={13} /></button>
+                {/* Delete without the detour through the archive (Tony: a delete
+                    button to the right of archive). Held, like the one in the
+                    archive, because it sits one button from Archive and cannot
+                    be undone — a click that lands a few pixels off does nothing. */}
+                <HoldButton
+                  data-tip='Hold to delete permanently'
+                  data-tip-below
+                  label={`Delete "${s.title}" permanently — hold`}
+                  holdLabel={`Keep holding to delete "${s.title}" for good`}
+                  onConfirm={() => onDelete(s.id)}
+                ><Icon.trash size={13} /></HoldButton>
+              </>}
         </div>
       </div>
     )

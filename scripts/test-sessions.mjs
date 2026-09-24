@@ -146,7 +146,14 @@ ok('restoring uses the unarchive icon', /onArchive\(s\.id, false\)[\s\S]{0,120}I
 }
 const icons = await import('node:fs').then(m => m.readFileSync('src/components/Icons.jsx', 'utf8'))
 ok('the icon set actually defines them', /archive:/.test(icons) && /unarchive:/.test(icons) && /trash:/.test(icons))
-ok('and a permanent delete lives only in the archive', /permanently/.test(sidebar))
+// A bin sits beside Archive on every chat now, and one inside the archive. Both
+// must be HELD: next to Archive, a plain-click delete is one slip from gone.
+{
+  const holds = sidebar.split('<HoldButton').slice(1).map(t => t.slice(0, t.indexOf('</HoldButton>')))
+  ok('a live chat can be deleted without archiving it first', holds.length === 2 && holds.every(h => /Icon\.trash/.test(h)), `${holds.length} held bins`)
+  ok('and every delete on a chat row is a hold, never a click', holds.every(h => /onConfirm=\{\(\) => onDelete\(s\.id\)\}/.test(h)) &&
+     (sidebar.match(/onDelete\(s\.id\)/g) || []).length === holds.length)
+}
 
 
 // ⚠️ THE DEVICES SCREEN DESCRIBES WHICHEVER MAC IS ANSWERING. When the window is
