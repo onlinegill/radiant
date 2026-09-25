@@ -1103,6 +1103,43 @@ function VoiceCaptions ({ rows = [] }) {
   )
 }
 
+// The Attach button's menu: files AND a folder. Picking a folder sets the
+// session's workspace folder (same as the top-bar folder chip), so the agents
+// can read and write the whole folder, not just attached files.
+function AttachMenu ({ fileInputRef, cwd, onSetCwd }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const close = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+  const pickFolder = async () => {
+    setOpen(false)
+    const next = window.radiantNative?.pickFolder
+      ? await window.radiantNative.pickFolder(cwd)
+      : window.prompt('Workspace folder for this session:', cwd)
+    if (next) onSetCwd(next)
+  }
+  return (
+    <span ref={ref} style={{ position: 'relative' }}>
+      <button className={'attach-btn' + (open ? ' is-on' : '')} onClick={() => setOpen(o => !o)} title='Attach files or a folder' data-tip='Attach files or images, or pick a folder the agents can read and write.' aria-expanded={open}><Icon.plus size={16} /><span className='pill-label'>Attach</span></button>
+      {open && (
+        <div className='recipe-menu' style={{ width: 240 }}>
+          <button className='recipe-item' onClick={() => { setOpen(false); fileInputRef.current?.click() }}>
+            <span className='recipe-name'><Icon.file size={13} /> Files</span>
+            <span className='recipe-desc'>Images, documents — attached to this message</span>
+          </button>
+          <button className='recipe-item' onClick={pickFolder}>
+            <span className='recipe-name'><Icon.folder size={13} /> Folder</span>
+            <span className='recipe-desc'>Agents read & write the whole folder</span>
+          </button>
+        </div>
+      )}
+    </span>
+  )
+}
+
 // The current branch's GitHub PR, above the composer — Cline's desktop idea.
 // Read-only: it shows the PR, its merge state, its size and CI, opens links in
 // the browser, and offers Create PR (which opens GitHub's compare page). It
@@ -1870,7 +1907,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
                   Talk did; Attach, Design and Skills stayed bare icons. Tony:
                   "why arent there button popups for design or skills like the
                   other tools on that bar?" A .pill-label is what makes one. */}
-              <button className='attach-btn' onClick={() => fileInputRef.current?.click()} title='Attach files or images' data-tip='Attach files or images'><Icon.plus size={16} /><span className='pill-label'>Attach</span></button>
+              <AttachMenu fileInputRef={fileInputRef} cwd={session.cwd} onSetCwd={onSetCwd} />
               <button className={'attach-btn' + (designBusy ? ' is-capturing' : '')} onClick={startDesign} disabled={designBusy} title='Design Mode' data-tip={'Design Mode — open a web page and click\nan element to capture its HTML, CSS &\na screenshot as context'}><Icon.target size={15} /><span className='pill-label'>{designBusy ? 'Capturing' : 'Design'}</span></button>
               {activeSkillIds.length > 0 && activeSkillIds.map(id => {
                 const sk = skills.find(x => x.id === id)
