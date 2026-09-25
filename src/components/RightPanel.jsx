@@ -3,6 +3,7 @@ import Terminal from './Terminal.jsx'
 import Preview from './Preview.jsx'
 import GlideSelect from './GlideSelect.jsx'
 import { Icon } from './Icons.jsx'
+import { hotkey } from '../api.js'
 
 const MIN_W = 300
 const MAX_W = 720
@@ -76,11 +77,12 @@ const SECTIONS = [
   { id: 'foryou', label: 'For you', hint: '⇧⌘I' }
 ]
 
-export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose, session, waiting = [], onOpenSession }) {
+export default function RightPanel ({ platform, tab, onTab, activity, cwd, mode, onClose, session, waiting = [], onOpenSession }) {
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem('radiant.rightWidth'))
     return saved >= MIN_W && saved <= MAX_W ? saved : 400
   })
+  const sections = SECTIONS.map(x => x.hint ? { ...x, hint: hotkey(x.hint, platform) } : x)
   const dragging = useRef(false)
 
   useEffect(() => {
@@ -120,9 +122,9 @@ export default function RightPanel ({ tab, onTab, activity, cwd, mode, onClose, 
       <div className='right-tabs'>
         <GlideSelect
           ariaLabel='Panel section'
-          value={SECTIONS.some(x => x.id === tab) ? tab : 'activity'}
+          value={sections.some(x => x.id === tab) ? tab : 'activity'}
           onChange={onTab}
-          options={SECTIONS.map(x => ({ value: x.id, label: x.label, tag: x.hint, badge: x.id === 'foryou' ? waiting.length : 0 }))}
+          options={sections.map(x => ({ value: x.id, label: x.label, tag: x.hint, badge: x.id === 'foryou' ? waiting.length : 0 }))}
         />
         <div style={{ flex: 1 }} />
         <button className='icon-btn' onClick={onClose} title='Close panel'><Icon.close /></button>

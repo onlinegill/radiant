@@ -24,6 +24,7 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { deviceNoun } from './platform.js'
 
 // ⚠️ ONE FILE PER MAC, NOT ONE FILE SHARED. A single `.radiant-lock.json`
 // rewritten every 15s by several Macs is exactly what iCloud cannot reconcile:
@@ -192,6 +193,6 @@ export function describeHolder (holder, thisHost = os.hostname()) {
   if (!holder) return null
   const elsewhere = holder.host && holder.host !== thisHost
   return elsewhere
-    ? `Also open on ${holder.host}, sharing this folder. Settings changed on either Mac reach the other within a few seconds; a chat runs on whichever Mac you send from. Avoid editing the same chat on both at the same moment.`
-    : 'Radiant is open twice on this Mac, sharing one folder. Two windows editing the same chat at once can overwrite each other — close one.'
+    ? `Also open on ${holder.host}, sharing this folder. Settings changed on either ${deviceNoun()} reach the other within a few seconds; a chat runs on whichever ${deviceNoun()} you send from. Avoid editing the same chat on both at the same moment.`
+    : `Radiant is open twice on this ${deviceNoun()}, sharing one folder. Two windows editing the same chat at once can overwrite each other — close one.`
 }

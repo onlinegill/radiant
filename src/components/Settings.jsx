@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { SKILL_CATEGORIES } from '../../server/skill-categories.js'
 import qrcode from 'qrcode-generator'
 import { verdict, FIT_LABEL, FITS_WELL, FITS_TIGHT, FITS_NO, COMFORTABLE } from '../fit.js'
-import { api, startDownload, getDownloads, cancelDownload, streamQuantize, getServer, setServer, testServer, saveToFile, deviceNoun, phoneLink, EXTENSION_STORE_URL } from '../api.js'
+import { api, startDownload, getDownloads, cancelDownload, streamQuantize, getServer, setServer, testServer, saveToFile, deviceNoun, hotkey, phoneLink, EXTENSION_STORE_URL } from '../api.js'
 import { THEMES, MODES, FONTS, UI_SCALES, applyTheme, hexToOklch, accentHex, glyphColor } from '../theme.js'
 import { paletteWarnings, deriveAccent } from '../palette.js'
 import { MOTIONS } from './MotionBackground.jsx'
@@ -209,7 +209,7 @@ function ProvidersPane ({ config, onConfigChange }) {
         <button className='small-btn' onClick={addProvider}>Add provider</button>
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 0 }}>
-        Keys are stored locally in <span className='mono'>~/.radiant/config.json</span> and never leave this Mac except to call the provider itself.
+        Keys are stored locally in <span className='mono'>~/.radiant/config.json</span> and never leave this {deviceNoun(config?.platform)} except to call the provider itself.
         Any OpenAI-compatible server works — Groq, Mistral, Together, a remote Ollama box…
       </p>
     </div>
@@ -328,7 +328,7 @@ function VoicePane ({ config, onSettings, onConfigChange }) {
             </div>
             <p className='hint' style={{ marginTop: 8 }}>
               Gemini needs a Google AI Studio API key of its own — an OpenAI key does not work for it. Get one at{' '}
-              <span className='mono'>aistudio.google.com</span>. It stays on this Mac; the app hands the browser only a
+              <span className='mono'>aistudio.google.com</span>. It stays on this {deviceNoun(config?.platform)}; the app hands the browser only a
               short-lived token that lasts one call.
             </p>
             {gemSaved
@@ -376,7 +376,7 @@ function VoicePane ({ config, onSettings, onConfigChange }) {
       </div>
 
       <div className='set-block'>
-        <div className='set-block-title'>What leaves this Mac</div>
+        <div className='set-block-title'>What leaves this {deviceNoun(config?.platform)}</div>
         <p className='hint' style={{ marginTop: 2 }}>
           While a call is open, your microphone and the spoken replies go to {which === 'gemini' ? 'Google' : 'OpenAI'},
           at their rate — {which === 'gemini' ? 'about 0.5¢ a minute for what you say and 1.8¢ for what it says back' : 'about 5¢ a minute'}.
@@ -2187,7 +2187,7 @@ function AgentPane ({ config, onSettings }) {
           <span>
             <strong>Full automation</strong>
             <span className='auto-choice-sub'>
-              Clicks, types and opens apps without asking — on {config?.serverHost || 'this Mac'}, the machine running Radiant, which may not be the one you are looking at. The agent can do anything there that you
+              Clicks, types and opens apps without asking — on {config?.serverHost || `this ${deviceNoun(config?.platform)}`}, the machine running Radiant, which may not be the one you are looking at. The agent can do anything there that you
               could, including things that cannot be undone. Use it only with models and tasks you trust.
             </span>
           </span>
@@ -2320,9 +2320,9 @@ function AboutPane ({ config, onSettings }) {
       {remote.base && (
         <div className='update-avail' style={{ marginTop: 12 }}>
           This window is showing Radiant on <strong>{remoteLabel}</strong>, so the chats,
-          projects and models you see are that Mac's, not this one's. The version above is
-          this app. To use this Mac instead, go to <strong>Devices</strong> and press
-          “Use this Mac's own server”.
+          projects and models you see belong to that server, not this one. The version above is
+          this app. To use this {deviceNoun(config?.platform)} instead, go to <strong>Devices</strong> and press
+          “Use this {deviceNoun(config?.platform)}'s own server”.
         </div>
       )}
       <div style={{ marginTop: 14 }}>
@@ -2473,7 +2473,7 @@ function DataFolderBlock () {
       // is indistinguishable from a broken app.
       const picked = await window.radiantNative.pickFolder(info?.active)
       if (!picked) {
-        setMsg({ kind: 'err', text: 'No folder chosen, so nothing changed. Pick a folder your other Macs can see — iCloud Drive, Dropbox, or any synced folder.' })
+        setMsg({ kind: 'err', text: `No folder chosen, so nothing changed. Pick a folder your other ${deviceNoun(config?.platform)}s can see — OneDrive, Dropbox, or any synced folder.` })
         return
       }
       return send({ path: picked }, r => r.adopted
@@ -2489,7 +2489,7 @@ function DataFolderBlock () {
   // silently roll the user back to whatever they had that day. mode:'replace'
   // copies the live data down and moves the stale copy aside instead.
   const disable = () => send({ path: 'reset', reset: true, mode: 'replace' },
-    r => `Your setup was copied back to this Mac${r.backedUp ? ' and the old local copy was kept alongside it' : ''}. Quit and reopen Radiant.`)
+    r => `Your setup was copied back to this ${deviceNoun(config?.platform)}${r.backedUp ? ' and the old local copy was kept alongside it' : ''}. Quit and reopen Radiant.`)
 
   if (!info) return null
   // What the user CHOSE, not what is loaded — the pointer changes now, the
@@ -2507,12 +2507,12 @@ function DataFolderBlock () {
           disabled={busy}
           onChange={e => (e.target.checked ? enable() : disable())}
         />
-        <span>Keep my setup in {current ? current.label : (targets.find(t => t.path === choice)?.label || 'a folder my other Macs can see…')}</span>
+        <span>Keep my setup in {current ? current.label : (targets.find(t => t.path === choice)?.label || `a folder my other ${deviceNoun(config?.platform)}s can see…`)}</span>
         {/* Nobody should have to know where iCloud Drive lives on disk. */}
       </label>
       <p className='set-hint'>
         No account, and nothing of yours stored anywhere but your own cloud drive.
-        Turn this on once per Mac.
+        Turn this on once per {deviceNoun(config?.platform)}.
       </p>
 
       {!syncing && targets.length > 1 && (
@@ -2524,7 +2524,7 @@ function DataFolderBlock () {
           genuinely cannot be. */}
       {!syncing && !targets.length && (
         <p className='set-hint'>
-          Tick the box and choose any folder your other Macs can see.
+          Tick the box and choose any folder your other {deviceNoun(config?.platform)}s can see.
         </p>
       )}
 
@@ -2539,8 +2539,8 @@ function DataFolderBlock () {
             <button className='btn-secondary' disabled={busy} onClick={() => send({ path: conflict.dest, mode: 'adopt' }, () => 'Using the setup that was already in that folder. Quit and reopen Radiant.')}>
               Use what is in the folder
             </button>
-            <button className='btn-secondary' disabled={busy} onClick={() => send({ path: conflict.dest, mode: 'replace' }, r => `Replaced it with this Mac's setup${r.backedUp ? '; the previous one was kept alongside it' : ''}. Quit and reopen Radiant.`)}>
-              Use this Mac&rsquo;s setup
+            <button className='btn-secondary' disabled={busy} onClick={() => send({ path: conflict.dest, mode: 'replace' }, r => `Replaced it with this ${deviceNoun(config?.platform)}'s setup${r.backedUp ? '; the previous one was kept alongside it' : ''}. Quit and reopen Radiant.`)}>
+              Use this {deviceNoun(config?.platform)}&rsquo;s setup
             </button>
             <button className='btn-secondary' disabled={busy} onClick={() => setConflict(null)}>Cancel</button>
           </div>
@@ -2550,7 +2550,7 @@ function DataFolderBlock () {
       <details className='data-folder-adv'>
         <summary>Where it is now</summary>
         <div className='data-folder-row'>
-          <code className='mono data-folder-path' title={info.active}>{info.active.replace(/^\/Users\/[^/]+/, '~')}</code>
+          <code className='mono data-folder-path' title={info.active}>{info.active.replace(/^\/Users\/[^/]+/, '~').replace(/^[A-Za-z]:\\Users\\[^\\]+/, '~')}</code>
           <button className='btn-secondary' disabled={busy} onClick={async () => {
             if (!window.radiantNative?.pickFolder) { setMsg({ kind: 'err', text: 'Choosing a folder needs the Radiant app.' }); return }
             const next = await window.radiantNative.pickFolder(info.active)
@@ -2558,8 +2558,8 @@ function DataFolderBlock () {
           }}>Choose another folder…</button>
         </div>
         <p className='set-hint'>
-          One Mac at a time. Two copies of Radiant writing to the same folder at
-          once will overwrite each other — to work from two Macs together, share
+          One {deviceNoun(config?.platform)} at a time. Two copies of Radiant writing to the same folder at
+          once will overwrite each other — to work from two {deviceNoun(config?.platform)}s together, share
           this one below instead.
         </p>
       </details>
@@ -2567,7 +2567,7 @@ function DataFolderBlock () {
       {info.unreachable && (
         <p className='set-hint is-warn'>
           The shared folder could not be reached, so Radiant is running from this
-          Mac and your work is intact. Reconnect it, or turn sync off.
+          {deviceNoun(config?.platform)} and your work is intact. Reconnect it, or turn sync off.
         </p>
       )}
       {/* ⚠️ A TICKED BOX THAT IS NOT IN EFFECT YET MUST SAY SO LOUDLY. The folder
@@ -2693,7 +2693,7 @@ function ChatTransfer () {
     <>
       <h3 style={{ marginTop: 26 }}>Move your chats</h3>
       <p className='hint' style={{ marginTop: 0 }}>
-        Export everything as one file to keep a copy, move to another Mac, or
+        Export everything as one file to keep a copy, move to another {deviceNoun(config?.platform)}, or
         hand a conversation to someone. Importing only ever adds — it never
         replaces a chat you already have, so the same file imported twice gives
         you two copies.
@@ -2869,7 +2869,7 @@ function BrowserBridgeBlock () {
       <p className='hint'>
         {on
           ? <>The agent works in your own browser now — the tabs you have open, signed in as you.
-              Nothing is sent anywhere: the extension talks only to Radiant on this Mac.</>
+              Nothing is sent anywhere: the extension talks only to Radiant on this {deviceNoun(config?.platform)}.</>
           : seen
             ? <>So it is installed. Chrome is probably closed, or the extension is switched off in the
                 profile you are using — it reconnects on its own within half a minute of Chrome opening.
@@ -2877,7 +2877,7 @@ function BrowserBridgeBlock () {
             : <>If you have already installed it, open Chrome: it finds Radiant on its own within half a
                 minute. Otherwise, Chrome no longer lets any app connect to your everyday browser, so
                 the extension is the way in. It runs inside Chrome with your session and talks only to
-                Radiant on this Mac.</>}
+                Radiant on this {deviceNoun(config?.platform)}.</>}
       </p>
       {!on && !seen && (
         <div className='row' style={{ marginTop: 8 }}>
@@ -2896,7 +2896,9 @@ function BrowserBridgeBlock () {
             <li>Open <span className='mono'>chrome://extensions</span></li>
             <li>Turn on <b>Developer mode</b>, top right</li>
             <li>Click <b>Load unpacked</b></li>
-            <li>Press <span className='mono'>⇧⌘G</span>, paste the folder below, and choose it</li>
+            <li>{config?.platform === 'win32'
+              ? <><span className='mono'>Alt+D</span>, paste the folder below, and choose it</>
+              : <>Press <span className='mono'>⇧⌘G</span>, paste the folder below, and choose it</>}</li>
           </ol>
           <div className='row' style={{ marginTop: 8 }}>
             <code className='mono' style={{ fontSize: 11, opacity: .85, wordBreak: 'break-all' }}>{st?.dir || '…'}</code>
@@ -3009,7 +3011,7 @@ function DevicesPane ({ config }) {
           ticked, and no way to tell those two facts were in conflict. */}
       <div className={'devices-now' + (linked ? ' is-linked' : '')}>
         {linked
-          ? <>This Mac is <strong>using the Radiant on another Mac</strong> — everything you see
+          ? <>This {deviceNoun(config?.platform)} is <strong>using the Radiant on another {deviceNoun(config?.platform)}</strong> — everything you see
               (models, agents, chats) comes from <code className='mono'>{server.base}</code>, not from here.</>
           : syncing
             ? (folder?.cloud && folder.cloud.exists && !folder.cloud.ubiquitous
@@ -3047,8 +3049,8 @@ function DevicesPane ({ config }) {
         </div>
         {linked
           ? <p className='hint' style={{ marginTop: 2 }}>
-              Not used while this Mac is borrowing another one's Radiant — your setup is
-              already coming from that Mac. Switch to this Mac's own server below if you
+              Not used while this {deviceNoun(config?.platform)} is borrowing another one's Radiant — your setup is
+              already coming from that {deviceNoun(config?.platform)}. Switch to this {deviceNoun(config?.platform)}'s own server below if you
               want to sync instead.
             </p>
           : <DataFolderBlock />}

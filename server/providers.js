@@ -2,6 +2,7 @@ import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
 import { resolveSkillDir, usableCwd } from './config.js'
+import { deviceNoun } from './platform.js'
 import { fetchRetry, isTransient } from './util.js'
 import { TOOL_DEFS, runTool, outsideWorkspace, archiveResult, ARCHIVE_MIN } from './tools.js'
 import { commandRisk } from './util.js'
@@ -128,7 +129,7 @@ function systemPrompt (cwd, useTools, model, computerControl, skills, persona, p
     : ''
   const stable = `You are a coding agent running inside Radiant, a local coding harness on the user's ${os.type() === 'Darwin' ? 'Mac' : os.type()} (${os.platform()} ${os.release()}). Radiant is the app, not you: you are the model "${model}". If asked what model you are, answer with your actual model name and maker.${personaText}
 Workspace directory: ${cwd}
-${useTools && readOnly ? 'You have tools to read files and to run read-only shell commands (ls, cat, grep, find, git log/show/diff, wc…) in the workspace. You cannot write, edit, delete or install anything, and a command that would is refused. Read what the question needs and no more.' : useTools ? 'You have tools to read, write, and edit files and to run shell commands in the workspace. Use them to investigate before answering and to make changes when asked. Prefer edit_file for small changes and write_file for new files. After making changes, verify them when practical (run the code, run tests) — and when you already know the command you will run right after an edit, pass it as that edit\'s `then` so both come back at once. A trimmed earlier result can be read back exactly with recall.' : 'Tools are disabled for this conversation; answer from knowledge and the conversation only.'}${computerControl ? `
+${useTools && readOnly ? (process.platform === 'win32' ? 'You have tools to read files and to run read-only PowerShell commands (Get-ChildItem, Get-Content, Select-String, git log/show/diff — this is Windows PowerShell, not bash: use PowerShell syntax) in the workspace.' : 'You have tools to read files and to run read-only shell commands (ls, cat, grep, find, git log/show/diff, wc…) in the workspace.') + ' You cannot write, edit, delete or install anything, and a command that would is refused. Read what the question needs and no more.' : useTools ? 'You have tools to read, write, and edit files and to run shell commands in the workspace. Use them to investigate before answering and to make changes when asked. Prefer edit_file for small changes and write_file for new files. After making changes, verify them when practical (run the code, run tests) — and when you already know the command you will run right after an edit, pass it as that edit\'s `then` so both come back at once. A trimmed earlier result can be read back exactly with recall.' : 'Tools are disabled for this conversation; answer from knowledge and the conversation only.'}${computerControl ? `
 You can also control the computer. browser_* tools drive an automated browser; screen_* tools control the whole desktop. ALWAYS take a screenshot first (browser_screenshot / screen_screenshot) and look at it before clicking or typing — click coordinates are pixel positions read from the most recent screenshot. Work in small steps: screenshot, act, screenshot again to confirm. Prefer browser_* for web tasks.` : ''}
 Be direct and concise. Use markdown; fence code blocks with a language tag. When you finish a task, summarize what changed in a sentence or two.${planText}${rulesText}${skillText}`
 
@@ -1019,8 +1020,8 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   if (strayCwd) {
     // ⚠️ NOT ALWAYS A MAC. The chat may have started on the user's Mac while
     // this server runs on their Windows PC (or vice versa) — name the machine
-    // this server is actually on, the same rule as deviceNoun() in src/api.js.
-    const noun = process.platform === 'win32' ? 'PC' : process.platform === 'darwin' ? 'Mac' : 'computer'
+    // this server is actually on, via the shared platform.js helper.
+    const noun = deviceNoun()
     emit({ type: 'notice', text: `This chat's folder is not on this ${noun} — ${strayCwd} — so it is working in ${cwd} instead. That usually means the chat was started on another ${noun}; pick a folder for it in the header to make it stick here.` })
   }
   let compacted = false

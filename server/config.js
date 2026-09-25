@@ -1,5 +1,6 @@
 import fs from 'fs'
 import { categoryOf, SKILL_CATEGORIES } from './skill-categories.js'
+import { computerName } from './platform.js'
 import path from 'path'
 import { execFileSync } from 'child_process'
 import os from 'os'
@@ -50,6 +51,18 @@ export function saveMachineSettings (patch) {
 /** Does this directory exist AND answer promptly? See resolveDataDir. */
 function reachable (dir) {
   try {
+    if (process.platform === 'win32') {
+      // ⚠️ NO /bin/test ON WINDOWS. The old code spawned a binary that does
+      // not exist there, so reachable() was ALWAYS false on a PC: every
+      // session folder read as "missing", the stray-folder notice fired every
+      // turn, and the model concluded the workspace did not exist and refused
+      // to run anything. cmd's `if exist` answers for local and network paths
+      // alike, and the timeout keeps a dead share from hanging the turn the
+      // way a raw statSync would.
+      const safe = String(dir).replace(/"/g, '')
+      execFileSync(process.env.COMSPEC || 'cmd.exe', ['/d', '/s', '/c', `if exist "${safe}\\" (exit 0) else (exit 1)`], { timeout: 3000, stdio: 'ignore' })
+      return true
+    }
     execFileSync('/bin/test', ['-d', dir], { timeout: 3000, stdio: 'ignore' })
     return true
   } catch (e) {
@@ -790,11 +803,10 @@ function makeCollection (name) {
 let cachedHost = null
 export function serverHost () {
   if (cachedHost) return cachedHost
-  cachedHost = os.hostname().replace(/\.local$/, '')
-  try {
-    const n = execFileSync('scutil', ['--get', 'ComputerName'], { timeout: 2000 }).toString().trim()
-    if (n) cachedHost = n
-  } catch {}
+  // ⚠️ computerName() in platform.js already does this per-platform (scutil on
+  // Mac, hostnamectl on Linux, os.hostname() on Windows). The old code shelled
+  // out to scutil unconditionally — harmless try/catch, but duplicated.
+  cachedHost = computerName()
   return cachedHost
 }
 

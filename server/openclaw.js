@@ -25,6 +25,7 @@ import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
 import { WebSocketServer, WebSocket } from 'ws'
+import { deviceNoun } from './platform.js'
 
 const CLIENT_ID = 'gateway-client'   // the id the gateway allows for integrations
 const CLIENT_MODE = 'backend'
@@ -158,7 +159,7 @@ async function probeGateway () {
 
 function friendlyError (code, message) {
   if (code === 'AUTH_DEVICE_TOKEN_MISMATCH' || /device token mismatch/i.test(message || '')) {
-    return "this Mac's OpenClaw device token is out of date — open OpenClaw here once to reissue it"
+    return `this ${deviceNoun()}'s OpenClaw device token is out of date — open OpenClaw here once to reissue it`
   }
   if (/closed \(1008\)|unauthorized/i.test(message || '')) return 'the gateway refused this device'
   if (/did not respond|timed out|ECONNREFUSED|EHOSTUNREACH/i.test(message || '')) return 'gateway unreachable'

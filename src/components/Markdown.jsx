@@ -185,12 +185,15 @@ export default function Markdown ({ text }) {
           btn.textContent = 'Copied'
           setTimeout(() => { btn.textContent = 'Copy' }, 1400)
         } else {
-          // clipboard blocked — select the code so the user can just press ⌘C
+          // clipboard blocked — select the code so the user can copy it
+          // manually. This key is pressed in the VIEWER's browser, so it
+          // follows the viewer's platform, not the server's.
+          const viewerMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.userAgentData?.platform || navigator.platform || '')
           const range = document.createRange()
           range.selectNodeContents(pre.querySelector('code') || pre)
           const sel = window.getSelection()
           sel.removeAllRanges(); sel.addRange(range)
-          btn.textContent = 'Press ⌘C'
+          btn.textContent = viewerMac ? 'Press ⌘C' : 'Press Ctrl+C'
           setTimeout(() => { btn.textContent = 'Copy' }, 1800)
         }
       })

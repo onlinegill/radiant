@@ -30,13 +30,18 @@ async function connect (server) {
       // loginEnv() for why the app's own PATH cannot find npx. And a command
       // typed the way a terminal would take it — `PATH=… npx -y x`, or with a
       // pipe — is handed to the shell rather than looked up as an executable.
-      const { loginEnv, defaultShell } = await import('./platform.js')
+      const { loginEnv, shellSpawn, resolveCommand } = await import('./platform.js')
       const env = { ...loginEnv(), ...(server.env || {}) }
       const line = [server.command, ...(server.args || [])].join(' ')
       const shellShaped = /[=|&;<>$`]/.test(server.command || '') || /\s/.test((server.command || '').trim())
+      // ⚠️ WINDOWS HAS NO bash. A shell-shaped command goes through cmd.exe
+      // (shellSpawn), and a bare `npx`/`npm` must resolve to npx.cmd/npm.cmd
+      // or the spawn dies with ENOENT (resolveCommand) — both were hard
+      // failures for every MCP server on a PC.
+      const spec = shellSpawn(line)
       transport = shellShaped
-        ? new StdioClientTransport({ command: defaultShell(), args: ['-lc', line], env })
-        : new StdioClientTransport({ command: server.command, args: server.args || [], env })
+        ? new StdioClientTransport({ command: spec.command, args: spec.args, env })
+        : new StdioClientTransport({ command: resolveCommand(server.command), args: server.args || [], env })
     }
     await client.connect(transport)
     const { tools } = await client.listTools()

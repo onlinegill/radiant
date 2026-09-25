@@ -47,7 +47,7 @@ export default function ConnectGate ({ error }) {
         <h2 className='connect-title'>Connect to Radiant</h2>
         <p className='connect-sub'>
           {here
-            ? <>Enter the access token from the host Mac — <strong>Settings&nbsp;→&nbsp;Devices&nbsp;&amp;&nbsp;sharing</strong>. This device stays signed in afterward.</>
+            ? <>Enter the access token from the host — <strong>Settings&nbsp;→&nbsp;Devices&nbsp;&amp;&nbsp;sharing</strong>. This device stays signed in afterward.</>
             : (error || "Couldn't reach a Radiant server.")}
         </p>
 
@@ -66,7 +66,7 @@ export default function ConnectGate ({ error }) {
           <span className='connect-label'>Access token</span>
           <input
             className='text-input' type='password' value={token} onChange={e => setToken(e.target.value)}
-            placeholder='Paste the token from the host Mac'
+            placeholder='Paste the token from the host'
             autoCapitalize='off' autoCorrect='off' spellCheck='false' autoComplete='one-time-code'
           />
         </label>
@@ -80,9 +80,9 @@ export default function ConnectGate ({ error }) {
         <div className='connect-alt'>
           {here
             ? <button type='button' className='link-btn' onClick={() => setManual(m => !m)}>
-                {manual ? 'Use this server' : 'Connect to a different Mac'}
+                {manual ? 'Use this server' : 'Connect to a different computer'}
               </button>
-            : <button type='button' className='link-btn' onClick={useLocal}>Use this Mac's own server</button>}
+            : <button type='button' className='link-btn' onClick={useLocal}>Use this device's own server</button>}
         </div>
       </form>
     </div>

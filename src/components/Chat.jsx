@@ -311,7 +311,7 @@ function CompactedMarker ({ text }) {
 }
 
 const TOOL_ICONS = {
-  run_command: '⌘',
+  run_command: '❯',
   read_file: '≡',
   write_file: '✎',
   edit_file: '✎',

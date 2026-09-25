@@ -42,6 +42,60 @@ export function deviceNoun () {
 }
 
 /**
+ * The shell the AGENT's run_command speaks — [binary, argsPrefix].
+ *
+ * bash is hardcoded in three spawners (tools.js newJob/runShell, index.js
+ * runCheckCommand). There is no bash on a stock Windows PC, so on win32 the
+ * agent gets PowerShell instead — and the tool description must say so, or
+ * the model keeps emitting `ls -la ~ | head -50` and it dies on spawn.
+ * powershell.exe (5.1) ships with every Windows 10/11; pwsh 7 may not exist.
+ */
+export function agentShell (command) {
+  if (IS_WINDOWS) return ['powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command]]
+  return ['bash', ['-lc', command]]
+}
+
+/** The word the run_command tool description uses for the shell. */
+export function agentShellNoun () {
+  return IS_WINDOWS ? 'PowerShell' : 'bash'
+}
+
+/**
+ * Spawn spec for "a command typed the way a terminal would take it".
+ *
+ * MCP servers configured with a shell-shaped command (`PATH=… npx -y x`, a
+ * pipe) are handed to a shell rather than looked up as an executable — and
+ * `bash -lc` does not exist on Windows, so on win32 the line goes through
+ * cmd.exe instead. Same idea as agentShell(), for spawners that are not the
+ * agent's own run_command.
+ */
+export function shellSpawn (line) {
+  if (IS_WINDOWS) return { command: process.env.COMSPEC || 'cmd.exe', args: ['/d', '/s', '/c', line] }
+  return { command: defaultShell(), args: ['-lc', line] }
+}
+
+/**
+ * Resolve a bare command word to something CreateProcess can actually run.
+ *
+ * On Windows the npm-shim world is `npx.cmd`, `npm.cmd` — spawning the bare
+ * name without shell:true dies with ENOENT, which is how every stdio MCP
+ * server configured as `npx -y …` failed to connect with an opaque error.
+ * where.exe finds the real file (libuv runs .cmd/.bat through cmd.exe
+ * itself, so the resolved path spawns fine). Non-Windows: returned unchanged.
+ */
+export function resolveCommand (command) {
+  if (!IS_WINDOWS || !command || typeof command !== 'string') return command
+  if (/[\\/]/.test(command)) return command // already a path — leave it alone
+  try {
+    const hit = execFileSync('where.exe', [command], { timeout: 3000, stdio: ['pipe', 'pipe', 'ignore'] })
+      .toString().split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+      .find(p => /\.(cmd|bat|exe|com)$/i.test(p))
+    if (hit) return hit
+  } catch {}
+  return command
+}
+
+/**
  * How to hand a path to the desktop's file manager.
  *
  * `open` is macOS-only. On Linux `xdg-open` is the freedesktop.org standard and

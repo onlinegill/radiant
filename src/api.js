@@ -109,7 +109,7 @@ function isLocalHost (host) {
 
 function normalizeBase (raw) {
   const v = String(raw || '').trim().replace(/\/+$/, '')
-  if (!v) throw new Error('Enter the address of the Mac running Radiant.')
+  if (!v) throw new Error('Enter the address of the computer running Radiant.')
   const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(v)
   // A bare address on your own network is the common case — someone typing
   // what the Mac showed them — so assume http there and https everywhere else.
@@ -133,7 +133,7 @@ function normalizeBase (raw) {
   // A platform rule belongs behind a platform check.
   const onPhone = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true
   if (onPhone && u.protocol === 'http:' && !isLocalHost(u.hostname)) {
-    throw new Error('That address is http, and iPhone only allows that on your own Wi-Fi. Use the https address your Mac shows you.')
+    throw new Error('That address is http, and iPhone only allows that on your own Wi-Fi. Use the https address the computer running Radiant shows you.')
   }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Use a web address starting http or https.')
   return candidate.replace(/\/+$/, '')
@@ -177,9 +177,9 @@ export async function testServer (base, token) {
       // hangs. Telling him "your Mac is probably asleep" when it was answering
       // in 45ms sent him looking in the wrong place.
       if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(new URL(url).hostname)) {
-        throw new Error("That is a Tailscale IP address, and iPhone can't use one — it needs the https address instead. On your Mac, Settings → Devices shows it; it looks like https://your-mac.your-tailnet.ts.net")
+        throw new Error("That is a Tailscale IP address, and iPhone can't use one — it needs the https address instead. On the computer running Radiant, Settings → Devices shows it; it looks like https://your-machine.your-tailnet.ts.net")
       }
-      throw new Error(`No answer from that Mac after ${TEST_TIMEOUT_MS / 1000} seconds. Check Radiant is open on it, and that both devices are on Tailscale.`)
+      throw new Error(`No answer from that computer after ${TEST_TIMEOUT_MS / 1000} seconds. Check Radiant is open on it, and that both devices are on Tailscale.`)
     }
     throw new Error("Couldn't reach that server. Check the address is right, Radiant is running and shared on the host (v0.6.9+), and both devices are on Tailscale.")
   } finally {
@@ -243,7 +243,7 @@ async function json (method, path, body) {
     })
   } catch (e) {
     if (e?.name === 'AbortError') {
-      throw new Error('The Mac stopped answering. It may have gone to sleep, or you may have left the tailnet.')
+      throw new Error('The computer running Radiant stopped answering. It may have gone to sleep, or you may have left the tailnet.')
     }
     throw e
   } finally {
@@ -553,6 +553,18 @@ export function deviceNoun (platform) {
   if (platform === 'win32') return 'PC'
   if (platform && platform !== 'darwin') return 'computer'
   return 'Mac'
+}
+
+/**
+ * Render a keyboard shortcut for the SERVER's platform (same rule as
+ * deviceNoun — the machine Radiant runs on, from /api/config, not the
+ * browser's). Written Mac-style ('⌘N', '⇧⌘I', '⌥⌘R'); on Windows/Linux
+ * ⌘→Ctrl, ⌥→Alt, ⇧→Shift. The handlers already accept both modifiers —
+ * only the labels were Mac-only.
+ */
+export function hotkey (combo, platform) {
+  if (platform === 'darwin' || !platform) return combo
+  return combo.replace(/⌘/g, 'Ctrl+').replace(/⌥/g, 'Alt+').replace(/⇧/g, 'Shift+')
 }
 
 /**

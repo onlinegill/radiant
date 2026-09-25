@@ -150,7 +150,7 @@ function DesktopApp () {
     .catch(e => {
       setProjects([])
       setProjectsError(e?.status === 404
-        ? 'The Mac you are connected to is running an older Radiant that does not have projects. Update it and they will appear.'
+        ? 'The Radiant you are connected to is running an older version that does not have projects. Update it and they will appear.'
         : `Could not load projects: ${e.message}`)
     }), [])
 
@@ -979,6 +979,7 @@ function DesktopApp () {
       )}
       {rightOpen && (
         <RightPanel
+          platform={config?.platform}
           tab={rightTab}
           onTab={setRightTab}
           activity={activity}
@@ -992,6 +993,7 @@ function DesktopApp () {
       )}
       {paletteOpen && (
         <CommandPalette
+          platform={config?.platform}
           sessions={sessions}
           agents={config.agents || []}
           models={models}

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { hotkey } from '../api.js'
 
 // ⌘K command palette: fuzzy-ish search over actions, agents, sessions, models.
-export default function CommandPalette ({ sessions, agents, models, session, actions, onClose }) {
+export default function CommandPalette ({ platform, sessions, agents, models, session, actions, onClose }) {
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const inputRef = useRef(null)
@@ -11,8 +12,8 @@ export default function CommandPalette ({ sessions, agents, models, session, act
 
   const commands = useMemo(() => {
     const cmds = [
-      { id: 'new', group: 'Actions', label: 'New session', hint: '⌘N', run: () => actions.newSession() },
-      { id: 'settings', group: 'Actions', label: 'Open settings', hint: '⌘,', run: () => actions.openSettings() },
+      { id: 'new', group: 'Actions', label: 'New session', hint: hotkey('⌘N', platform), run: () => actions.newSession() },
+      { id: 'settings', group: 'Actions', label: 'Open settings', hint: hotkey('⌘,', platform), run: () => actions.openSettings() },
       { id: 'compare', group: 'Actions', label: 'Compare two models', run: () => actions.compare() },
       { id: 'panel', group: 'Actions', label: 'Toggle activity & terminal panel', run: () => actions.toggleRight() },
       { id: 'mode', group: 'Actions', label: 'Cycle appearance (light / medium / dark)', run: () => actions.toggleMode() }

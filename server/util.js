@@ -47,6 +47,19 @@ const READ_ONLY_CMDS = new Set([
   'realpath', 'readlink', 'grep', 'egrep', 'fgrep', 'rg', 'ag', 'fd', 'sort', 'uniq', 'cut', 'tr',
   'column', 'diff', 'jq', 'yq', 'tree', 'ps', 'true', 'false', 'wait', 'sleep'
 ])
+// PowerShell (Windows) read-only verbs. Without these every harmless
+// Get-ChildItem nagged for approval, because the allowlist below was
+// bash-only. Compared case-insensitively — PowerShell is, bash is not.
+// (ls/dir/cat/type/gc are PowerShell aliases for cmdlets here, and they are
+// already in READ_ONLY_CMDS with their bash meanings, which are read-only
+// too, so they stay case-sensitive there.)
+const PS_READ_ONLY = new Set([
+  'get-childitem', 'get-content', 'select-string', 'select-object', 'get-location',
+  'get-date', 'get-item', 'get-process', 'get-service', 'get-command', 'get-help',
+  'get-member', 'where-object', 'sort-object', 'measure-object', 'format-table',
+  'format-list', 'out-string', 'test-path', 'split-path', 'join-path', 'resolve-path',
+  'dir', 'gc', 'gci', 'gl', 'sls', 'gps', 'gdr'
+])
 // Commands that are only read-only in some of their moods. `git config` writes
 // (it was one of the bypasses above) and `git stash`/`tag`/`checkout` mutate, so
 // none of them are here.
@@ -73,7 +86,9 @@ function segmentIsReadOnly (seg) {
     const sub = parts.slice(1).find(p => !p.startsWith('-'))
     return sub ? READ_ONLY_SUB[head].has(sub) : true     // bare `git` / `npm` just prints help
   }
-  return READ_ONLY_CMDS.has(head)
+  if (READ_ONLY_CMDS.has(head)) return true
+  // PowerShell cmdlets are case-insensitive; the bash set above is not.
+  return PS_READ_ONLY.has(head.toLowerCase())
 }
 
 // Kept as a second veto. If something slips onto the allowlist that should not
@@ -85,7 +100,13 @@ const HIGH_RISK = [
   /\bgit\s+push\b|\bgit\s+reset\s+--hard\b|\bgit\s+clean\b|\bgit\s+checkout\s+--\s/, /\bnpm\s+publish\b|\byarn\s+publish\b/,
   /\beval\b/, /:\(\)\s*\{/, />\s*\/(dev|etc|usr|bin|sys)\b/, /\brm\b.*\*|\bfind\b.*-delete\b/,
   /\bbrew\s+(uninstall|remove)\b|\bapt(-get)?\s+(remove|purge)\b/, /\bdocker\s+(rm|rmi|system\s+prune)\b/,
-  /\bdefaults\s+delete\b|\blaunchctl\b/, /\bhistory\s+-c\b/, /\bcrontab\b/
+  /\bdefaults\s+delete\b|\blaunchctl\b/, /\bhistory\s+-c\b/, /\bcrontab\b/,
+  // PowerShell-native destructive verbs (case-insensitive — PowerShell is).
+  // Unknown heads already fail closed via the allowlist, but these are the
+  // explicit veto for the shapes that matter: delete, kill, wipe, blank.
+  /\bremove-item\b|\bdel\b|\berase\b|\brd\b/i, /\bstop-process\b/i,
+  /\bformat-volume\b/i, /\bclear-content\b|\bclear-item\b/i,
+  /\brestart-computer\b|\bstop-computer\b/i
 ]
 export function commandRisk (command) {
   const c = String(command || '')

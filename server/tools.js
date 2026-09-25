@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import { execFile, spawn } from 'child_process'
 import { SPAWN_ENV, scrubbedEnv } from './ollama.js'
 import { searchSessions, usableCwd, RADIANT_DIR } from './config.js'
+import { agentShell, agentShellNoun, deviceNoun } from './platform.js'
 
 
 // background jobs (run_command with run_in_background:true). id -> job
@@ -14,7 +15,9 @@ function newJob (command, cwd) {
   // PATH=/usr/bin:/bin:/usr/sbin:/sbin, so anything in Homebrew or ~/.local/bin
   // is "command not found" — while working perfectly when the server is started
   // from a terminal, which is how this kept getting tested.
-  const proc = spawn('bash', ['-lc', command], { cwd, detached: false, env: scrubbedEnv() })
+  // ⚠️ agentShell(): there is no bash on stock Windows — the agent gets
+  // PowerShell there, and the tool description says so.
+  const proc = spawn(...agentShell(command), { cwd, detached: false, env: scrubbedEnv() })
   const job = { id, command, output: '', done: false, exitCode: null, startedAt: Date.now(), proc }
   const cap = d => { job.output = (job.output + d.toString()).slice(-200_000) }
   proc.stdout.on('data', cap)
@@ -78,11 +81,15 @@ export const TOOL_DEFS = [
   },
   {
     name: 'run_command',
-    description: 'Run a bash command in the workspace. Output capped at 40000 chars, 120s timeout. For builds, watchers and servers set run_in_background:true and get a job id back at once.',
+    // ⚠️ The shell is PLATFORM-SPECIFIC and the description has to say which:
+    // on Windows the model kept emitting `ls -la ~ | head -50` for a bash
+    // that does not exist there. TOOL_DEFS is built once at module load, so
+    // agentShellNoun() is evaluated here, per machine, at startup.
+    description: `Run a ${agentShellNoun()} command in the workspace. Output capped at 40000 chars, 120s timeout. For builds, watchers and servers set run_in_background:true and get a job id back at once.${process.platform === 'win32' ? ' This is Windows PowerShell, NOT bash: use PowerShell syntax — Get-ChildItem not ls, $env:USERPROFILE not ~, Select-Object -First 50 not head -50, backtick escapes.' : ''}`,
     input_schema: {
       type: 'object',
       properties: {
-        command: { type: 'string', description: 'The bash command to run' },
+        command: { type: 'string', description: `The ${agentShellNoun()} command to run` },
         run_in_background: { type: 'boolean', description: 'Return a job id at once instead of waiting' }
       },
       required: ['command']
@@ -369,7 +376,8 @@ function runShell (command, cwd, signal) {
     // ⚠️ `signal` KILLS THE CHILD. Without it Stop was a suggestion: the
     // command ran to completion, or to the 120s timeout, whichever came
     // first, and the turn could not end until it did.
-    execFile('bash', ['-lc', command], { cwd, timeout: 120_000, maxBuffer: 10 * 1024 * 1024, env: scrubbedEnv(), signal }, (err, stdout, stderr) => {
+    // ⚠️ agentShell(): bash does not exist on stock Windows — PowerShell there.
+    execFile(...agentShell(command), { cwd, timeout: 120_000, maxBuffer: 10 * 1024 * 1024, env: scrubbedEnv(), signal }, (err, stdout, stderr) => {
       let out = ''
       if (stdout) out += stdout
       if (stderr) out += (out ? '\n--- stderr ---\n' : '') + stderr
@@ -388,7 +396,7 @@ async function thenRun (input, cwd, signal, wrote) {
   const cmd = String(input.then || '').trim()
   if (!cmd) return wrote
   const stray = usableCwd(cwd).missing
-  if (stray) return `${wrote}\n\n--- then: ${cmd} ---\nNot run: the folder ${stray} does not exist on this Mac.`
+  if (stray) return `${wrote}\n\n--- then: ${cmd} ---\nNot run: the folder ${stray} does not exist on this ${deviceNoun()}.`
   return `${wrote}\n\n--- then: ${cmd} ---\n${await runShell(cmd, cwd, signal)}`
 }
 
@@ -449,7 +457,7 @@ export async function runTool (rawName, rawInput, cwd, signal) {
         // (see usableCwd), so this is the backstop for a loop, task or graph
         // whose folder is on another Mac.
         const stray = usableCwd(cwd).missing
-        if (stray) return `Error: nothing was run — the folder this is set to work in does not exist on this Mac: ${stray}. It was probably set on another Mac. Say so rather than trying other commands; they will all fail the same way.`
+        if (stray) return `Error: nothing was run — the folder this is set to work in does not exist on this ${deviceNoun()}: ${stray}. It was probably set on another ${deviceNoun()}. Say so rather than trying other commands; they will all fail the same way.`
         if (input.run_in_background) {
           const id = newJob(input.command, cwd)
           return `Started in the background as ${id}. Use job(action:"output", id:"${id}") to check on it, or action:"kill" to stop it.`

@@ -25,7 +25,7 @@ import { commandRisk } from './util.js'
 import { claimLock, beatLock, releaseLock, describeHolder, sweepLegacyLocks, BEAT_MS } from './lock.js'
 import { prStatus } from './pr.js'
 const LOCK_HOST = computerName()   // "Tony's Home MBP M4", not a DNS name
-import { IS_MAC, openCommand, chromeBinary, tailscaleBinary, defaultShell, cpuName, osVersion as osProductVersion, computerName } from './platform.js'
+import { IS_MAC, IS_WINDOWS, openCommand, chromeBinary, tailscaleBinary, defaultShell, cpuName, osVersion as osProductVersion, computerName, agentShell } from './platform.js'
 import { listFacts, addFacts, addFactManual, deleteFact, clearFacts, relevantFacts } from './memory.js'
 import { shouldReflect, reflectionPrompt, parseProposal, addSuggestion } from './skillsmith.js'
 import {
@@ -2416,14 +2416,15 @@ const CHECK_TIMEOUT_MS = 120_000
  * Run one check command and report what happened. Never throws and never judges:
  * the verdict is read by readCommandVerdict, which is pure and tested.
  *
- * ⚠️ `bash -lc`, THE SAME SHELL THE AGENT'S OWN run_command USES. A check that
+ * ⚠️ THE SAME SHELL THE AGENT'S OWN run_command USES (see agentShell() in
+ * platform.js — PowerShell on Windows, bash elsewhere). A check that
  * behaves differently from the command the user pasted it out of is a check
  * nobody can trust — `npm test` has to mean what it means in their terminal,
  * login profile and PATH included.
  */
 function runCheckCommand (command, cwd) {
   return new Promise(resolve => {
-    execFile('bash', ['-lc', command], {
+    execFile(...agentShell(command), {
       cwd: cwd && fs.existsSync(cwd) ? cwd : os.homedir(),
       timeout: CHECK_TIMEOUT_MS,
       maxBuffer: 10 * 1024 * 1024,
@@ -4072,7 +4073,10 @@ wss.on('connection', (ws, req) => {
   const shell = defaultShell()
   let term
   try {
-    term = pty.spawn(shell, ['-l'], {
+    // ⚠️ `-l` IS A POSIX LOGIN-SHELL FLAG. defaultShell() is cmd.exe on
+    // Windows, and `cmd.exe -l` is an invalid switch — the pty died on open
+    // and the whole Terminal tab was dead on a PC.
+    term = pty.spawn(shell, IS_WINDOWS ? [] : ['-l'], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,

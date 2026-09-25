@@ -7,6 +7,15 @@ import { ext, extensionConnected } from './chrome-ext.js'
 // tools.js wrapped every web read and these did not, so the same injected text
 // arrived here as plain tool output with nothing marking it as data.
 import { untrusted } from './tools.js'
+import { deviceNoun } from './platform.js'
+
+// ⚠️ APPLESCRIPT IS MAC-ONLY. osa.* shells out to `osascript`, which does not
+// exist on Windows — without this gate the ENOENT surfaced as a confusing
+// tool error, and target() quietly fell through to driving a *separate*
+// browser instead of the user's own signed-in Chrome.
+const OSA_AVAILABLE = process.platform === 'darwin'
+async function osaRunning () { return OSA_AVAILABLE && osa.running() }
+const NO_OSA_MSG = () => `I can't reach your own signed-in Chrome from this ${deviceNoun()} — that path is macOS-only. Install the Radiant extension to drive the browser you're signed into.`
 
 // Two control surfaces the agent can drive when "computer control" is enabled:
 // the whole desktop (screen_*) and an automated browser (browser_*). Tools that
@@ -19,7 +28,7 @@ import { untrusted } from './tools.js'
 // translates cmd to ctrl anyway, because a model that never read this still has
 // to be understood, but a description that is true costs nothing and is the
 // difference between working and working by fallback.
-const DESKTOP_NOUN = process.platform === 'darwin' ? 'Mac' : 'computer'
+const DESKTOP_NOUN = deviceNoun()
 const COPY_COMBO = process.platform === 'darwin' ? 'cmd+c' : 'ctrl+c'
 
 export const COMPUTER_TOOL_DEFS = [
@@ -77,7 +86,7 @@ async function target () {
   // and no permission dialog beyond being installed.
   if (extensionConnected()) return 'ext'
   if (await chromeReachable()) return 'cdp'
-  if (await osa.running()) return 'osa'
+  if (await osaRunning()) return 'osa'
   return 'cdp'   // nothing of the user's to drive: launch our own, as before
 }
 
@@ -92,16 +101,20 @@ export async function runComputerTool (name, input) {
             t.map(x => `${x.id}${x.active ? ' (active)' : ''} · ${x.title} · ${x.url}`).join('\n') +
             '\n\nPass one of these ids as tabId to browser_select_tab, browser_read, browser_click_text or browser_type.' }
         }
-        if (!await osa.running()) return { content: "Chrome is not running, so there are no tabs of the user's own to list." }
+        if (!OSA_AVAILABLE) return { content: NO_OSA_MSG() }
+        if (!await osaRunning()) return { content: "Chrome is not running, so there are no tabs of the user's own to list." }
         const t = await osa.tabs()
         if (!t.length) return { content: 'Chrome is running but has no open tabs.' }
         return { content: `${t.length} tab(s) open in the user's own Chrome (window.tab · title · url):\n` +
           t.map(x => `${x.window}.${x.tab} · ${x.title} · ${x.url}`).join('\n') }
       }
       case 'browser_select_tab': {
-        const r = extensionConnected()
-          ? await ext.selectTab(input.tabId ?? input.tab)
-          : await osa.selectTab(input.window, input.tab)
+        if (extensionConnected()) {
+          const r = await ext.selectTab(input.tabId ?? input.tab)
+          return { content: `Now on "${r.title}" — ${r.url}` }
+        }
+        if (!OSA_AVAILABLE) return { content: NO_OSA_MSG() }
+        const r = await osa.selectTab(input.window, input.tab)
         return { content: `Now on "${r.title}" — ${r.url}` }
       }
       case 'browser_click_text': {
@@ -115,6 +128,7 @@ export async function runComputerTool (name, input) {
           const img = await ext.screenshot(input.tabId).catch(() => null)
           return { content: `Clicked "${r.what}".`, ...(img ? { image: img } : {}) }
         }
+        if (!OSA_AVAILABLE) return { content: NO_OSA_MSG() }
         const out = await osa.evaluate(js)
         if (out === 'NOT_FOUND') return { content: `Nothing on the page matched ${input.selector ? 'selector ' + input.selector : '"' + input.text + '"'}. Use browser_read to see what is actually there.` }
         return { content: out }

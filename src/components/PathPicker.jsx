@@ -16,7 +16,7 @@ import React, { useState } from 'react'
  * fallback rather than as the interface, and it says which machine it means.
  */
 export default function PathPicker ({
-  value = '', onChange, kind = 'folder', projects = [], placeholder = '/Users/you/Projects/something',
+  value = '', onChange, kind = 'folder', projects = [], placeholder = 'a full folder path',
   label = 'Folder', actions = null
 }) {
   const native = typeof window !== 'undefined' && window.radiantNative?.pickPath
@@ -72,13 +72,13 @@ export default function PathPicker ({
         )}
         {native && typing && (
           <div className='pp-chosen'>
-            <span className='pp-chosen-none'>A full path on this Mac.</span>
+            <span className='pp-chosen-none'>A full path on this computer.</span>
             <button type='button' className='pp-link' onClick={() => setTyping(false)}>use the picker</button>
           </div>
         )}
         {!native && (
           <div className='pp-chosen'>
-            <span className='pp-chosen-none'>A full path on the Mac running Radiant — not on this device.</span>
+            <span className='pp-chosen-none'>A full path on the computer running Radiant — not on this device.</span>
           </div>
         )}
       </div>

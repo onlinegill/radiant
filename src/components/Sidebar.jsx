@@ -5,7 +5,7 @@ import HoldButton from './HoldButton.jsx'
 import { glyphColor } from '../theme.js'
 import { AgentGlyph } from './AgentIcons.jsx'
 import { isImported } from './Chat.jsx'
-import { api, saveToFile, getServer, deviceNoun } from '../api.js'
+import { api, saveToFile, getServer, deviceNoun, hotkey } from '../api.js'
 
 function UsageChip () {
   const [items, setItems] = useState(null)
@@ -389,7 +389,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
       {typeof window !== 'undefined' && window.radiantNative?.toggleHud && (
         <button
           className='hud-open'
-          data-tip={'What your agents are doing, floating\nabove your other apps  (\u2325\u2318R)'}
+          data-tip={'What your agents are doing, floating\nabove your other apps  (' + hotkey('⌥⌘R', platform) + ')'}
             data-tip-below
             data-tip-end
           title='Show the HUD'
