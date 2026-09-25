@@ -38,11 +38,11 @@ export function stopDictation () {
 }
 
 export function startDictation (req, res, locale = 'en-US') {
-  if (!helperAvailable()) {
-    // ⚠️ "NOT INSTALLED" IS THE WRONG REASON OFF A MAC, AND IT READS AS A REPAIRABLE
-    // ONE. Dictation is Apple's on-device speech recognition reached through the
-    // Swift helper; there is nothing to install elsewhere, so inviting the user to
-    // look for it sends them after a file that was never meant to be there.
+  // ⚠️ APPLE-ONLY, FULL STOP. Dictation is Apple's on-device speech recognition
+  // reached through the Swift helper; on Linux or Windows the helper exists but
+  // speaks no `dictate`, and spawning a .cjs script as a binary would fail
+  // anyway. Say the true thing up front instead of failing mid-stream.
+  if (process.platform !== 'darwin' || !helperAvailable()) {
     res.writeHead(503, { 'content-type': 'application/json' })
     return res.end(JSON.stringify({
       error: process.platform === 'darwin'

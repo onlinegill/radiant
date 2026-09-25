@@ -12,15 +12,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
  * The desktop helper for THIS platform. In the packaged app it is unpacked
  * beside server/.
  *
- * ⚠️ TWO HELPERS, ONE COMMAND LANGUAGE. native/radiant-control is Mach-O because
+ * ⚠️ THREE HELPERS, ONE COMMAND LANGUAGE. native/radiant-control is Mach-O because
  * CGEvent and Speech are Apple frameworks; gnome/radiant-control.cjs is a script
- * because its whole job is driving xdotool and ImageMagick, and compiling that
- * would buy nothing but a toolchain. They answer the same commands, so
- * everything below this function is platform-blind.
+ * because its whole job is driving xdotool and ImageMagick, and
+ * windows/radiant-control.cjs is a script because its whole job is driving
+ * user32 and System.Windows.Forms through the PowerShell that ships with
+ * Windows. Compiling either of the scripts would buy nothing but a toolchain.
+ * They answer the same commands, so everything below this function is
+ * platform-blind.
  */
 const HELPERS = {
   darwin: ['native', 'radiant-control'],
-  linux: ['gnome', 'radiant-control.cjs']
+  linux: ['gnome', 'radiant-control.cjs'],
+  win32: ['windows', 'radiant-control.cjs']
 }
 
 export function helperPath () {

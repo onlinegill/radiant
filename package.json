@@ -39,7 +39,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "templetongroup",
+        "owner": "onlinegill",
         "repo": "radiant"
       }
     ],
@@ -113,6 +113,23 @@
           "StartupWMClass": "radiant"
         }
       }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "extraResources": [
+        {
+          "from": "windows/radiant-control.cjs",
+          "to": "windows/radiant-control.cjs"
+        }
+      ]
     }
   },
   "dependencies": {
