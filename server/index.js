@@ -21,7 +21,7 @@ import { shouldFallBack, fallbackNotice } from './fallback.js'
 import { OAUTH_PROVIDERS, buildAuthUrl, completePaste, startLoopback, validAccessToken, startDevice, pollDevice } from './oauth.js'
 import { checkForUpdate } from './updater.js'
 import { ollamaBin, hermesBin, SPAWN_ENV } from './ollama.js'
-import { commandRisk } from './util.js'
+import { isDestructiveCommand } from './util.js'
 import { claimLock, beatLock, releaseLock, describeHolder, sweepLegacyLocks, BEAT_MS } from './lock.js'
 import { prStatus } from './pr.js'
 const LOCK_HOST = computerName()   // "Tony's Home MBP M4", not a DNS name
@@ -3429,14 +3429,16 @@ app.post('/api/chat', async (req, res) => {
   }
 
   const requestApproval = call => new Promise(async resolve => {
-    // approval mode: 'ask' = confirm every command, 'auto' = only risky ones, 'off' = never
+    // approval mode: 'ask' = confirm every command, 'auto' = everything except
+    // destructive commands, 'off' = never ask
     const mode = config.settings.approvalMode || (config.settings.approveCommands === false ? 'off' : 'ask')
     if (mode === 'off') return resolve(true)
-    // in Auto mode, run low-risk shell commands silently (a quick notice); still ask
-    // for risky commands and always for MCP / desktop control.
+    // In Auto mode, only destructive commands ask (rm -rf, sudo, format, ...).
+    // Builds, file writes and other ordinary work run silently with a notice;
+    // still always ask for MCP / desktop control.
     let reason = null
-    if (mode === 'auto' && call.name === 'run_command' && commandRisk(call.args?.command) === 'low') {
-      // ⚠️ THE RULES SAY LOW; JEV GETS A SECOND LOOK (decide.js assessCommand).
+    if (mode === 'auto' && call.name === 'run_command' && !isDestructiveCommand(call.args?.command)) {
+      // ⚠️ THE VETO SAYS SAFE; JEV GETS A SECOND LOOK (decide.js assessCommand).
       // It can only turn a silent run into a question, never the reverse.
       if (config.settings.smartTools !== false && config.keys.openrouter) {
         try {

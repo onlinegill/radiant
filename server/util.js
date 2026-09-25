@@ -113,9 +113,16 @@ const HIGH_RISK = [
 export function commandRisk (command) {
   const c = String(command || '')
   if (!c.trim()) return 'low'
-  if (HIGH_RISK.some(re => re.test(c))) return 'high'
+  if (isDestructiveCommand(c)) return 'high'
   // Every segment has to clear the allowlist on its own, so `cat notes | grep x`
   // stays low while `cat notes | sh` does not.
   const segments = c.split(/\|\||&&|[;|&\n]/)
   return segments.every(segmentIsReadOnly) ? 'low' : 'high'
+}
+
+// Destructive shapes only — the veto list without the read-only allowlist.
+// Auto-approve mode uses this: builds, file writes and other ordinary work run
+// without asking; only genuinely destructive commands still ask.
+export function isDestructiveCommand (command) {
+  return HIGH_RISK.some(re => re.test(String(command || '')))
 }
