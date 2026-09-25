@@ -50,20 +50,24 @@ export function saveMachineSettings (patch) {
 
 /** Does this directory exist AND answer promptly? See resolveDataDir. */
 function reachable (dir) {
+  const s = String(dir || '')
+  if (!s) return false
+  // Local paths: ask the filesystem directly. (A cmd.exe `if exist` probe was
+  // tried here for Windows, but its quoted command line did not survive process
+  // spawning intact — EVERY folder read as missing, so the stray-folder notice
+  // fired on every turn, naming the folder the chat was already working in.)
+  if (process.platform !== 'win32' || !/^(\\\\|\/\/)/.test(s)) {
+    try { return fs.statSync(s).isDirectory() } catch { return false }
+  }
+  // UNC network share on Windows: a dead server can hang statSync for a minute
+  // or more, so probe through cmd with a hard timeout instead.
+  // windowsVerbatimArguments passes the command line through exactly as written;
+  // without it Node's quote-escaping corrupts the quoted path.
   try {
-    if (process.platform === 'win32') {
-      // ⚠️ NO /bin/test ON WINDOWS. The old code spawned a binary that does
-      // not exist there, so reachable() was ALWAYS false on a PC: every
-      // session folder read as "missing", the stray-folder notice fired every
-      // turn, and the model concluded the workspace did not exist and refused
-      // to run anything. cmd's `if exist` answers for local and network paths
-      // alike, and the timeout keeps a dead share from hanging the turn the
-      // way a raw statSync would.
-      const safe = String(dir).replace(/"/g, '')
-      execFileSync(process.env.COMSPEC || 'cmd.exe', ['/d', '/s', '/c', `if exist "${safe}\\" (exit 0) else (exit 1)`], { timeout: 3000, stdio: 'ignore' })
-      return true
-    }
-    execFileSync('/bin/test', ['-d', dir], { timeout: 3000, stdio: 'ignore' })
+    const safe = s.replace(/"/g, '')
+    execFileSync(process.env.COMSPEC || 'cmd.exe',
+      ['/d', '/s', '/c', `if exist "${safe}" (exit 0) else (exit 1)`],
+      { timeout: 3000, stdio: 'ignore', windowsVerbatimArguments: true })
     return true
   } catch (e) {
     if (e && (e.code === 'ETIMEDOUT' || e.signal)) {

@@ -3799,8 +3799,29 @@ ${r.error ? `(no answer: ${r.error})` : (r.answer || '(the subagent returned not
           others: names.filter(n => n !== ag.name),
           role: acting ? 'act' : 'replan'
         })
+        // ⚠️ EACH AGENT SPEAKS ON ITS OWN SAVED MODEL. Spreading `common` put
+        // the chat's model on every speaker, so a Coder saved on DeepSeek
+        // still answered as the chat's gpt-5.5 — and said so out loud. Same
+        // provider/model/apiKey resolution the @agent consult path uses.
+        let speakerProvider = provider
+        let speakerModel = turnModel
+        let speakerApiKey = apiKey
+        if (ag.provider && ag.model) {
+          const sp = config.providers.find(p => p.id === ag.provider)
+          if (sp && (config.keys[sp.id] || config.oauth[sp.id] || sp.auth !== 'key')) {
+            speakerProvider = (sp.id === 'qwen' && config.oauth.qwen?.apiBase) ? { ...sp, baseUrl: config.oauth.qwen.apiBase } : sp
+            speakerModel = ag.model
+            speakerApiKey = config.keys[sp.id]
+          }
+        }
+        const speakerHasOAuth = Boolean(config.oauth[speakerProvider.id])
         await runTurn({
           ...common, agentId: pid, groupSpeakerId: pid, groupNames, persona,
+          provider: speakerProvider,
+          model: speakerModel,
+          apiKey: speakerApiKey,
+          getAccessToken: speakerHasOAuth ? () => validAccessToken(speakerProvider.id, config, saveConfig) : null,
+          getAccountId: speakerHasOAuth ? () => config.oauth[speakerProvider.id]?.accountId || null : null,
           // Only the agent doing the work gets tools. A re-planning agent is
           // revising its own notes; four agents with tools on one folder is
           // the thing addressing exists to prevent.
