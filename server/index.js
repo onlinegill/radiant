@@ -10,6 +10,7 @@ import { execFileSync, execFile } from 'node:child_process'
 import { promises as dnsp } from 'node:dns'
 import { fileURLToPath } from 'url'
 import { WebSocketServer } from 'ws'
+import { outsideWorkspace } from './tools.js'
 import pty from 'node-pty'
 import { execSync, spawn } from 'child_process'
 import { RADIANT_DIR, DIR_POINTER, CONFIG_PATH, defaultDataDir, dataDirStatus, loadConfig, saveConfig as writeConfig, publicConfig, listSessions, loadSession, saveSession, deleteSession, searchSessions, upsertCredential, activateAccount, removeAccount, SESSIONS_DIR, listProjects, getProject, saveProject, deleteProject, migrateProjects, agentsStore, skillsStore, recipesStore, cloudStatus, MACHINE_KEYS, saveMachineSettings, skillLibrary, inspectSkillFolder, resolveSkillDir, USER_SKILLS_ROOT, repairCloudFolder, builtinAgent, listTasks, loadTask, saveTask, deleteTask, TASK_STATES, listLoops, loadLoop, saveLoop, deleteLoop, LOOP_STATES, listGraphs, loadGraph, saveGraph, deleteGraph, saveTurnSession , loadProjectRules } from './config.js'
@@ -3429,14 +3430,20 @@ app.post('/api/chat', async (req, res) => {
   }
 
   const requestApproval = call => new Promise(async resolve => {
-    // approval mode: 'ask' = confirm every command, 'auto' = everything except
-    // destructive commands, 'off' = never ask
+    // approval mode: 'ask' = confirm every command, 'auto' = ordinary work runs,
+    // 'off' = never ask
     const mode = config.settings.approvalMode || (config.settings.approveCommands === false ? 'off' : 'ask')
     if (mode === 'off') return resolve(true)
-    // In Auto mode, only destructive commands ask (rm -rf, sudo, format, ...).
-    // Builds, file writes and other ordinary work run silently with a notice;
-    // still always ask for MCP / desktop control.
+    // In Auto mode, only genuinely dangerous things ask: destructive commands
+    // (rm -rf, sudo, format, ...), writes/reads OUTSIDE the workspace folder,
+    // and always MCP / desktop control. Builds, in-workspace file edits and
+    // other ordinary work run silently with a notice.
     let reason = null
+    const isWrite = call.name === 'write_file' || call.name === 'edit_file'
+    if (mode === 'auto' && isWrite && !outsideWorkspace(call.args?.path, session.cwd)) {
+      emit({ type: 'notice', text: `${call.name === 'edit_file' ? 'Edited' : 'Wrote'}: ${call.args?.path}` })
+      return resolve(true)
+    }
     if (mode === 'auto' && call.name === 'run_command' && !isDestructiveCommand(call.args?.command)) {
       // ⚠️ THE VETO SAYS SAFE; JEV GETS A SECOND LOOK (decide.js assessCommand).
       // It can only turn a silent run into a question, never the reverse.

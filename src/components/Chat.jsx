@@ -1965,7 +1965,7 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
               <button
                 className={'pill-toggle' + (approvalMode === 'off' ? ' warn' : approvalMode === 'auto' ? ' on' : '')}
                 onClick={onCycleApproval}
-                data-tip={'Permissions — what the agent may do without asking:\n• Ask each: confirm every command (safest)\n• Auto: run commands, ask only for destructive ones\n• Allow all: never ask (fastest, least safe)\nClick to cycle.'}
+                data-tip={'Permissions — what the agent may do without asking:\n• Ask each: confirm every command (safest)\n• Auto: run commands and workspace file edits, ask only for destructive ones\n• Allow all: never ask (fastest, least safe)\nClick to cycle.'}
               >
                 {approvalMode === 'off' ? <Icon.unlock size={15} /> : approvalMode === 'auto' ? <Icon.zap size={15} /> : <Icon.hand size={15} />}
                 <span className='pill-label'>{approvalMode === 'off' ? 'allow all' : approvalMode === 'auto' ? 'auto approve' : 'ask each'}</span>
