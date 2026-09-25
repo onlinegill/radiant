@@ -2,7 +2,7 @@
 // this only *detects* a newer release and points at the download. Silent
 // apply-and-relaunch would additionally require a signed build.
 
-const REPO = 'templetongroup/radiant'
+const REPO = 'onlinegill/radiant'
 
 // compare "1.2.0" style strings; returns true if b is strictly newer than a
 export function isNewer (a, b) {

@@ -2302,7 +2302,7 @@ function AboutPane ({ config, onSettings }) {
   const startDownload = () => { setPhase('downloading'); setProgress(0); native.download() }
   const restart = () => native.install()
   const relaunch = () => native.relaunch()
-  const openReleasePage = () => window.open(status?.downloadUrl || 'https://github.com/templetongroup/radiant/releases/latest', '_blank', 'noopener')
+  const openReleasePage = () => window.open(status?.downloadUrl || 'https://github.com/onlinegill/radiant/releases/latest', '_blank', 'noopener')
 
   return (
     <div className='set-section'>

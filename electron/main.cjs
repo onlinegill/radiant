@@ -118,6 +118,10 @@ ipcMain.on('rad:open-settings', async (e, tab) => {
     minWidth: 720,
     minHeight: 520,
     title: 'Radiant Settings',
+    // ⚠️ SHOW ONLY WHEN RENDERED. A fresh renderer has to fetch and parse the
+    // whole bundle before anything paints; showing the window immediately is
+    // what made Settings visibly "load like a web page" on Windows.
+    show: false,
     backgroundColor: lastBg || (nativeTheme.themeSource === 'light' ? '#f5f5f6' : '#141517'),
     // ⚠️ NO `parent`. On macOS a child window is ATTACHED to its parent: it floats
     // above it always, and it MOVES WITH IT — drag the main window and Settings
@@ -133,6 +137,7 @@ ipcMain.on('rad:open-settings', async (e, tab) => {
     if (win && !win.isDestroyed()) win.webContents.send('rad:settings-closed')
   })
   settingsWin.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' } })
+  settingsWin.once('ready-to-show', () => { if (settingsWin && !settingsWin.isDestroyed()) settingsWin.show() })
   settingsWin.loadURL(`http://127.0.0.1:${port}/#${hash}`)
 })
 // ⚠️ TWO WINDOWS, TWO COPIES OF THE CONFIG. Settings is a separate renderer
