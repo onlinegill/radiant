@@ -256,7 +256,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
   const agentOf = id => agents.find(a => a.id === id)
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem('radiant.sidebarWidth'))
-    return saved >= MIN_W && saved <= MAX_W ? saved : 248
+    return saved >= MIN_W && saved <= MAX_W ? saved : 280
   })
   const dragging = useRef(false)
 
@@ -372,7 +372,7 @@ export default function Sidebar ({ section = 'chat', onSection, onOpenAgents, se
   const rowCtx = { agentOf, activeId, working, onOpen, projects, onMoveSession, onPin, onArchive, onDelete, edit }
 
   return (
-    <nav className={'sidebar' + (width < 244 ? ' is-narrow' : '')} style={{ width }}>
+    <nav className={'sidebar' + (width < 264 ? ' is-narrow' : '')} style={{ width }}>
       <div className='brand'>
         <div className={'logo-mark brand-mark' + (working ? ' working' : '')} aria-hidden />
         <span className='wordmark brand-word'>Radiant</span>

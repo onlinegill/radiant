@@ -440,7 +440,7 @@ code, pre, .mono { font-family: var(--font-mono); }
 
 /* ---------- sidebar ---------- */
 .sidebar {
-  width: 248px; flex-shrink: 0;
+  width: 280px; flex-shrink: 0;
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
@@ -1490,7 +1490,7 @@ code, pre, .mono { font-family: var(--font-mono); }
 /* accent while a tool section is open, exactly like the selected switch tab */
 .sidebar-tools.is-active .glide-trigger { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .glide-ico { display: inline-flex; align-items: center; color: currentColor; flex: none; }
-/* ⚠️ THE ROW MUST FIT AT MIN_W (190). Full labels + the Tools pill need ~240px;
+/* ⚠️ THE ROW MUST FIT AT MIN_W (190). Full labels + the Tools pill need ~260px;
    below that the sidebar drops to icons only rather than letting the tabs
    collide, which is what a narrowed nav used to do. Titles/aria-labels carry
    the names for a screen reader and on hover. */
