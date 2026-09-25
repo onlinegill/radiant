@@ -2115,8 +2115,8 @@ function AgentPane ({ config, onSettings }) {
               and point at the half that does work. */}
         {(() => { const p = comp?.platform || config?.platform; return p && p !== 'darwin' })() ? (
           <div className='comp-stat'>
-            <span className={comp.accessibility && comp.screenRecording ? 'key-ok' : 'fit-badge fit-no'}>
-              {comp.accessibility && comp.screenRecording ? '✓' : '—'} Desktop control
+            <span className={comp?.accessibility && comp?.screenRecording ? 'key-ok' : 'fit-badge fit-no'}>
+              {comp?.accessibility && comp?.screenRecording ? '✓' : '—'} Desktop control
             </span>
             {/* ⚠️ NAME WHAT IS ACTUALLY IN THE WAY. There are two different
                 problems here and only one of them can be fixed: a missing
@@ -2125,12 +2125,12 @@ function AgentPane ({ config, onSettings }) {
                 install something would send them after a fix that does not
                 exist. The helper reports which it is. */}
             <span className='desc'>
-              {comp.reason === 'wayland'
+              {comp?.reason === 'wayland'
                 ? 'this is a Wayland session, which refuses one app typing into another by design. Log in with the X11 (Xorg) session to use it. Browser control above works either way.'
-                : comp.reason === 'missing:xdotool' ? 'install xdotool (apt install xdotool) and reopen this pane.'
-                  : comp.reason === 'missing:imagemagick' ? 'install ImageMagick (apt install imagemagick) and reopen this pane.'
+                : comp?.reason === 'missing:xdotool' ? 'install xdotool (apt install xdotool) and reopen this pane.'
+                  : comp?.reason === 'missing:imagemagick' ? 'install ImageMagick (apt install imagemagick) and reopen this pane.'
                     : comp.reason?.startsWith('missing:') ? 'install xdotool and ImageMagick (apt install xdotool imagemagick) and reopen this pane.'
-                      : comp.accessibility && comp.screenRecording ? 'the agent can see the screen, click and type.'
+                      : comp?.accessibility && comp?.screenRecording ? 'the agent can see the screen, click and type.'
                         : 'not available — the helper for this platform did not answer.'}
             </span>
           </div>
@@ -3653,6 +3653,26 @@ const TABS = [
   { id: 'about', label: 'About' }
 ]
 
+// A crashing settings tab used to unmount the whole window — blank white
+// page, no nav, user had to kill and reopen. Each tab now gets its own
+// boundary: the broken tab shows a note, everything else keeps working.
+class PaneBoundary extends React.Component {
+  constructor (props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError (error) { return { error } }
+  componentDidCatch (error) { try { console.error('settings pane crashed:', error) } catch (_) {} }
+  render () {
+    if (this.state.error) {
+      return (
+        <div className='set-section'>
+          <h3>{this.props.title || 'Settings'}</h3>
+          <div className='spec-note'>This section couldn't load — something in it hit an error. The rest of Settings still works; try another tab.</div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function Settings ({ config, initialTab = 'providers', initialAgentView = null, embedded = false, onClose, onSettings, onConfigChange, onModelsChanged }) {
   const [tab, setTab] = useState(initialTab)
   const body = (
@@ -3670,19 +3690,19 @@ export default function Settings ({ config, initialTab = 'providers', initialAge
           ))}
         </nav>
         <div className='modal-body'>
-          {tab === 'guide' && <GuidePane platform={config?.platform} />}
-          {tab === 'providers' && <ProvidersPane config={config} onConfigChange={onConfigChange} />}
-          {tab === 'models' && <ModelsPane onModelsChanged={onModelsChanged} config={config} onSettings={onSettings} />}
-          {tab === 'agents' && <AgentsPane config={config} onConfigChange={onConfigChange} initialView={initialAgentView} />}
-          {tab === 'skills' && <SkillsPane config={config} onConfigChange={onConfigChange} />}
-          {tab === 'mcp' && <McpPane config={config} onConfigChange={onConfigChange} onSettings={onSettings} />}
-          {tab === 'memory' && <MemoryPane config={config} onSettings={onSettings} />}
-          {tab === 'devices' && <DevicesPane config={config} />}
-          {tab === 'appearance' && <AppearancePane config={config} onSettings={onSettings} />}
-          {tab === 'chrome' && <ChromePane />}
-          {tab === 'voice' && <VoicePane config={config} onSettings={onSettings} onConfigChange={onConfigChange} />}
-          {tab === 'agent' && <AgentPane config={config} onSettings={onSettings} />}
-          {tab === 'about' && <AboutPane config={config} onSettings={onSettings} />}
+          <PaneBoundary title='Read me'>{tab === 'guide' && <GuidePane platform={config?.platform} />}</PaneBoundary>
+          <PaneBoundary title='Providers'>{tab === 'providers' && <ProvidersPane config={config} onConfigChange={onConfigChange} />}</PaneBoundary>
+          <PaneBoundary title='Models'>{tab === 'models' && <ModelsPane onModelsChanged={onModelsChanged} config={config} onSettings={onSettings} />}</PaneBoundary>
+          <PaneBoundary title='Agents'>{tab === 'agents' && <AgentsPane config={config} onConfigChange={onConfigChange} initialView={initialAgentView} />}</PaneBoundary>
+          <PaneBoundary title='Skills'>{tab === 'skills' && <SkillsPane config={config} onConfigChange={onConfigChange} />}</PaneBoundary>
+          <PaneBoundary title='MCP'>{tab === 'mcp' && <McpPane config={config} onConfigChange={onConfigChange} onSettings={onSettings} />}</PaneBoundary>
+          <PaneBoundary title='Memory'>{tab === 'memory' && <MemoryPane config={config} onSettings={onSettings} />}</PaneBoundary>
+          <PaneBoundary title='Devices'>{tab === 'devices' && <DevicesPane config={config} />}</PaneBoundary>
+          <PaneBoundary title='Appearance'>{tab === 'appearance' && <AppearancePane config={config} onSettings={onSettings} />}</PaneBoundary>
+          <PaneBoundary title='Chrome'>{tab === 'chrome' && <ChromePane />}</PaneBoundary>
+          <PaneBoundary title='Voice'>{tab === 'voice' && <VoicePane config={config} onSettings={onSettings} onConfigChange={onConfigChange} />}</PaneBoundary>
+          <PaneBoundary title='Automation'>{tab === 'agent' && <AgentPane config={config} onSettings={onSettings} />}</PaneBoundary>
+          <PaneBoundary title='About'>{tab === 'about' && <AboutPane config={config} onSettings={onSettings} />}</PaneBoundary>
         </div>
       </div>
     </div>
