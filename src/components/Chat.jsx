@@ -1874,8 +1874,10 @@ export default function Chat ({ session, live, todos = [], stats, approval, ques
               />
               
               {/* The microphone is on whichever Mac runs the server, so a client
-                  pointed at someone else's Radiant must not offer to open it. */}
-              {!onAnotherMac && (
+                  pointed at someone else's Radiant must not offer to open it.
+                  And dictation is macOS speech recognition — on Windows/Linux
+                  the button could never work, so it is not shown there. */}
+              {!onAnotherMac && platform === 'darwin' && (
                 <button
                   className={'attach-btn is-dictate' + (dictating ? ' is-listening' : '')}
                   onClick={toggleDictation}
