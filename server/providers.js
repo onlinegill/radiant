@@ -1017,7 +1017,11 @@ export async function runTurn ({ provider, model, routed, verifyClaims, apiKey, 
   // streamed: this is the sentence that explains every odd path in the turn
   // below, and it has to still be there when the turn is read back.
   if (strayCwd) {
-    emit({ type: 'notice', text: `This chat's folder is not on this Mac — ${strayCwd} — so it is working in ${cwd} instead. That usually means the chat was started on another Mac; pick a folder for it in the header to make it stick here.` })
+    // ⚠️ NOT ALWAYS A MAC. The chat may have started on the user's Mac while
+    // this server runs on their Windows PC (or vice versa) — name the machine
+    // this server is actually on, the same rule as deviceNoun() in src/api.js.
+    const noun = process.platform === 'win32' ? 'PC' : process.platform === 'darwin' ? 'Mac' : 'computer'
+    emit({ type: 'notice', text: `This chat's folder is not on this ${noun} — ${strayCwd} — so it is working in ${cwd} instead. That usually means the chat was started on another ${noun}; pick a folder for it in the header to make it stick here.` })
   }
   let compacted = false
   // ⚠️ THE PROVIDER ALREADY TOLD US HOW BIG THE LAST REQUEST WAS. usage.input on
