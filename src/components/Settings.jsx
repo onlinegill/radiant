@@ -2129,7 +2129,7 @@ function AgentPane ({ config, onSettings }) {
                 ? 'this is a Wayland session, which refuses one app typing into another by design. Log in with the X11 (Xorg) session to use it. Browser control above works either way.'
                 : comp?.reason === 'missing:xdotool' ? 'install xdotool (apt install xdotool) and reopen this pane.'
                   : comp?.reason === 'missing:imagemagick' ? 'install ImageMagick (apt install imagemagick) and reopen this pane.'
-                    : comp.reason?.startsWith('missing:') ? 'install xdotool and ImageMagick (apt install xdotool imagemagick) and reopen this pane.'
+                    : comp?.reason?.startsWith('missing:') ? 'install xdotool and ImageMagick (apt install xdotool imagemagick) and reopen this pane.'
                       : comp?.accessibility && comp?.screenRecording ? 'the agent can see the screen, click and type.'
                         : 'not available — the helper for this platform did not answer.'}
             </span>
@@ -2207,7 +2207,7 @@ function AgentPane ({ config, onSettings }) {
  * settings?" It is now: one tab, the extension first, the fallback second, and
  * nothing else.
  */
-function ChromePane () {
+function ChromePane ({ platform }) {
   return (
     <div className='set-section'>
       <h3>Chrome</h3>
@@ -2227,7 +2227,7 @@ function ChromePane () {
           Chrome is connected, and "Browser control ✓" used to mean only that
           playwright-core loaded — true on every install, so it never told anyone
           anything. */}
-      <ChromeAttachBlock />
+      <ChromeAttachBlock platform={platform} />
     </div>
   )
 }
@@ -2420,7 +2420,7 @@ function AboutPane ({ config, onSettings }) {
  * and a breach surface forever, to move one folder. A folder your Macs already
  * share does the same job and keeps the claim true.
  */
-function DataFolderBlock () {
+function DataFolderBlock ({ platform }) {
   const [info, setInfo] = useState(null)
   const [targets, setTargets] = useState([])
   const [choice, setChoice] = useState('')
@@ -2473,7 +2473,7 @@ function DataFolderBlock () {
       // is indistinguishable from a broken app.
       const picked = await window.radiantNative.pickFolder(info?.active)
       if (!picked) {
-        setMsg({ kind: 'err', text: `No folder chosen, so nothing changed. Pick a folder your other ${deviceNoun(config?.platform)}s can see — OneDrive, Dropbox, or any synced folder.` })
+        setMsg({ kind: 'err', text: `No folder chosen, so nothing changed. Pick a folder your other ${deviceNoun(platform)}s can see — OneDrive, Dropbox, or any synced folder.` })
         return
       }
       return send({ path: picked }, r => r.adopted
@@ -2489,7 +2489,7 @@ function DataFolderBlock () {
   // silently roll the user back to whatever they had that day. mode:'replace'
   // copies the live data down and moves the stale copy aside instead.
   const disable = () => send({ path: 'reset', reset: true, mode: 'replace' },
-    r => `Your setup was copied back to this ${deviceNoun(config?.platform)}${r.backedUp ? ' and the old local copy was kept alongside it' : ''}. Quit and reopen Radiant.`)
+    r => `Your setup was copied back to this ${deviceNoun(platform)}${r.backedUp ? ' and the old local copy was kept alongside it' : ''}. Quit and reopen Radiant.`)
 
   if (!info) return null
   // What the user CHOSE, not what is loaded — the pointer changes now, the
@@ -2507,12 +2507,12 @@ function DataFolderBlock () {
           disabled={busy}
           onChange={e => (e.target.checked ? enable() : disable())}
         />
-        <span>Keep my setup in {current ? current.label : (targets.find(t => t.path === choice)?.label || `a folder my other ${deviceNoun(config?.platform)}s can see…`)}</span>
+        <span>Keep my setup in {current ? current.label : (targets.find(t => t.path === choice)?.label || `a folder my other ${deviceNoun(platform)}s can see…`)}</span>
         {/* Nobody should have to know where iCloud Drive lives on disk. */}
       </label>
       <p className='set-hint'>
         No account, and nothing of yours stored anywhere but your own cloud drive.
-        Turn this on once per {deviceNoun(config?.platform)}.
+        Turn this on once per {deviceNoun(platform)}.
       </p>
 
       {!syncing && targets.length > 1 && (
@@ -2524,7 +2524,7 @@ function DataFolderBlock () {
           genuinely cannot be. */}
       {!syncing && !targets.length && (
         <p className='set-hint'>
-          Tick the box and choose any folder your other {deviceNoun(config?.platform)}s can see.
+          Tick the box and choose any folder your other {deviceNoun(platform)}s can see.
         </p>
       )}
 
@@ -2539,8 +2539,8 @@ function DataFolderBlock () {
             <button className='btn-secondary' disabled={busy} onClick={() => send({ path: conflict.dest, mode: 'adopt' }, () => 'Using the setup that was already in that folder. Quit and reopen Radiant.')}>
               Use what is in the folder
             </button>
-            <button className='btn-secondary' disabled={busy} onClick={() => send({ path: conflict.dest, mode: 'replace' }, r => `Replaced it with this ${deviceNoun(config?.platform)}'s setup${r.backedUp ? '; the previous one was kept alongside it' : ''}. Quit and reopen Radiant.`)}>
-              Use this {deviceNoun(config?.platform)}&rsquo;s setup
+            <button className='btn-secondary' disabled={busy} onClick={() => send({ path: conflict.dest, mode: 'replace' }, r => `Replaced it with this ${deviceNoun(platform)}'s setup${r.backedUp ? '; the previous one was kept alongside it' : ''}. Quit and reopen Radiant.`)}>
+              Use this {deviceNoun(platform)}&rsquo;s setup
             </button>
             <button className='btn-secondary' disabled={busy} onClick={() => setConflict(null)}>Cancel</button>
           </div>
@@ -2558,8 +2558,8 @@ function DataFolderBlock () {
           }}>Choose another folder…</button>
         </div>
         <p className='set-hint'>
-          One {deviceNoun(config?.platform)} at a time. Two copies of Radiant writing to the same folder at
-          once will overwrite each other — to work from two {deviceNoun(config?.platform)}s together, share
+          One {deviceNoun(platform)} at a time. Two copies of Radiant writing to the same folder at
+          once will overwrite each other — to work from two {deviceNoun(platform)}s together, share
           this one below instead.
         </p>
       </details>
@@ -2567,7 +2567,7 @@ function DataFolderBlock () {
       {info.unreachable && (
         <p className='set-hint is-warn'>
           The shared folder could not be reached, so Radiant is running from this
-          {deviceNoun(config?.platform)} and your work is intact. Reconnect it, or turn sync off.
+          {deviceNoun(platform)} and your work is intact. Reconnect it, or turn sync off.
         </p>
       )}
       {/* ⚠️ A TICKED BOX THAT IS NOT IN EFFECT YET MUST SAY SO LOUDLY. The folder
@@ -2650,7 +2650,7 @@ function DataFolderBlock () {
  * would be no undo if it could. Re-importing the same file twice gives you two
  * copies, which is the safe way round.
  */
-function ChatTransfer () {
+function ChatTransfer ({ platform }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const file = useRef(null)
@@ -2693,7 +2693,7 @@ function ChatTransfer () {
     <>
       <h3 style={{ marginTop: 26 }}>Move your chats</h3>
       <p className='hint' style={{ marginTop: 0 }}>
-        Export everything as one file to keep a copy, move to another {deviceNoun(config?.platform)}, or
+        Export everything as one file to keep a copy, move to another {deviceNoun(platform)}, or
         hand a conversation to someone. Importing only ever adds — it never
         replaces a chat you already have, so the same file imported twice gives
         you two copies.
@@ -2756,7 +2756,7 @@ function HostDiagram () {
   )
 }
 
-function ChromeAttachBlock () {
+function ChromeAttachBlock ({ platform }) {
   const [st, setSt] = useState(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -2783,7 +2783,7 @@ function ChromeAttachBlock () {
   const on = Boolean(st?.reachable)
   return (
     <>
-    <BrowserBridgeBlock />
+    <BrowserBridgeBlock platform={platform} />
     <div className='set-block'>
       <div className='set-block-title'>If you would rather not install the extension</div>
       <div className='comp-stat'>
@@ -2830,7 +2830,7 @@ function ChromeAttachBlock () {
  * the distinction Google drew after the flag was used to sideload malware. So
  * "one click" means opening the listing, and the click is theirs.
  */
-function BrowserBridgeBlock () {
+function BrowserBridgeBlock ({ platform }) {
   const [st, setSt] = useState(null)
   const [copied, setCopied] = useState(false)
   useEffect(() => {
@@ -2869,7 +2869,7 @@ function BrowserBridgeBlock () {
       <p className='hint'>
         {on
           ? <>The agent works in your own browser now — the tabs you have open, signed in as you.
-              Nothing is sent anywhere: the extension talks only to Radiant on this {deviceNoun(config?.platform)}.</>
+              Nothing is sent anywhere: the extension talks only to Radiant on this {deviceNoun(platform)}.</>
           : seen
             ? <>So it is installed. Chrome is probably closed, or the extension is switched off in the
                 profile you are using — it reconnects on its own within half a minute of Chrome opening.
@@ -2877,7 +2877,7 @@ function BrowserBridgeBlock () {
             : <>If you have already installed it, open Chrome: it finds Radiant on its own within half a
                 minute. Otherwise, Chrome no longer lets any app connect to your everyday browser, so
                 the extension is the way in. It runs inside Chrome with your session and talks only to
-                Radiant on this {deviceNoun(config?.platform)}.</>}
+                Radiant on this {deviceNoun(platform)}.</>}
       </p>
       {!on && !seen && (
         <div className='row' style={{ marginTop: 8 }}>
@@ -2896,7 +2896,7 @@ function BrowserBridgeBlock () {
             <li>Open <span className='mono'>chrome://extensions</span></li>
             <li>Turn on <b>Developer mode</b>, top right</li>
             <li>Click <b>Load unpacked</b></li>
-            <li>{config?.platform === 'win32'
+            <li>{platform === 'win32'
               ? <><span className='mono'>Alt+D</span>, paste the folder below, and choose it</>
               : <>Press <span className='mono'>⇧⌘G</span>, paste the folder below, and choose it</>}</li>
           </ol>
@@ -3057,7 +3057,7 @@ function DevicesPane ({ config }) {
               already coming from that {deviceNoun(config?.platform)}. Switch to this {deviceNoun(config?.platform)}'s own server below if you
               want to sync instead.
             </p>
-          : <DataFolderBlock />}
+          : <DataFolderBlock platform={config?.platform} />}
       </div>
 
 
@@ -3572,7 +3572,7 @@ function MemoryPane ({ config, onSettings }) {
         <button className='small-btn danger' onClick={() => clearOld(0)}>Delete all sessions</button>
       </div>
 
-      <ChatTransfer />
+      <ChatTransfer platform={config?.platform} />
 
       <h3 style={{ marginTop: 26 }}>Memory</h3>
       <p className='hint' style={{ marginTop: 0 }}>Radiant remembers durable facts about you and your projects across sessions, and gives the relevant ones to the agent. Everything is stored locally in <code className='mono'>~/.radiant/memory.json</code>.</p>
@@ -3666,6 +3666,7 @@ class PaneBoundary extends React.Component {
         <div className='set-section'>
           <h3>{this.props.title || 'Settings'}</h3>
           <div className='spec-note'>This section couldn't load — something in it hit an error. The rest of Settings still works; try another tab.</div>
+          {this.state.error && <div className='spec-note' style={{ marginTop: 8 }}>Error detail: {String(this.state.error.message || this.state.error)}</div>}
         </div>
       )
     }
@@ -3690,19 +3691,19 @@ export default function Settings ({ config, initialTab = 'providers', initialAge
           ))}
         </nav>
         <div className='modal-body'>
-          <PaneBoundary title='Read me'>{tab === 'guide' && <GuidePane platform={config?.platform} />}</PaneBoundary>
-          <PaneBoundary title='Providers'>{tab === 'providers' && <ProvidersPane config={config} onConfigChange={onConfigChange} />}</PaneBoundary>
-          <PaneBoundary title='Models'>{tab === 'models' && <ModelsPane onModelsChanged={onModelsChanged} config={config} onSettings={onSettings} />}</PaneBoundary>
-          <PaneBoundary title='Agents'>{tab === 'agents' && <AgentsPane config={config} onConfigChange={onConfigChange} initialView={initialAgentView} />}</PaneBoundary>
-          <PaneBoundary title='Skills'>{tab === 'skills' && <SkillsPane config={config} onConfigChange={onConfigChange} />}</PaneBoundary>
-          <PaneBoundary title='MCP'>{tab === 'mcp' && <McpPane config={config} onConfigChange={onConfigChange} onSettings={onSettings} />}</PaneBoundary>
-          <PaneBoundary title='Memory'>{tab === 'memory' && <MemoryPane config={config} onSettings={onSettings} />}</PaneBoundary>
-          <PaneBoundary title='Devices'>{tab === 'devices' && <DevicesPane config={config} />}</PaneBoundary>
-          <PaneBoundary title='Appearance'>{tab === 'appearance' && <AppearancePane config={config} onSettings={onSettings} />}</PaneBoundary>
-          <PaneBoundary title='Chrome'>{tab === 'chrome' && <ChromePane />}</PaneBoundary>
-          <PaneBoundary title='Voice'>{tab === 'voice' && <VoicePane config={config} onSettings={onSettings} onConfigChange={onConfigChange} />}</PaneBoundary>
-          <PaneBoundary title='Automation'>{tab === 'agent' && <AgentPane config={config} onSettings={onSettings} />}</PaneBoundary>
-          <PaneBoundary title='About'>{tab === 'about' && <AboutPane config={config} onSettings={onSettings} />}</PaneBoundary>
+          {tab === 'guide' && <PaneBoundary key='guide' title='Read me'><GuidePane platform={config?.platform} /></PaneBoundary>}
+          {tab === 'providers' && <PaneBoundary key='providers' title='Providers'><ProvidersPane config={config} onConfigChange={onConfigChange} /></PaneBoundary>}
+          {tab === 'models' && <PaneBoundary key='models' title='Models'><ModelsPane onModelsChanged={onModelsChanged} config={config} onSettings={onSettings} /></PaneBoundary>}
+          {tab === 'agents' && <PaneBoundary key='agents' title='Agents'><AgentsPane config={config} onConfigChange={onConfigChange} initialView={initialAgentView} /></PaneBoundary>}
+          {tab === 'skills' && <PaneBoundary key='skills' title='Skills'><SkillsPane config={config} onConfigChange={onConfigChange} /></PaneBoundary>}
+          {tab === 'mcp' && <PaneBoundary key='mcp' title='MCP'><McpPane config={config} onConfigChange={onConfigChange} onSettings={onSettings} /></PaneBoundary>}
+          {tab === 'memory' && <PaneBoundary key='memory' title='Memory'><MemoryPane config={config} onSettings={onSettings} /></PaneBoundary>}
+          {tab === 'devices' && <PaneBoundary key='devices' title='Devices'><DevicesPane config={config} /></PaneBoundary>}
+          {tab === 'appearance' && <PaneBoundary key='appearance' title='Appearance'><AppearancePane config={config} onSettings={onSettings} /></PaneBoundary>}
+          {tab === 'chrome' && <PaneBoundary key='chrome' title='Chrome'><ChromePane platform={config?.platform} /></PaneBoundary>}
+          {tab === 'voice' && <PaneBoundary key='voice' title='Voice'><VoicePane config={config} onSettings={onSettings} onConfigChange={onConfigChange} /></PaneBoundary>}
+          {tab === 'agent' && <PaneBoundary key='agent' title='Automation'><AgentPane config={config} onSettings={onSettings} /></PaneBoundary>}
+          {tab === 'about' && <PaneBoundary key='about' title='About'><AboutPane config={config} onSettings={onSettings} /></PaneBoundary>}
         </div>
       </div>
     </div>
