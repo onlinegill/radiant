@@ -3794,6 +3794,17 @@ ${r.error ? `(no answer: ${r.error})` : (r.answer || '(the subagent returned not
         emit({ type: 'agent_turn', agentId: pid, name: ag.name })
         const acting = named.includes(pid)
         const replanning = swept.includes(pid)
+        // ⚠️ PLAIN GROUP TURNS GET TOOLS TOO. The @Name gate exists so that when
+        // one agent is assigned the work, the others re-plan WITHOUT racing it
+        // on the same folder with tools. But when nobody is addressed at all,
+        // `acting` was false for every speaker — skills: [], useTools: false —
+        // so each agent truthfully reported "my tools are disabled for this
+        // chat" even with the tools option on. An open floor is not an
+        // assignment: everyone speaks with the session's normal tool access.
+        // (Persona keeps the old `acting` flag: nobody was addressed, so the
+        // "you are the one acting on it" addendum must NOT fire for the room.)
+        const openFloor = !named.length && !swept.length
+        const tooled = acting || openFloor
         const persona = groupPersona(ag.persona, {
           names, self: ag.name, addressed: acting || replanning,
           others: names.filter(n => n !== ag.name),
@@ -3824,10 +3835,12 @@ ${r.error ? `(no answer: ${r.error})` : (r.answer || '(the subagent returned not
           getAccountId: speakerHasOAuth ? () => config.oauth[speakerProvider.id]?.accountId || null : null,
           // Only the agent doing the work gets tools. A re-planning agent is
           // revising its own notes; four agents with tools on one folder is
-          // the thing addressing exists to prevent.
-          skills: acting ? mergedSkills : [],
-          useTools: acting && session.useTools !== false,
-          computerControl: acting && Boolean(session.computerControl)
+          // the thing addressing exists to prevent. (On an open floor — nobody
+          // addressed — everyone gets the session's normal tool access; see
+          // `tooled` above.)
+          skills: tooled ? mergedSkills : [],
+          useTools: tooled && session.useTools !== false,
+          computerControl: tooled && Boolean(session.computerControl)
         })
       }
     } else {
