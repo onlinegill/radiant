@@ -2113,7 +2113,7 @@ function AgentPane ({ config, onSettings }) {
               permissions the user had neglected — under advice to open a System
               Settings pane their machine does not have. Say the true thing once
               and point at the half that does work. */}
-        {comp?.platform && comp.platform !== 'darwin' ? (
+        {(() => { const p = comp?.platform || config?.platform; return p && p !== 'darwin' })() ? (
           <div className='comp-stat'>
             <span className={comp.accessibility && comp.screenRecording ? 'key-ok' : 'fit-badge fit-no'}>
               {comp.accessibility && comp.screenRecording ? '✓' : '—'} Desktop control
@@ -2949,6 +2949,10 @@ function QrCode ({ text, size = 168 }) {
 }
 
 function DevicesPane ({ config }) {
+  // The word for the machine this server runs on: Mac on macOS, PC on
+  // Windows, computer elsewhere. Used throughout this pane so Windows
+  // never reads "Mac" about itself.
+  const DN = deviceNoun(config?.platform)
   const [share, setShare] = useState(null)
   // The token is a credential; it starts hidden. See the note beside it.
   const [showToken, setShowToken] = useState(false)
@@ -3001,7 +3005,7 @@ function DevicesPane ({ config }) {
 
   return (
     <div className='set-section'>
-      <h3>Using Radiant on more than one Mac</h3>
+      <h3>Using Radiant on more than one {DN}</h3>
 
       {/* ⚠️ SAY WHAT THIS MAC IS DOING BEFORE OFFERING TO CHANGE IT. The pane
           used to open with three unlabelled mechanisms and no statement of the
@@ -3015,22 +3019,22 @@ function DevicesPane ({ config }) {
               (models, agents, chats) comes from <code className='mono'>{server.base}</code>, not from here.</>
           : syncing
             ? (folder?.cloud && folder.cloud.exists && !folder.cloud.ubiquitous
-                ? <>This Mac is <strong>writing to a folder that is not in iCloud</strong> —
+                ? <>This {DN} is <strong>writing to a folder that is not in iCloud</strong> —
                     it looks like the right place, but macOS is not syncing it, so nothing is
-                    shared with your other Macs. See below.</>
-                : <>This Mac is <strong>sharing one setup with your other Macs</strong>, kept
+                    shared with your other {DN}s. See below.</>
+                : <>This {DN} is <strong>sharing one setup with your other {DN}s</strong>, kept
                     in <code className='mono'>{folderLabel}</code>.</>)
             : folder?.pendingRestart
-              ? <>This Mac is <strong>still using its own setup</strong> — the shared folder you
+              ? <>This {DN} is <strong>still using its own setup</strong> — the shared folder you
                   picked takes effect after you quit Radiant completely and reopen it.</>
-              : <>This Mac is <strong>using its own setup</strong>, stored on this machine.</>}
+              : <>This {DN} is <strong>using its own setup</strong>, stored on this machine.</>}
       </div>
       {config?.sharingText && (
         <div className='devices-now' style={{ marginTop: 6 }}>{config.sharingText}</div>
       )}
 
       <p className='hint'>
-        Radiant works across Macs in two ways. They solve different problems — pick the
+        Radiant works across {DN}s in two ways. They solve different problems — pick the
         one that matches how you actually work.
       </p>
 
@@ -3038,11 +3042,11 @@ function DevicesPane ({ config }) {
         <div className='dev-option-head'>
           <SyncDiagram />
           <div>
-            <div className='dev-option-title'>1 · Share one setup across your Macs</div>
+            <div className='dev-option-title'>1 · Share one setup across your {DN}s</div>
             <p className='dev-option-sub'>
-              Every Mac runs its own Radiant, and they all keep their projects, chats,
-              agents and settings in one cloud folder. Sit down at any Mac and it has the
-              same things. <b>Use one Mac at a time</b> — two of them writing at once will
+              Every {DN} runs its own Radiant, and they all keep their projects, chats,
+              agents and settings in one cloud folder. Sit down at any {DN} and it has the
+              same things. <b>Use one {DN} at a time</b> — two of them writing at once will
               overwrite each other.
             </p>
           </div>
@@ -3076,15 +3080,15 @@ function DevicesPane ({ config }) {
           <div className='dev-now-body'>
             <div className='dev-now-title'>
               {linked
-                ? <>Right now this Mac is a <b>window onto {hostName || 'another Mac'}</b></>
-                : <>Right now this Mac <b>does the work</b>, on its own</>}
+                ? <>Right now this {DN} is a <b>window onto {hostName || `another ${DN}`}</b></>
+                : <>Right now this {DN} <b>does the work</b>, on its own</>}
             </div>
             <div className='dev-now-sub'>
               {linked
-                ? <>The chats, agents and models you see all live on {hostName || 'that Mac'}. Downloads
+                ? <>The chats, agents and models you see all live on {hostName || `that ${DN}`}. Downloads
                     land there, commands run there, and computer control drives its screen — not this one.
-                    Nothing on this Mac is being used or deleted.</>
-                : <>Your chats, agents and models live here, and only this Mac uses them. Nothing is
+                    Nothing on this {DN} is being used or deleted.</>
+                : <>Your chats, agents and models live here, and only this {DN} uses them. Nothing is
                     shared until you turn it on below.</>}
             </div>
           </div>
@@ -3096,8 +3100,8 @@ function DevicesPane ({ config }) {
             <div className='dev-card-head'>
               <span className='dev-card-ico'><Icon.monitor size={16} /></span>
               <div>
-                <div className='dev-card-title'>This Mac does the work</div>
-                <div className='dev-card-sub'>Runs the models, keeps the chats. Other Macs can open a window onto it.</div>
+                <div className='dev-card-title'>This {DN} does the work</div>
+                <div className='dev-card-sub'>Runs the models, keeps the chats. Other {DN}s can open a window onto it.</div>
               </div>
               {!linked && <span className='dev-badge'>Current</span>}
             </div>
@@ -3105,14 +3109,14 @@ function DevicesPane ({ config }) {
             {linked
               ? <div className='dev-card-body'>
                   <p className='hint' style={{ marginTop: 0 }}>
-                    Not this Mac at the moment — {hostName || 'the other Mac'} is doing the work.
+                    Not this {DN} at the moment — {hostName || `the other ${DN}`} is doing the work.
                     Disconnect on the right to run everything here again.
                   </p>
                 </div>
               : <div className='dev-card-body'>
                   <label className='agent-skill-chk'>
                     <input type='checkbox' checked={Boolean(share?.desired)} onChange={toggleShare} />
-                    {' '}Let my other Macs connect to this one
+                    {' '}Let my other {DN}s connect to this one
                   </label>
                   {share && share.desired !== share.enabled && (
                     <div className='error-note' style={{ marginTop: 6 }}>
@@ -3121,8 +3125,8 @@ function DevicesPane ({ config }) {
                   )}
                   {!share?.desired && (
                     <p className='hint' style={{ marginTop: 6 }}>
-                      Turn this on for the Mac that stays awake. You will get an address and a
-                      token to enter on your other Macs.
+                      Turn this on for the {DN} that stays awake. You will get an address and a
+                      token to enter on your other {DN}s.
                     </p>
                   )}
 
@@ -3132,15 +3136,15 @@ function DevicesPane ({ config }) {
                     const best = anywhere
                       ? { url: anywhere, where: 'Works from anywhere, over Tailscale.' }
                       : wifi
-                        ? { url: `${wifi.address}:${share.port}`, where: 'Works while both Macs are on this network.' }
+                        ? { url: `${wifi.address}:${share.port}`, where: 'Works while both {DN}s are on this network.' }
                         : null
                     if (!best) {
-                      return <div className='hint' style={{ marginTop: 12 }}>No network address yet — is this Mac on a network?</div>
+                      return <div className='hint' style={{ marginTop: 12 }}>No network address yet — is this {DN} on a network?</div>
                     }
                     return (
                       <div style={{ marginTop: 12 }}>
                         <p className='hint' style={{ marginTop: 0 }}>
-                          On the other Mac: Settings &rarr; Devices &rarr; <b>Use another Mac&rsquo;s Radiant</b>.
+                          On the other {DN}: Settings &rarr; Devices &rarr; <b>Use another {DN}&rsquo;s Radiant</b>.
                         </p>
                         <div className='connect-field' style={{ marginTop: 10 }}>Address
                           <div className='row'>
@@ -3183,7 +3187,7 @@ function DevicesPane ({ config }) {
                               chats, models and agents. Tony, 2026-09-17: "why is this
                               still on the devices page?" Say which is which. */}
                           <div className='row' style={{ justifyContent: 'space-between' }}>
-                            <b>This Mac&rsquo;s Radiant, from your phone&rsquo;s browser</b>
+                            <b>This {DN}&rsquo;s Radiant, from your phone&rsquo;s browser</b>
                             <button className='small-btn' onClick={() => setShowQr(v => !v)}>
                               {showQr ? 'Hide code' : 'Show code'}
                             </button>
@@ -3191,9 +3195,9 @@ function DevicesPane ({ config }) {
                           <p className='hint' style={{ marginTop: 6 }}>
                             This is not the iPhone app. The{' '}
                             <a href='https://apps.apple.com/us/app/radiant-local-ai-chat/id6804891721' target='_blank' rel='noreferrer'>Radiant on the App&nbsp;Store</a>
-                            {' '}runs models on the phone itself and never talks to this Mac. This link is the
+                            {' '}runs models on the phone itself and never talks to this {DN}. This link is the
                             other way round: your phone&rsquo;s browser opens the Radiant running <i>here</i> —
-                            this Mac&rsquo;s chats, models and agents — so anything you start at your desk you
+                            this {DN}&rsquo;s chats, models and agents — so anything you start at your desk you
                             can carry on from the sofa. One link signs the phone in, no address or token to type;
                             Share &rarr; <b>Add to Home Screen</b> keeps it a tap away.
                           </p>
@@ -3210,7 +3214,7 @@ function DevicesPane ({ config }) {
                                   {anywhere
                                     ? ' It works anywhere your phone can reach Tailscale.'
                                     : ' It only works while your phone is on this same network.'}
-                                  {' '}This Mac has to be awake with Radiant running.
+                                  {' '}This {DN} has to be awake with Radiant running.
                                 </div>
                               </div>
                             </div>
@@ -3218,8 +3222,8 @@ function DevicesPane ({ config }) {
                         </div>
                         {!anywhere && (
                           <div className='hint' style={{ marginTop: 10, lineHeight: 1.5 }}>
-                            <b>To reach this Mac from somewhere else, both Macs need Tailscale</b> — a free
-                            private network between your own machines, so this Mac is reachable without
+                            <b>To reach this {DN} from somewhere else, both {DN}s need Tailscale</b> — a free
+                            private network between your own machines, so this {DN} is reachable without
                             being exposed to the internet.{' '}
                             <a href='https://tailscale.com/download' target='_blank' rel='noreferrer'>tailscale.com/download</a>
                           </div>
@@ -3235,8 +3239,8 @@ function DevicesPane ({ config }) {
             <div className='dev-card-head'>
               <span className='dev-card-ico'><Icon.branch size={16} /></span>
               <div>
-                <div className='dev-card-title'>Use another Mac&rsquo;s Radiant</div>
-                <div className='dev-card-sub'>This Mac becomes a window onto that one. Its chats, its models, its agents.</div>
+                <div className='dev-card-title'>Use another {DN}&rsquo;s Radiant</div>
+                <div className='dev-card-sub'>This {DN} becomes a window onto that one. Its chats, its models, its agents.</div>
               </div>
               {linked && <span className='dev-badge'>Current</span>}
             </div>
@@ -3249,23 +3253,23 @@ function DevicesPane ({ config }) {
                       {hostName && <> — <b>{hostName}</b></>}
                     </div>
                     <p className='hint' style={{ marginTop: 6 }}>
-                      Everything you do goes to that Mac. Disconnecting brings back this Mac&rsquo;s
+                      Everything you do goes to that {DN}. Disconnecting brings back this {DN}&rsquo;s
                       own chats and models exactly as you left them.
                     </p>
                     <div className='row' style={{ marginTop: 10 }}>
-                      <button className='small-btn' onClick={useLocal}>Disconnect &mdash; use this Mac</button>
+                      <button className='small-btn' onClick={useLocal}>Disconnect &mdash; use this {DN}</button>
                     </div>
                   </>
                 : <>
                     <p className='hint' style={{ marginTop: 0 }}>
-                      Enter the address and token shown on the Mac doing the work. Nothing here is
+                      Enter the address and token shown on the {DN} doing the work. Nothing here is
                       deleted — you can switch back any time.
                     </p>
                     <label className='connect-field' style={{ marginTop: 8 }}>Address
                       <input className='text-input' placeholder='100.x.y.z:5834 or host.local:5834' value={base} onChange={e => setBase(e.target.value)} />
                     </label>
                     <label className='connect-field' style={{ marginTop: 8 }}>Access token
-                      <input className='text-input' type='password' placeholder='Token from that Mac' value={token} onChange={e => setToken(e.target.value)} />
+                      <input className='text-input' type='password' placeholder={`Token from that ${DN}`} value={token} onChange={e => setToken(e.target.value)} />
                     </label>
                     <div className='row' style={{ marginTop: 10 }}>
                       <button className='small-btn primary' onClick={connect} disabled={busy || !base.trim()}>{busy ? 'Connecting…' : 'Connect & reload'}</button>
@@ -3324,25 +3328,25 @@ const GUIDE = [
       ['Several Macs on one folder is fine \u2014 the banner that said otherwise is gone', 'The bar across the bottom of the window that said \u201cRadiant is also open on <another Mac>\u2026 quit one of them\u201d was written for a two-Mac evening in August and was wrong advice for someone who runs five. Radiant re-reads the shared settings whenever another Mac writes them, so a theme or a key changed on one Mac shows up on the others within a few seconds and nothing is saved over it. The one thing to avoid is editing the same chat on two Macs at the same moment \u2014 the last one to finish wins. That sentence now lives in Settings \u2192 Devices, beside the other Macs, instead of across every window.'],
       ['Picking a theme picks the whole look', 'If you had set a custom background and text color, choosing a theme afterwards changed only the accent \u2014 the background stayed, and every theme looked the same. Picking a theme now clears the custom background too, and the Background & text block says plainly that it overrides the theme\u2019s and that picking a theme clears it. Set it again after choosing a theme if you want both.'],
       ['A voice conversation is kept, as rows', 'While a call is open the captions are now a small transcript above the composer \u2014 one row per turn, You and Radiant, scrolling with the newest unless you scroll up to read back. When the call ends, the whole conversation is saved into the chat as a card (\u201cVoice conversation \u00b7 4 min\u201d) with every row, and the next turn can read it. Before this the captions were one line showing only the latest words, and they vanished with the call.'],
-      ['Voice has its own Settings page', 'Everything about talking to Radiant is under Settings \u2192 Voice now: the switch, a key slot of its own, the voice, and what leaves the Mac. Before this it was a block at the very bottom of Providers and the key had to be added as a second OpenAI account beside the sign-in your chats use \u2014 "messy", and it was. The key you paste on the Voice page is kept for voice alone and does not change which OpenAI account your chats are on.'],
+      ['Voice has its own Settings page', 'Everything about talking to Radiant is under Settings \u2192 Voice now: the switch, a key slot of its own, the voice, and what leaves your machine. Before this it was a block at the very bottom of Providers and the key had to be added as a second OpenAI account beside the sign-in your chats use \u2014 "messy", and it was. The key you paste on the Voice page is kept for voice alone and does not change which OpenAI account your chats are on.'],
       ['A provider can hold a sign-in and a key at once', 'On a provider row that has a subscription sign-in, + Add account used to start another sign-in and there was no way to add an API key beside it \u2014 which is exactly what voice needs on an OpenAI account signed in with ChatGPT. The row now offers both: + Sign in to another account, and + Add an API key. Adding a key makes it the active account; click the subscription chip to switch your chats back, and voice keeps using the key.'],
       ['0.9.0 opened with no window \u2014 fixed', 'If you installed 0.9.0 and Radiant launched to nothing, that was a packaging mistake in the voice feature: one file the server needed was left out of the app, the server failed before it started, and the window waits for the server. 0.9.1 ships the file, and a new check refuses any future build whose server imports something the app does not carry.'],
-      ['Talk to Radiant (optional)', 'Settings \u2192 Voice has a switch, off by default: Voice conversations. Turn it on and a Talk button appears in the composer. Press it and you are in a live, two-way conversation over that chat \u2014 speak naturally, interrupt, ask how it is going, change your mind. OpenAI\u2019s GPT-Live does the listening and speaking; anything real is handed to the agent in the chat, on whatever model the chat uses, with the same tools and the same approvals as typing (an approval or a question still waits for you in the app, and the voice says so). The reply is read back to you in a few plain sentences, with the code and detail left in the chat. Spoken messages carry a small wave mark in the transcript.\n\nWhat leaves this Mac: your microphone and the spoken replies go to OpenAI while a call is open, at their per-minute rate (about 5\u00a2 a minute at launch); the strip above the composer shows the running minutes and an End button. Needs an OpenAI API key \u2014 a ChatGPT sign-in does not cover it; paste one in Settings \u2192 Voice. Switching chats ends the call.'],
+      ['Talk to Radiant (optional)', 'Settings \u2192 Voice has a switch, off by default: Voice conversations. Turn it on and a Talk button appears in the composer. Press it and you are in a live, two-way conversation over that chat \u2014 speak naturally, interrupt, ask how it is going, change your mind. OpenAI\u2019s GPT-Live does the listening and speaking; anything real is handed to the agent in the chat, on whatever model the chat uses, with the same tools and the same approvals as typing (an approval or a question still waits for you in the app, and the voice says so). The reply is read back to you in a few plain sentences, with the code and detail left in the chat. Spoken messages carry a small wave mark in the transcript.\n\nWhat leaves this {DEVICE}: your microphone and the spoken replies go to OpenAI while a call is open, at their per-minute rate (about 5\u00a2 a minute at launch); the strip above the composer shows the running minutes and an End button. Needs an OpenAI API key \u2014 a ChatGPT sign-in does not cover it; paste one in Settings \u2192 Voice. Switching chats ends the call.'],
       ['Four more models on the iPhone and iPad', 'The on-device model list gained Qwen 3 VL 4B and Qwen 3 VL 2B (the newest generation of Qwen\u2019s picture models \u2014 the 4B replaces Qwen 2.5 VL 3B as the most capable one that fits a phone, the 2B fits any iPhone), Qwen 2.5 Coder 3B (the first model in the list tuned for code), and Ministral 3 8B (for 12 GB iPhones and iPads). Every row is checked against the real download before it is published \u2014 size, quantization, and whether the app can actually load it \u2014 and the list reaches an installed app the next time it opens; nothing to update. This is the first of a weekly sweep: new models are looked for every Sunday night and added on Monday morning when they are worth it.'],
       ['A long turn is trimmed, not killed', 'An agent working through a big task \u2014 thirty tool calls in one turn, reading files and running commands \u2014 could hit the model\u2019s size limit mid-turn and die with the provider\u2019s raw error (\u201c400: maximum prompt length is 256000 but the request contains 259445 tokens\u201d). Every safety net counted messages, and one turn is one message however many tool calls it holds. Radiant now trims older tool results inside the turn as it goes (the last few rounds stay whole), watches the real prompt size the provider reports and trims harder as it nears the limit, recognizes every provider\u2019s way of saying \u201ctoo long\u201d \u2014 xAI\u2019s was not on the list \u2014 and if it is still refused, trims everything but the current round and retries, then summarizes. If it truly cannot fit, the message says so in a sentence. The context gauge under the composer also knew grok-4 and grok-build as 131k models; they take 256k.'],
       ['The composer buttons are icons that grow on hover', 'The row under the message box \u2014 tools, computer, plan, thinking, permissions, dictate \u2014 rests as small icons, which gives the model name the room it needs. Point at one and it grows into the button it used to be, with its words (\u201cplan off\u201d, \u201cask each\u201d), and its neighbors slide over to make room. Move away and it shrinks back. While a button is open its words are written in plain text on the plain hover surface \u2014 the word already says on or off, so only the icon keeps the state color \u2014 after an earlier version drew \u201ccomputer on\u201d in the accent color on an accent fill, which in the green theme was two shades of the same green. The words are still there for a screen reader whether or not you are pointing at anything. An earlier version kept the icons small and put the words in a tooltip only; the buttons themselves now expand.'],
       ['The Chrome page no longer says \u201cnot installed\u201d when it cannot know', 'Radiant cannot see inside Chrome. All it knows is whether the extension is talking to it right now, and it used to render silence as \u201cNot installed yet\u201d \u2014 to people who had just installed it. Settings \u2192 Chrome now says one of three true things: connected (with the extension\u2019s version); it was connected earlier today at such-and-such time, so it is installed and Chrome is probably closed or a different profile is in front; or nothing has connected since Radiant started. The install button is only offered in that last case. Radiant also pings the extension every twenty seconds now, which keeps Chrome from putting it to sleep between turns \u2014 before, a browser action landing in one of those gaps failed with \u201cthe extension is not connected\u201d.'],
       ['Chrome has its own page in Settings', 'Everything about the agent working in a browser now lives under Settings \u2192 Chrome: the one-click install of the Radiant Browser Bridge from the Chrome Web Store, and beneath it the fallback \u2014 a second Chrome window with its own profile, for anyone who would rather not install an extension. Before this, both sat at the bottom of the Automation page, under a heading about desktop control, three guesses away from where anyone looked for them. Automation now covers what it says: shell-command approval, the default folder, and the macOS Screen Recording and Accessibility permissions for driving the desktop.'],
       ['The browser extension is one click now', 'The Radiant Browser Bridge \u2014 the small extension that lets the agent work inside the Chrome you are already signed into \u2014 is on the Chrome Web Store. Settings \u2192 Chrome (it was Automation at the time) has a button that opens the listing; press Add to Chrome there and come back. Before this, the same pane walked you through opening chrome://extensions, turning on Developer mode, clicking Load unpacked and pasting a folder path \u2014 the developer sideload, which was the only way in before the listing existed. Those steps are still there, folded away, for anyone running Radiant from source.\n\nThe extension also no longer stamps a blue \u201con\u201d badge across its toolbar icon whenever Radiant is running. That was a permanent sticker on a sixteen-pixel icon. Whether it is connected is already said in the extension\u2019s own popup and in Settings, which is enough.'],
-      ['Devices now says which phone thing is which', 'Settings \u2192 Devices has a section that lets your phone\u2019s browser open the Radiant running on this Mac \u2014 this Mac\u2019s chats, models and agents, from the sofa. It was written before there was an iPhone app and said \u201cRadiant behaves like an app,\u201d which stopped being a helpful sentence the day the real one reached the App Store. It now says plainly that it is not the iPhone app: the App Store app runs on the phone by itself and never talks to your Mac; this link is the other way round. A link to the App Store app sits right there.'],
-      ['Put Radiant on your phone by pointing the camera at a code', 'Radiant\u2019s server has always accepted a link that signs a device in \u2014 open it once on your phone and you are connected, with the secret part stripped out of the address afterwards so it never lands in your history or a bookmark. The only thing missing was somewhere to get that link, so nobody could use it.\n\nSettings \u2192 Devices, with sharing turned on, now shows the link and a code to point your phone\u2019s camera at. Open it, then Share \u2192 Add to Home Screen, and Radiant behaves like an app.\n\nThe chats are this Mac\u2019s chats. Anything you start at your desk you can carry on from the sofa, because it is the same conversation on the same machine rather than a copy that has to be kept in step.\n\nTwo honest limits, both said on screen. The code is a key, not just an address \u2014 anyone who photographs it gets in, so it stays hidden until you ask for it, and it does not belong on a slide or a screen-share. And this Mac has to be awake with Radiant running, because your phone is looking at it, not replacing it. If you have Tailscale the link works from anywhere; without it, only while your phone is on the same network.'],
+      ['Devices now says which phone thing is which', 'Settings \u2192 Devices has a section that lets your phone\u2019s browser open the Radiant running on this {DEVICE} \u2014 this {DEVICE}\u2019s chats, models and agents, from the sofa. It was written before there was an iPhone app and said \u201cRadiant behaves like an app,\u201d which stopped being a helpful sentence the day the real one reached the App Store. It now says plainly that it is not the iPhone app: the App Store app runs on the phone by itself and never talks to your {DEVICE}; this link is the other way round. A link to the App Store app sits right there.'],
+      ['Put Radiant on your phone by pointing the camera at a code', 'Radiant\u2019s server has always accepted a link that signs a device in \u2014 open it once on your phone and you are connected, with the secret part stripped out of the address afterwards so it never lands in your history or a bookmark. The only thing missing was somewhere to get that link, so nobody could use it.\n\nSettings \u2192 Devices, with sharing turned on, now shows the link and a code to point your phone\u2019s camera at. Open it, then Share \u2192 Add to Home Screen, and Radiant behaves like an app.\n\nThe chats are this {DEVICE}\u2019s chats. Anything you start at your desk you can carry on from the sofa, because it is the same conversation on the same machine rather than a copy that has to be kept in step.\n\nTwo honest limits, both said on screen. The code is a key, not just an address \u2014 anyone who photographs it gets in, so it stays hidden until you ask for it, and it does not belong on a slide or a screen-share. And this {DEVICE} has to be awake with Radiant running, because your phone is looking at it, not replacing it. If you have Tailscale the link works from anywhere; without it, only while your phone is on the same network.'],
       ['Show the model\u2019s thinking, or don\u2019t', 'Models that reason out loud were showing you that reasoning whether you wanted it or not \u2014 the trace opened itself while the model was working and only collapsed once it had finished, which is backwards if you just want the answer. There is a brain button in the row under the message box now: thinking on, thinking off.\n\nOne thing it is honest about, in the tooltip as well as here: this only hides the reasoning. The model still thinks, and you are still billed for it. How hard it thinks is a different control \u2014 the effort setting in the model picker \u2014 and it would be easy to assume this one saved you money. It does not.\n\nThe setting is remembered, so it is not something to set again in every new chat.'],
       ['Radiant tells you when it is open twice on the same folder', 'If you keep Radiant\u2019s folder in iCloud so your chats follow you between Macs, only one Mac should be running Radiant at a time. Two copies writing to the same folder overwrite each other \u2014 that has always been true, and it was said only in a hint inside a collapsed section of Settings, which is not where you look before it matters. Nothing detected it, so the first sign was work quietly going missing.\n\nRadiant now notices, and says so in a line across the top of the window, naming the machine: \u201cRadiant is also open on Tony\u2019s MacBook Air, using this same folder.\u201d It disappears on its own when that copy quits.\n\nIt does not stop you. Being refused entry to your own chats \u2014 because of a crash, or a slow sync, or a clock being off \u2014 is a worse outcome than the risk it would be protecting you from. It tells you the truth and leaves the decision with you. If you do want both Macs at once, the supported way is to run Radiant on one and reach it from the other over your network, in Settings \u2192 Devices.'],
       ['A chat could go blank for a moment while it was being saved', 'Saving a chat emptied its file and then refilled it. That takes a moment on a big conversation \u2014 the largest here is over five megabytes \u2014 and anything reading during that moment got half a file, which Radiant could only read as \u201cno messages\u201d. So the conversation went blank and then came back a second later. Nothing was ever damaged; you were seeing the file mid-write.\n\nIt is measurable rather than theoretical: with a reader running alongside, 828 of 834 reads of a 4.6 MB chat came back empty. Now zero do. The chat is written to a new file which then replaces the old one in a single step, so a reader gets the old version or the new one and never half of either \u2014 which is how every other kind of data in Radiant was already saved. Chats, the biggest and most often written, were the one exception.\n\nIf you keep Radiant\u2019s folder in iCloud this was much more likely, because iCloud is reading the file to upload it at the same time.'],
       ['Two chats at once \u2014 one could stop the other, and leak into it', 'Radiant could only ever follow one running chat, and it never said so. Start a second one and three things went wrong at the same time.\n\nThe first chat appeared to stop dead for no reason. It had not \u2014 the work carried on and every word of it was saved \u2014 but Radiant stopped showing it to you, which looks exactly like a crash.\n\nThe second chat\u2019s thinking and replies were then drawn into whichever chat you happened to be reading. So you could sit in one conversation and watch an agent reason about a completely different one.\n\nAnd worst: a chat running in the background could put its \u201cmay I run this command?\u201d prompt in front of you while you were reading something else. Pressing Approve there ran the other chat\u2019s command. That one could act on your Mac rather than just confuse you.\n\nEvery running chat now keeps its own live view, its own prompts, and its own counters, and a chat only ever shows its own. Nothing was ever lost to this \u2014 if a chat looked like it died mid-answer, reopen it and the rest is there.'],
       ['Claude chats stop paying full price for the same words every turn', 'A long chat re-sends everything before it on every single request. Anthropic will hold most of that on their side and charge about a tenth for it, but only if the part being held is byte-for-byte identical each time — and Radiant\u2019s was not. The instructions at the front of every request included the facts Radiant remembers about you, and those are chosen fresh each turn to match what you just asked, so they changed almost every time. The unchanging part and the changing part are now separated, and only the unchanging part is held.\n\nThere is a new switch in Settings \u2192 Agent, on by default, and a choice of how long the saving lasts \u2014 five minutes, or an hour if you tend to reply slowly. Turn it off if you are using a Claude-compatible service that rejects it, or for one-off questions where there is no second turn to save on. It applies to Claude models whether you reach them directly or through OpenRouter. OpenAI does this on its own and needs nothing from you.\n\nThis was caught before it shipped, not after: as first written it would have cost about 25% MORE on every turn while appearing to work, because a saving you never collect is just a surcharge.'],
       ['Radiant runs on Linux', 'Radiant was written for a Mac and said so about 250 times, in code as well as on screen \u2014 it reached for macOS-only commands to open a folder, read the processor, or find Chrome, with nothing to fall back on. It now runs on Linux as a normal AppImage, updates itself the same way the Mac version does, and drives the desktop there through its own helper. None of this changes anything on a Mac.\n\nThree of the bugs found on the way were ours rather than Linux\u2019s, and one of them was ugly: the Mac helper that moves the mouse and captures the screen was being copied into every build, and the check for whether it was usable only asked whether the file was there. So on a machine where it could never run, Settings offered desktop control and dictation as working features. \u201cThe file exists\u201d is not the same question as \u201cthis works here,\u201d and Radiant had been answering the wrong one.\n\nWith thanks to Samir, who did the port and ran it rather than reading it.'],
-      ['Radiant runs on Windows', 'Radiant installs on Windows now, from a normal setup program, and updates itself the same way the Mac version does. The agent drives the desktop there through its own helper \u2014 PowerShell and the Windows API behind the same command language the Mac and Linux helpers speak, so \u201cclick here, type this, press this key\u201d means the same thing on all three. Your clipboard is left as it was after the agent pastes a long piece of text, and the Windows key is a real key rather than a silent no-op. Dictation stays Mac-only: it is Apple speech recognition underneath, and there is no Windows equivalent wired up.\n\nTwo honest notes. The installer is not code-signed, so Windows will call it an unknown publisher on first install \u2014 expected, not a sign the download is bad. And the installer was assembled and inspected on Linux; it is a valid Windows installer with everything inside, but it has never actually launched on a real Windows PC yet, so that first install is still the true test. None of this changes anything on a Mac.'],
+      ['Radiant runs on Windows', 'Radiant installs on Windows now, from a normal setup program, and updates itself the same way the Mac version does. The agent drives the desktop there through its own helper \u2014 PowerShell and the Windows API behind the same command language the Mac and Linux helpers speak, so \u201cclick here, type this, press this key\u201d means the same thing on all three. Your clipboard is left as it was after the agent pastes a long piece of text, and the Windows key is a real key rather than a silent no-op. Dictation stays Mac-only: it is Apple speech recognition underneath, and there is no Windows equivalent wired up.\n\nTwo honest notes. The installer is not code-signed, so Windows will call it an unknown publisher on first install \u2014 expected, not a sign the download is bad. The installer was assembled on Linux and has since been installed and launched on a real Windows PC. None of this changes anything on a Mac.'],
       ['A chat that stopped instantly, on every single message', 'The worst bug Radiant has shipped. A turn is allowed to spend a certain amount before it is cut off — a sensible thing to have. It was measured against the wrong number: not what the turn had spent, but what the entire conversation had ever spent, added up over its whole life. So a chat that had done a lot of work was permanently broken. Every message stopped in under a second, having done nothing, with a notice saying it had run out of budget. Pressing Continue produced the same instant nothing. There was no way out of it from inside the app, and the longer a chat had been useful the more certain it was to die that way. It now measures the turn, which is what it was always supposed to mean, and a chat that was bricked by this works again as soon as you update — nothing was lost, it simply could not run.'],
       ['Long chats stop re-sending everything they have ever read', 'A chat that had read a few web pages was sending all of them, in full, on every round of every message — and a turn can take thirty rounds. One real conversation was 540,000 characters, of which 1,700 were things you had typed; the other 98% was raw output from tools, half of it five API responses kept whole and posted again and again. That is why a chat you had barely used felt enormous, slow and expensive, and why it eventually hit its own limits. Older tool results are now shortened on their way to the model, with a note saying how much was trimmed and that it can be fetched again. The last six exchanges are always kept whole — that is the part the agent is still working in. Nothing is deleted: your transcript is untouched and you still see every result in full. This changes only what gets posted, and it roughly halves it.'],
       ['Dragging the window, properly this time', 'The Task, Loop and Graph screens had no way to grab the window, and three attempts to add one all used the same wrong idea: an invisible strip laid over the top of the app. On top it swallowed the buttons underneath it; made to ignore the mouse it may not drag at all; put behind everything it is covered by the app itself. The strip is gone. Each of those screens now uses its own heading bar as the handle \u2014 a real, visible part of the page, which is exactly what the chat screen has always used and the one arrangement that has never broken. It stays put when you scroll, so the handle does not disappear.'],
@@ -3368,7 +3372,7 @@ const GUIDE = [
       ['The task columns fit the window instead of running off it', 'Narrowing the window used to push Review and Done off the right edge behind a sideways scrollbar, because the five columns held a fixed width whatever the window did. They share the width evenly now and get narrower together, so you can always see the whole board — which is the only reason to have a board. Long task titles wrap instead of forcing a column wide.'],
       ['The lock on that door now checks the right key', 'The fix that stopped other websites reaching Radiant asked whether a request agreed with itself, rather than whether it came from Radiant \u2014 so a site could still get in by claiming to be the address it was calling. It now compares against a fixed list built when Radiant starts: this window, your phone with its token, nothing else. Browser extensions were trusted as a group, which meant any extension you have installed \u2014 an ad blocker, a coupon tool \u2014 could reach the terminal; only the Radiant extension\u2019s own connection accepts one now. And a page can no longer start dictation by quietly loading a Radiant address as though it were an image.'],
       ['Radiant asks before it writes a file', 'Running a shell command asked you first; creating or editing a file did not, at any location on the disk. So anything that talked the agent into writing somewhere \u2014 a page it read, a file in a repo you pointed it at \u2014 could put a file in your home folder with nothing on screen but a line in the transcript. Writing a file now asks, and so does reading one from outside the folder you are working in. Plan mode goes further: the tools that change things are not offered at all, so \u201cresearch only\u201d means it.'],
-      ['Auto approval knows what a program is', 'The \u201conly ask about risky commands\u201d setting graded commands with a list of dangerous-looking shapes. It caught the obvious ones and missed every programming language on your Mac \u2014 a one-line Node or Perl command could do anything at all and ran without asking. It now works the other way round: a short list of commands that only look at things runs quietly, and anything it does not recognise asks you. You will see a few more prompts, and they are the ones worth seeing.'],
+      ['Auto approval knows what a program is', 'The \u201conly ask about risky commands\u201d setting graded commands with a list of dangerous-looking shapes. It caught the obvious ones and missed every programming language on your {DEVICE} \u2014 a one-line Node or Perl command could do anything at all and ran without asking. It now works the other way round: a short list of commands that only look at things runs quietly, and anything it does not recognise asks you. You will see a few more prompts, and they are the ones worth seeing.'],
       ['Other websites can no longer reach Radiant', 'Radiant\u2019s server trusted anything coming from your own machine, and a web page open in your browser counts as your own machine. That meant a site you were simply visiting could read your settings \u2014 including credentials for any MCP servers you had added \u2014 and start a chat as you, without a prompt and without you clicking anything. Radiant now only answers its own window, your phone with its access token, and the browser extension. Nothing else gets a reply.'],
       ['Clearing your memory now stays cleared', 'Looking a memory up could quietly put deleted ones back. Radiant reads the whole memory file, works for a few seconds, then writes it back — and anything you deleted in those seconds was written over, while the screen showed it had gone. Deleting and clearing now take priority, and a memory Radiant replaces keeps the sentence it replaced, so if it ever decides two things contradict when they do not, what you said is still there. What Radiant sends the app about your memories no longer includes the maths behind them, which had grown to megabytes on every screen refresh.'],
       ['A page Radiant reads cannot tell it something about you', 'Radiant writes down durable facts after a conversation. It also reads web pages, and it is asked to tell you what a page said — so a page could put a sentence in front of it that got written down as a fact about you, and then read back later as something you had said. Turns where Radiant read a page, searched the web, or used a connected tool are no longer used to write memories.'],
@@ -3381,11 +3385,14 @@ const GUIDE = [
       ['Pick your own background and text color', 'Settings \u203a Appearance has a Background & text row: two color wells, one for the page and one for the text, chosen independently of the accent. Until now the background could only be a stronger or weaker version of the accent color \u2014 you could not have, say, a warm grey page under a blue accent. You can now. Everything else \u2014 panels, raised surfaces, hover states, secondary labels \u2014 is worked out from the two colors you pick, and a Contrast slider controls how far apart they sit. If a pairing would make text hard to read, it says so and gives the actual contrast ratio, but it still applies what you chose: it warns, it does not overrule you. Clear puts you back on the theme.'],
       ['Updating shows real progress again', 'Pressing Download & install left the bar at 0% and looked frozen. The download was working the whole time \u2014 it finished normally and waited on disk \u2014 but the progress messages were being sent to the main window while the bar you were watching is in the Settings window, so nothing ever reached it. It updates properly now, and if you close Settings and come back it picks up where things actually are instead of offering to download the same 160 MB again. An update that has finished downloading installs when you quit Radiant.'],
       ['Radiant tells you what is new after it updates', 'Radiant updates itself quietly in the background, so features used to just appear with nothing to announce them. Now, the first time you open a version you have not run before, a short list of what changed is shown once. A brand-new install never sees it, and if several updates went by while your Mac was shut you get all of them, newest first. Settings \u203a Read me still has the full detail.'],
-      ['A browser extension, so the agent works in your own Chrome', 'Settings \u203a Automation now has a small Chrome extension you install once. With it, the agent works inside the browser you are already signed into: it can list your open tabs, read the page you are looking at, take a picture of it, click things by name, and fill in fields \u2014 as you, with your logins. Chrome no longer lets any app connect to your everyday browser from outside, and it will not let Radiant install this for you either, so the panel gives you the folder and the four steps. The extension talks only to Radiant on this Mac and to nothing else; quitting Chrome or removing it unplugs it completely.'],
-      ['The agent can use the Chrome you are already signed into', 'Chrome no longer lets any app attach to your everyday browser profile, so Radiant used to open a fresh, empty Chrome instead \u2014 no tabs, no extensions, signed in to nothing \u2014 and the agent would describe that one, or tell you your permissions were wrong. It now drives your real Chrome through macOS automation: it can list your open tabs, bring one to the front, read the page you are looking at, open a URL, and click things by their visible text. Ask it about \u201cmy GoDaddy tab\u201d and it can actually see it. It cannot take a picture of that browser \u2014 nothing can \u2014 so it reads the page instead and says so plainly. If macOS or Chrome needs a permission, it names the exact one.'],
+      ['A browser extension, so the agent works in your own Chrome', 'Settings \u203a Automation now has a small Chrome extension you install once. With it, the agent works inside the browser you are already signed into: it can list your open tabs, read the page you are looking at, take a picture of it, click things by name, and fill in fields \u2014 as you, with your logins. Chrome no longer lets any app connect to your everyday browser from outside, and it will not let Radiant install this for you either, so the panel gives you the folder and the four steps. The extension talks only to Radiant on this {DEVICE} and to nothing else; quitting Chrome or removing it unplugs it completely.'],
+      ['The agent can use the Chrome you are already signed into', p => p === 'win32'
+        ? 'Chrome no longer lets any app attach to your everyday browser profile, so Radiant used to open a fresh, empty Chrome instead \u2014 no tabs, no extensions, signed in to nothing \u2014 and the agent would describe that one, or tell you your permissions were wrong. On Windows it drives your real Chrome through the Radiant extension: it can list your open tabs, bring one to the front, read the page you are looking at, open a URL, take a picture of the page, and click things by their visible text. Ask it about \u201cmy GoDaddy tab\u201d and it can actually see it. If the extension or Chrome needs a permission, it names the exact one.'
+        : 'Chrome no longer lets any app attach to your everyday browser profile, so Radiant used to open a fresh, empty Chrome instead \u2014 no tabs, no extensions, signed in to nothing \u2014 and the agent would describe that one, or tell you your permissions were wrong. It now drives your real Chrome through macOS automation: it can list your open tabs, bring one to the front, read the page you are looking at, open a URL, and click things by their visible text. Ask it about \u201cmy GoDaddy tab\u201d and it can actually see it. It cannot take a picture of that browser \u2014 nothing can \u2014 so it reads the page instead and says so plainly. If macOS or Chrome needs a permission, it names the exact one.'],
       ['You can always see whether the agent is working', 'The small badge beside the agent\u2019s name says what is happening for as long as a turn is running: waiting for the model, thinking, writing, or the name of the tool it is running, with a clock. If nothing has happened for 25 seconds and no tool is running, it turns red and adds how long it has been quiet, so a stuck turn looks different from a busy one. A tool that takes minutes is not called stuck \u2014 it is named instead. There is one badge, not two.'],
       ['A turn that ends with nothing says so', 'Occasionally a model finishes a turn having produced no reply at all. That used to render as blank space, which looked exactly like Radiant losing your message. It now says the turn ended without a reply. And if the connection to a running turn drops, the chat tells you that too instead of going quiet.'],
-      ['Dictate instead of typing', 'There is a Dictate button under the message box. Press it, talk, and what you say is typed into the box \u2014 press it again to stop. It uses your Mac\u2019s own speech recognition and transcribes entirely on this Mac: no audio is sent to Apple, to Radiant, or anywhere else, and it works with no internet connection. The first time, macOS asks permission for the microphone and for speech recognition; if either is off you get a message saying which one and where to turn it on. Dictation uses the microphone of the Mac running Radiant, so the button is not shown when you are connected to a shared Radiant on another Mac. Anything already typed is kept \u2014 dictation adds to it rather than replacing it.'],
+      ['Dictate instead of typing', p => p === 'win32' ? null
+        : 'There is a Dictate button under the message box. Press it, talk, and what you say is typed into the box \u2014 press it again to stop. It uses your Mac\u2019s own speech recognition and transcribes entirely on this Mac: no audio is sent to Apple, to Radiant, or anywhere else, and it works with no internet connection. The first time, macOS asks permission for the microphone and for speech recognition; if either is off you get a message saying which one and where to turn it on. Dictation uses the microphone of the Mac running Radiant, so the button is not shown when you are connected to a shared Radiant on another Mac. Anything already typed is kept \u2014 dictation adds to it rather than replacing it.'],
       ['Chat rows hold still while an agent works', 'Hovering a chat in the sidebar while an agent was typing made its tooltip flicker rapidly. Each row was being rebuilt from scratch on every word the agent produced, which threw away the hover dozens of times a second. Rows are now updated in place \u2014 tooltips are steady, and renaming a chat no longer loses your place mid-word.'],
       ['A follow-up goes to the chat you typed it in', 'If you typed a follow-up while an agent was still working and then switched to another chat, that follow-up was sent into whichever chat you had just opened \u2014 so a conversation answered a question meant for a different one, and a brand-new chat could refuse with "a turn is already running". It now goes only to the chat it was typed in, and is abandoned if you leave.'],
       ['Turns say why they stopped', 'When a turn ended early \u2014 hitting its limit of 30 rounds of tool use, or falling back because a model cannot take tools \u2014 Radiant said so and then erased it: the message was only streamed, never saved, so it vanished the moment the turn finished and the chat looked like it had just stopped. Those notes stay in the conversation now.'],
@@ -3411,10 +3418,10 @@ const GUIDE = [
       ['The selected tab is actually visible', 'Chats / Agents / Tasks marked the current view with a near-white chip on a white strip \u2014 fine in the dark themes, close to invisible in the light ones. The selected tab now carries the accent color, the same thing that marks "current" everywhere else in Radiant, so it reads at a glance in every theme. Tony: "the active tab is barely visible."'],
       ['Devices tells you your setup in one sentence', 'Settings \u2192 Devices used to show two headings \u2014 "This Mac does the work" and "This Mac is a window onto another" \u2014 both open at once, both full of explanation, and neither saying which one you were actually in. It now opens with a single line naming both machines: "Right now this Mac is a window onto Tony\u2019s Home MBP M4", and what that means \u2014 where your chats live, where downloads land, whose screen computer control drives. Below it the two setups are cards, and the one you are in is marked Current and is the only one holding controls. Tony: "its my product and i dont 100% understand how this works or how my setup is structured."'],
       ['Changes made while an agent is working now stick', 'If you moved a chat into a project while the agent was still going, it jumped back to No Project the moment the agent stopped \u2014 and the same thing quietly undid renaming, pinning and archiving a live chat. The chat was being saved twice: once by your change, and again by the agent from a copy it had taken before you made it. The agent now keeps only the conversation and leaves everything else to you. Tony: "during a chat, i moved it into the Templeton Group project and something moved it out to No Project."'],
-      ['Computer control says which Mac it will drive', 'Everything an agent does happens on the Mac running Radiant \u2014 reading files, running commands, and computer control. If you use Radiant on one Mac from another, that means the mouse that moves, the keys that get typed and the screen that is captured all belong to the other machine, which you may not be sitting at or even able to see. Nothing said so before. The computer button in the composer now names that Mac while it is switched on, its tooltip says whose desktop is being driven, and Settings \u2192 Automation does the same.'],
+      ['Computer control says which {DEVICE} it will drive', 'Everything an agent does happens on the {DEVICE} running Radiant \u2014 reading files, running commands, and computer control. If you use Radiant on one {DEVICE} from another, that means the mouse that moves, the keys that get typed and the screen that is captured all belong to the other machine, which you may not be sitting at or even able to see. Nothing said so before. The computer button in the composer now names that {DEVICE} while it is switched on, its tooltip says whose desktop is being driven, and Settings \u2192 Automation does the same.'],
       ['The HUD counts running chats, not just tasks', 'The floating HUD (\u2325\u2318R) listed only cards from the Tasks board, so an agent working away in an ordinary chat left it reading "Nothing running" while your screen showed otherwise. It now lists live chats alongside board tasks, and clicking one opens that chat.'],
       ['Tooltips read straight', 'The longer tooltips \u2014 the HUD button, agent tools, computer control, permissions \u2014 were centered, which turned every multi-line one into ragged text that looked like a mistake. They are left-aligned now, and the HUD tooltip is shorter and tucked under its button instead of spilling across the window.'],
-      ['Models say which Mac they are going to', 'If you use Radiant on one Mac from another, the Models screen was describing the wrong machine: the chip, the memory, the free disk and the installed list all belong to the Mac running Radiant, but every label said "this Mac." Downloads land there too, and keep going even if you close the window. It now names that Mac \u2014 "On Tony\u2019s Home MBP M4 \u00b7 6 installed" \u2014 and says so plainly before you start a download. Tony, on where a model ends up: "correct. thats what confused me."'],
+      ['Models say which {DEVICE} they are going to', 'If you use Radiant on one {DEVICE} from another, the Models screen was describing the wrong machine: the chip, the memory, the free disk and the installed list all belong to the {DEVICE} running Radiant, but every label said "this Mac." Downloads land there too, and keep going even if you close the window. It now names that Mac \u2014 "On Tony\u2019s Home MBP M4 \u00b7 6 installed" \u2014 and says so plainly before you start a download. Tony, on where a model ends up: "correct. thats what confused me."'],
       ['Model lists collapse by provider everywhere', 'Picking a model in the agent editor, in Settings \u2192 Default model, and in Compare used to mean scrolling one long list of every model you have. Those are the same grouped, searchable list the chat window uses now: providers collapsed by default, the one you are already on open, and a search box that expands everything as you type. Choosing no model at all \u2014 Session default, or no planner \u2014 is still the first thing in the list.'],
       ['Put the built-in agents back, as themselves', 'Settings \u2192 Agents \u2192 Browse library lists every built-in you have removed, at the top, under "Removed from your agents". Each one now shows its own icon, its real name and what it actually does \u2014 before this they were all the same gray robot with a name unpicked from a filename, so you were being asked to restore something you could not recognize. Click one to bring it back exactly as it shipped, or use "Restore all" to bring back the lot in one go. Nothing you wrote is affected: restoring puts back the original, and your own agents are untouched.'],
       ['Removing an agent finally sticks', 'If you removed built-in agents and later found them all back, this was why, and it was not you. Radiant records which built-ins you removed, but that record lived in a file any part of the app could overwrite with an older copy of itself \u2014 and once the record was gone, the next launch put every agent back. It matters most if your Radiant folder is in iCloud and shared with a second Mac, because then two machines write that file. Removals are merged rather than overwritten now, so one machine cannot undo the other.'],
@@ -3441,7 +3448,7 @@ const GUIDE = [
       ['Agents', 'Named personas with their own model, personality, and skills. Pick one from the welcome screen; the Agents sidebar view groups your sessions by agent. Edit them in Settings → Agents.'],
       ['Agent library', 'Over 140 ready-made expert agents across two dozen categories — browse, filter, and add one in a click, then tweak its model, name, and skills before saving.'],
       ['Duplicate, export & import', 'Clone any agent into an editable copy, export your custom agents as a shareable file, and import a pack — so a curated set can be handed to a whole team.'],
-      ['Connected agents', 'Radiant detects other agent apps installed on your Mac (Settings → Agents). Connect a Hermes agent and you chat with the real thing — its own model, skills, and memory — right inside a Radiant session. For OpenClaw, Radiant asks the gateway for the agents it hosts, so a fleet running on another Mac shows up here too; if this machine’s OpenClaw credentials are out of date it says so rather than showing an empty list.'],
+      ['Connected agents', 'Radiant detects other agent apps installed on your {DEVICE} (Settings → Agents). Connect a Hermes agent and you chat with the real thing — its own model, skills, and memory — right inside a Radiant session. For OpenClaw, Radiant asks the gateway for the agents it hosts, so a fleet running on another {DEVICE} shows up here too; if this machine’s OpenClaw credentials are out of date it says so rather than showing an empty list.'],
       ['Imported agents stay recognizable', 'Agents brought in from another app sit below an “Imported from other apps” divider — in the sidebar, the agent picker, and Settings → Agents — and keep their own icon and color instead of taking a Radiant hue, so it is always clear which are yours and which are borrowed.'],
       ['Group chat', 'Put several agents in one conversation and let them build on each other, with a roster showing who is in the room.'],
       ['Agents consult each other', 'Any agent can call the ask_agent tool to get a second opinion from another agent (e.g. Reviewer asks Architect) and fold the answer in.'],
@@ -3458,7 +3465,7 @@ const GUIDE = [
   {
     title: 'Models & providers',
     items: [
-      ['Voice can now use Google\u2019s Gemini Live as well as OpenAI', 'Settings \u2192 Voice has a choice of who does the talking. OpenAI\u2019s GPT-Live is about 5\u00a2 a minute; Google\u2019s Gemini 3.8 Live is about half a cent a minute for what you say and 1.8\u00a2 for what it says back, and can keep talking while Radiant works rather than going quiet. Both behave identically in every way that matters: they listen and speak, and hand every real request back to Radiant so your own model, tools and approvals do the work \u2014 the conversation is the only thing that leaves your Mac. Gemini needs its own key from Google AI Studio; an OpenAI key does not work for it, and the key stays on your Mac \u2014 the app hands the browser only a short-lived token that lasts one call. You can also pick the voice and choose between the fast model and the one that reasons more.'],
+      ['Voice can now use Google\u2019s Gemini Live as well as OpenAI', 'Settings \u2192 Voice has a choice of who does the talking. OpenAI\u2019s GPT-Live is about 5\u00a2 a minute; Google\u2019s Gemini 3.8 Live is about half a cent a minute for what you say and 1.8\u00a2 for what it says back, and can keep talking while Radiant works rather than going quiet. Both behave identically in every way that matters: they listen and speak, and hand every real request back to Radiant so your own model, tools and approvals do the work \u2014 the conversation is the only thing that leaves your {DEVICE}. Gemini needs its own key from Google AI Studio; an OpenAI key does not work for it, and the key stays on your {DEVICE} \u2014 the app hands the browser only a short-lived token that lasts one call. You can also pick the voice and choose between the fast model and the one that reasons more.'],
       ['Radiant\u2019s own housekeeping runs on a cheap model, and is counted', 'After every reply Radiant quietly makes a few more model calls for itself \u2014 naming the chat, noting anything worth remembering, drafting a skill idea, and summarizing when a conversation gets long. Those ran on whatever model the chat was using, so an expensive model was being paid top rates to write a one-line note, and none of it appeared in the token counter. They now run on the cheapest model the same provider offers, and what they spend is shown in the counter\u2019s tooltip under its own heading. Settings \u2192 Models \u2192 Background work lets you choose the model yourself.'],
       ['Connected services come along only when a message needs them', 'If you have connected a service such as Linear under Settings \u2192 MCP servers, every message you sent used to carry the full list of everything that service can do \u2014 for Linear, sixty-nine commands \u2014 even when you were asking about a bug in your code. That made every message bigger and slower than it needed to be. Radiant now asks a tiny, quick helper first: does this message need Linear? If not, it stays out of the way. Once you have used a service in a conversation it stays available for the rest of it, and if the agent ever needs one it was not given, it will say so and ask you to mention it. There is a switch in Settings \u2192 MCP servers if you would rather always include everything.'],
       ['On a Claude subscription, long jobs now cost about a quarter of what they did', 'When an agent works through a job it goes back to the model many times \u2014 once per step. The model remembers the earlier steps cheaply if each visit repeats the previous one exactly and only adds what is new. Radiant was rebuilding the whole conversation on every step instead, so the model had to read all of it again at full price every time. Measured on the same tasks, Radiant was paying about four times what Claude Code paid for the same answers. Each step now adds to the last one, and the difference shows up in your usage: the \u201c% cached\u201d number in the counter goes up, and the bill goes down. Nothing to switch on.'],
@@ -3508,7 +3515,7 @@ const GUIDE = [
   {
     title: 'Your devices',
     items: [
-      ['One server, all your Macs', 'Run Radiant’s server on an always-on Mac (Settings → Devices → Share with my other Macs) and connect your other Macs to it — they share the same agents, models, and sessions. It gives you an address and a token; enter them on the other Mac under “Connect this app to another Radiant”.'],
+      ['One server, all your {DEVICE}s', 'Run Radiant’s server on an always-on {DEVICE} (Settings → Devices → Share with my other {DEVICE}s) and connect your other {DEVICE}s to it — they share the same agents, models, and sessions. It gives you an address and a token; enter them on the other {DEVICE} under “Connect this app to another Radiant”.'],
       ['Behind a proxy, the token still applies', 'Radiant skips the access token for the app talking to its own server on this Mac. If you put a reverse proxy in front — Tailscale Serve, nginx — those requests come from the proxy, so they must present the token like any other device. Nothing reaches your files or shell without it.'],
       ['Signed in for good', 'Once a device is signed in it stays signed in — the token is held in a secure cookie rather than page storage, which iOS can clear out from under a Home Screen app. If you do land on the connect screen, it only asks for the token: the address is wherever you opened it from.']
     ]
@@ -3516,11 +3523,13 @@ const GUIDE = [
   {
     title: 'Look & feel',
     items: [
-      ['The icons are Apple\u2019s', 'Every icon in the app \u2014 the gear, the sidebar toggle, the microphone, the folder, the composer\u2019s tool switches \u2014 is now the same symbol macOS draws in its own apps, at a weight that sits evenly beside the text. They take the color of whatever they are on, so a switch that is on still reads as on. Nothing moved; it just looks like it belongs on a Mac.'],
+      ['The icons are Apple\u2019s', p => p === 'darwin'
+        ? 'Every icon in the app \u2014 the gear, the sidebar toggle, the microphone, the folder, the composer\u2019s tool switches \u2014 is now the same symbol macOS draws in its own apps, at a weight that sits evenly beside the text. They take the color of whatever they are on, so a switch that is on still reads as on. Nothing moved; it just looks like it belongs on a Mac.'
+        : 'Every icon in the app \u2014 the gear, the sidebar toggle, the microphone, the folder, the composer\u2019s tool switches \u2014 comes from one consistent set, drawn at a weight that sits evenly beside the text. They take the color of whatever they are on, so a switch that is on still reads as on. Nothing moved.'],
       ['Themes', 'Fourteen palettes plus colors you pick yourself, in light / medium / dark (bottom-left toggle). Agents can follow the accent or carry their own color.'],
       ['Motion', 'Ten animated backgrounds in Settings → Appearance, an accent glow that pulses around the composer while an agent is working, and subtle entrance animations throughout (all respect Reduce Motion).'],
       ['Usage meters', 'Every subscription you are signed in to shows at the bottom of the sidebar, along with your OpenRouter balance. Claude and ChatGPT report how much of each window you have left and when it resets; Grok, Nous, Qwen and Copilot do not publish usage, so those read simply “signed in”.'],
-      ['Command palette', 'Press ⌘K for quick actions, model switching, and jumping between sessions.'],
+      ['Command palette', 'Press {HOTKEY:⌘K} for quick actions, model switching, and jumping between sessions.'],
       ['Links open in your browser', 'Links in an agent’s reply, and the Templeton Technologies logo on the About page, open in your default browser rather than trying to navigate inside the app.'],
       ['Windows stay where you put them', 'Radiant reopens at the size and position you left it, and remembers whether it was maximized or full screen. The Settings window keeps its own size. If you unplug the monitor a window was on, it comes back on a screen you can actually see.']
     ]
@@ -3595,7 +3604,7 @@ function MemoryPane ({ config, onSettings }) {
   )
 }
 
-function GuidePane () {
+function GuidePane ({ platform }) {
   return (
     <div className='set-section guide'>
       <h3>Read me — what Radiant can do</h3>
@@ -3603,12 +3612,25 @@ function GuidePane () {
       {GUIDE.map(sec => (
         <div key={sec.title} className='guide-section'>
           <div className='guide-title'>{sec.title}</div>
-          {sec.items.map(([name, desc]) => (
-            <div key={name} className='guide-item'>
-              <span className='guide-name'>{name}</span>
-              <span className='guide-desc'>{desc}</span>
-            </div>
-          ))}
+          {sec.items.map(([name, desc], i) => {
+            // A name/desc may be a function of the server platform (for
+            // wording that differs per OS), or return null to hide the item
+            // where the feature does not exist (dictation on Windows).
+            // Static strings can carry {DEVICE} and {HOTKEY:…} placeholders,
+            // filled with the platform's noun and shortcut label.
+            const fill = t => typeof t === 'string'
+              ? t.replaceAll('{DEVICE}', deviceNoun(platform)).replaceAll('{HOTKEY:⌘K}', hotkey('⌘K', platform))
+              : t
+            const n = fill(typeof name === 'function' ? name(platform) : name)
+            const d = fill(typeof desc === 'function' ? desc(platform) : desc)
+            if (n == null || d == null) return null
+            return (
+              <div key={n} className='guide-item'>
+                <span className='guide-name'>{n}</span>
+                <span className='guide-desc'>{d}</span>
+              </div>
+            )
+          })}
         </div>
       ))}
     </div>
@@ -3648,7 +3670,7 @@ export default function Settings ({ config, initialTab = 'providers', initialAge
           ))}
         </nav>
         <div className='modal-body'>
-          {tab === 'guide' && <GuidePane />}
+          {tab === 'guide' && <GuidePane platform={config?.platform} />}
           {tab === 'providers' && <ProvidersPane config={config} onConfigChange={onConfigChange} />}
           {tab === 'models' && <ModelsPane onModelsChanged={onModelsChanged} config={config} onSettings={onSettings} />}
           {tab === 'agents' && <AgentsPane config={config} onConfigChange={onConfigChange} initialView={initialAgentView} />}

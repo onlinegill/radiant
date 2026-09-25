@@ -58,7 +58,9 @@ const PS_READ_ONLY = new Set([
   'get-date', 'get-item', 'get-process', 'get-service', 'get-command', 'get-help',
   'get-member', 'where-object', 'sort-object', 'measure-object', 'format-table',
   'format-list', 'out-string', 'test-path', 'split-path', 'join-path', 'resolve-path',
-  'dir', 'gc', 'gci', 'gl', 'sls', 'gps', 'gdr'
+  'dir', 'gc', 'gci', 'gl', 'sls', 'gps', 'gdr',
+  // where.exe is the Windows `which` — locating a binary is not an action.
+  'where.exe', 'where'
 ])
 // Commands that are only read-only in some of their moods. `git config` writes
 // (it was one of the bypasses above) and `git stash`/`tag`/`checkout` mutate, so

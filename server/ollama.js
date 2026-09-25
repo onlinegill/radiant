@@ -6,9 +6,14 @@ import { execSync } from 'child_process'
 // macOS GUI apps (launched from Finder/Dock) don't inherit the shell PATH, so a
 // bare `spawn('ollama')` fails with ENOENT even though `ollama` works in a
 // terminal. Resolve the real binary and give spawned processes an augmented PATH.
-const EXTRA_DIRS = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', path.join(os.homedir(), '.local/bin')]
+// ⚠️ THE JOIN MUST BE path.delimiter. ':' on Windows merges the whole PATH into
+// one garbage entry (C:\Windows\system32 becomes unresolvable), which broke
+// every agent command there — they all spawn with this env.
+const EXTRA_DIRS = process.platform === 'win32'
+  ? []
+  : ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', path.join(os.homedir(), '.local/bin')]
 
-export const SPAWN_ENV = { ...process.env, PATH: [...EXTRA_DIRS, process.env.PATH || ''].filter(Boolean).join(':') }
+export const SPAWN_ENV = { ...process.env, PATH: [...EXTRA_DIRS, process.env.PATH || ''].filter(Boolean).join(path.delimiter) }
 
 // ⚠️ THE AGENT'S COMMANDS DO NOT GET THE SECRETS. A command the model runs —
 // `env`, a script that prints its environment, a crash dump — would show every
@@ -40,7 +45,9 @@ export function resolveBin (name, envVar) {
   if (envVar && process.env[envVar] && fs.existsSync(process.env[envVar])) return set(process.env[envVar])
   for (const d of EXTRA_DIRS) { const p = path.join(d, name); if (fs.existsSync(p)) return set(p) }
   try {
-    const p = execSync(`command -v ${name}`, { env: SPAWN_ENV, encoding: 'utf8' }).trim()
+    // `command -v` is a Unix shell builtin; on Windows ask where.exe instead.
+    const probe = process.platform === 'win32' ? `where.exe ${name}` : `command -v ${name}`
+    const p = execSync(probe, { env: SPAWN_ENV, encoding: 'utf8' }).trim().split(/\r?\n/)[0]
     if (p && fs.existsSync(p)) return set(p)
   } catch {}
   return set(name) // last resort; ENOENTs if genuinely not installed

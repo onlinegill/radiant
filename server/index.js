@@ -25,7 +25,7 @@ import { commandRisk } from './util.js'
 import { claimLock, beatLock, releaseLock, describeHolder, sweepLegacyLocks, BEAT_MS } from './lock.js'
 import { prStatus } from './pr.js'
 const LOCK_HOST = computerName()   // "Tony's Home MBP M4", not a DNS name
-import { IS_MAC, IS_WINDOWS, openCommand, chromeBinary, tailscaleBinary, defaultShell, cpuName, osVersion as osProductVersion, computerName, agentShell } from './platform.js'
+import { IS_MAC, IS_WINDOWS, openCommand, chromeBinary, tailscaleBinary, defaultShell, cpuName, osVersion as osProductVersion, computerName, agentShell, deviceNoun } from './platform.js'
 import { listFacts, addFacts, addFactManual, deleteFact, clearFacts, relevantFacts } from './memory.js'
 import { shouldReflect, reflectionPrompt, parseProposal, addSuggestion } from './skillsmith.js'
 import {
@@ -931,7 +931,9 @@ app.post('/api/data-dir', (req, res) => {
     // means the service is signed out. Both were previously one opaque line.
     const code = e?.code || ''
     const why = /EPERM|EACCES/.test(code)
-      ? 'macOS would not let Radiant write there. If this is a managed Mac, that folder may be restricted.'
+      ? (IS_WINDOWS
+          ? 'Windows would not let Radiant write there. If this is a managed PC, that folder may be restricted.'
+          : 'macOS would not let Radiant write there. If this is a managed Mac, that folder may be restricted.')
       : /ENOENT|ENOTDIR/.test(code)
         ? 'That folder does not exist and could not be created. If it is a cloud folder, check the service is signed in.'
         : e.message
@@ -1855,8 +1857,16 @@ app.get('/api/system', (req, res) => {
   try {
     const modelsPath = path.join(os.homedir(), '.ollama', 'models')
     const target = fs.existsSync(modelsPath) ? modelsPath : os.homedir()
-    const out = execSync(`df -k "${target}"`, { timeout: 3000 }).toString().trim().split('\n').pop().split(/\s+/)
-    diskFreeGB = Math.round(Number(out[3]) / (1024 * 1024))
+    if (IS_WINDOWS) {
+      // fs.statfs is not available; ask the drive letter via PowerShell.
+      const drive = path.parse(path.resolve(target)).root.replace(/\\$/, '')
+      const out = execSync(`powershell.exe -NoProfile -NonInteractive -Command "(Get-PSDrive '${drive}' | Select-Object -ExpandProperty Free)"`, { timeout: 5000 }).toString().trim()
+      diskFreeGB = Math.round(Number(out) / (1024 * 1024 * 1024))
+    } else {
+      const out = execSync(`df -k "${target}"`, { timeout: 3000 }).toString().trim().split('\n').pop().split(/\s+/)
+      diskFreeGB = Math.round(Number(out[3]) / (1024 * 1024))
+    }
+    if (!Number.isFinite(diskFreeGB)) diskFreeGB = null
   } catch {}
   // ⚠️ SAY WHICH MAC THIS IS. Everything below describes the machine running the
   // SERVER, which is not the machine the user is looking at when they are

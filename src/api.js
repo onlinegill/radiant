@@ -545,14 +545,14 @@ export async function saveToFile (name, mime, content) {
  * along in /api/config beside serverHost rather than being read from the
  * browser: navigator.platform would describe the wrong computer, confidently.
  *
- * Undefined until the config arrives, and 'Mac' is the right thing to say while
- * waiting — it is what every existing string already said, so nothing flickers
- * on the platform this was written for.
+ * Undefined until the config arrives, and 'computer' is the honest thing to say
+ * while waiting — neutral on every platform, replaced by the real noun the
+ * moment the platform is known.
  */
 export function deviceNoun (platform) {
   if (platform === 'win32') return 'PC'
-  if (platform && platform !== 'darwin') return 'computer'
-  return 'Mac'
+  if (platform === 'darwin') return 'Mac'
+  return 'computer'
 }
 
 /**
